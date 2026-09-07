@@ -1,0 +1,43 @@
+﻿EM	0	04:48:00.936	Network	'1200252169': scanning network for access points
+OK	0	04:48:09.331	Network	'1200252169': scanning network finished
+OO	0	10:48:00.764	Network	'1200252169': scanning network for access points
+QI	0	10:48:09.163	Network	'1200252169': scanning network finished
+NQ	1	11:42:13.022	Network	'1200252169': connection to JustMarkets-Demo3 lost
+OK	0	11:42:19.919	Network	'1200252169': authorized on JustMarkets-Demo3 through UK7_11 (ping: 74.40 ms, build 5800)
+NJ	0	11:42:19.919	Network	'1200252169': previous successful authorization performed from 5.29.16.153 on 2026.09.06 17:43:31
+DJ	0	11:42:20.186	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 0 positions, 0 orders, 272 symbols, 0 spreads
+KG	0	11:42:20.186	Network	'1200252169': trading has been enabled, demo account - hedging mode
+KK	0	11:42:20.186	Network	'1200252169': balance management has been disabled - demo account
+NQ	0	11:42:21.253	Network	'1200252169': scanning network for access points
+ND	0	11:42:28.052	Network	'1200252169': scanning network finished
+LM	0	13:19:12.226	LiveUpdate	start "C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\liveupdate\terminal64.exe" /update /path:"C:\Program Files\MetaTrader 5" 
+QK	0	13:19:13.408	Experts	expert AccountGuardian (XAUUSD.ecn,M15) removed
+DJ	0	13:19:14.318	Terminal	exit with code 0
+DG	0	13:19:14.727	Network	'1200252169': disconnected from JustMarkets-Demo3
+DQ	0	13:19:14.785	Terminal	stopped with 0
+FE	0	13:19:14.788	Terminal	shutdown with 0
+FM	0	13:19:26.702	Terminal	MetaTrader 5 x64 build 6182 started for MetaQuotes Ltd.
+DG	0	13:19:26.703	Terminal	Windows 11 build 26200, 10 x 12th Gen Intel Core i5-1235U, AVX2, 6 / 15 Gb memory, 162 / 346 Gb disk, UAC, GMT+2
+MJ	0	13:19:26.703	Terminal	C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075
+LD	0	13:19:26.705	MCP	started on 127.0.0.1:22346
+QS	0	13:19:27.566	Experts	expert AccountGuardian (XAUUSD.ecn,M15) loaded successfully
+EK	0	13:19:28.352	Network	'1200252169': authorized on JustMarkets-Demo3 through UK7_11 (ping: 73.75 ms, build 5800)
+MJ	0	13:19:28.352	Network	'1200252169': previous successful authorization performed from 5.29.16.153 on 2026.09.07 11:42:20
+LE	0	13:19:28.582	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 0 positions, 0 orders, 272 symbols, 0 spreads
+CG	0	13:19:28.582	Network	'1200252169': trading has been enabled, demo account - hedging mode
+DK	0	13:19:28.583	Network	'1200252169': balance management has been disabled - demo account
+PR	2	13:19:28.765	Experts	initializing of AccountGuardian (XAUUSD.ecn,M15) failed with code 32767 (incorrect parameters)
+PP	0	13:19:28.773	Experts	expert AccountGuardian (XAUUSD.ecn,M15) removed
+DG	0	13:26:25.440	Terminal	exit with code 0
+PR	0	13:26:25.444	Network	'1200252169': disconnected from JustMarkets-Demo3
+RK	0	13:26:25.512	Terminal	stopped with 0
+RR	0	13:26:25.515	Terminal	shutdown with 0
+HP	0	13:27:09.117	Terminal	MetaTrader 5 x64 build 6182 started for MetaQuotes Ltd.
+HP	0	13:27:09.117	Terminal	Windows 11 build 26200, 10 x 12th Gen Intel Core i5-1235U, AVX2, 6 / 15 Gb memory, 161 / 346 Gb disk, UAC, GMT+2
+HP	0	13:27:09.117	Terminal	C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075
+RR	0	13:27:09.118	MCP	started on 127.0.0.1:22346
+GF	0	13:27:10.394	Network	'1200252169': authorized on JustMarkets-Demo3 through UK7_11 (ping: 73.75 ms, build 5800)
+HP	0	13:27:10.394	Network	'1200252169': previous successful authorization performed from 5.29.16.153 on 2026.09.07 13:19:29
+MO	0	13:27:10.624	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 0 positions, 0 orders, 272 symbols, 0 spreads
+FJ	0	13:27:10.624	Network	'1200252169': trading has been enabled, demo account - hedging mode
+RQ	0	13:27:10.624	Network	'1200252169': balance management has been disabled - demo account
