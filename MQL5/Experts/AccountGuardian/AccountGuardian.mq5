@@ -955,6 +955,20 @@ int OnInit()
              + "); a fresh CORRUPT_STATE file was written and the boot derivation"
              " will weigh it at the SYNCING exit");
 
+   //--- GV lock mirror, reported beside the state file (defect 2 witness line,
+   //--- owner ruling D2D4-2(b) of 2026-09-09): what the mirror held at the
+   //--- moment OnInit read it, lock or no lock, so a zero is on the record as
+   //--- a zero. A missing GV reads as 0 and prints as 1970.01.01 00:00:00.
+   //--- This is a live read taken at init and it is REPORTED, never acted on:
+   //--- the GV witness in AgBootDerivation reads the live GV again at the
+   //--- SYNCING exit, and under the state gate in OnTimer nothing writes the
+   //--- mirror between the two reads, so the two agree unless a hand cleared
+   //--- it in between.
+   double gv_init = 0.0;
+   GlobalVariableGet(AgGvLock(), gv_init);
+   AgInfo("lock GV mirror at init|raw=" + TimeToString((datetime)(long)gv_init, TIME_DATE | TIME_SECONDS)
+          + "|weighed by the boot derivation at the SYNCING exit");
+
    //--- Ratchet floor (Phase 2 Stage 5). Loaded for the same reason the state
    //--- file is: AgFloorSave refuses while g_ag_floor_loaded is false, so
    //--- without this the floor could never be persisted. A floor from a prior
@@ -1070,17 +1084,34 @@ void OnTimer()
      }
 
    //--- GV lock mirror (Phase 2 Stage 4, design doc item 4). Rewritten from
-   //--- the authoritative in-memory lock state every tick, unconditionally,
-   //--- mirroring the mutex-heartbeat pattern directly above. That is what
-   //--- makes it SELF-HEALING against live tampering: a GV cleared through
-   //--- the terminal's Global Variables window while the EA is alive is
-   //--- restored within one tick, so no separate re-derivation is needed.
+   //--- the authoritative in-memory lock state every tick IN ACTIVE AND IN
+   //--- LOCKED, the two states whose memory is authoritative for it, and in
+   //--- no other state. THE STATE GATE, defect 2 of the fix order FINAL of
+   //--- 2026-08-19, owner ruling D2D4-1(a) of 2026-09-09, plan
+   //--- docs/FIXPLAN_PHASE3_DEFECTS_2_4_2026-09-08.md section 3.1.
+   //--- THE DEFECT THIS CLOSES: a fresh image holds g_ag_locked_until at its
+   //--- initialiser, 0, until AgEnterLockFromBoot runs at the SYNCING exit,
+   //--- which AgHistoryStable puts on the third tick at the earliest. The
+   //--- previous build wrote the mirror unconditionally, so ticks one and
+   //--- two flushed 0 over the persisted value and the GV witness in
+   //--- AgBootDerivation then read its own zero. Measured on both cold
+   //--- boots of 2026-08-18, where the witness fired only on the one reload
+   //--- that had preserved memory (LEDGER, defect 2 entry).
+   //--- In SYNCING nothing is written, so the value the previous image left
+   //--- is still there when the witness reads it. In SAFE_HALT nothing is
+   //--- written, so a persisted lock's mirror outlives a halt. Within ACTIVE
+   //--- and LOCKED the mirror stays SELF-HEALING against live tampering
+   //--- exactly as before: a GV cleared through the terminal's Global
+   //--- Variables window while the EA is alive is restored within one tick.
+   //--- Expiry still clears it: AgEvaluateLocked zeroes memory, the post
+   //--- expiry SYNCING occupancy writes nothing, and the first ACTIVE tick
+   //--- writes 0. g_ag_state is State.mqh's own global, not a Stage 6 one.
    //--- The state FILE is deliberately not rewritten per tick; it is written
    //--- at breach, at expiry and at corruption handling only, matching the
    //--- halt file's event-triggered pattern. Deleting the file while the EA
    //--- is alive and LOCKED changes nothing, since enforcement runs from
    //--- memory and restart recovery is what the boot derivation covers.
-   if(g_owns_mutex)
+   if(g_owns_mutex && (g_ag_state == AG_STATE_ACTIVE || g_ag_state == AG_STATE_LOCKED))
      {
       GlobalVariableSet(AgGvLock(), (double)(long)g_ag_locked_until);
       GlobalVariablesFlush();
