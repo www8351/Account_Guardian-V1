@@ -119,6 +119,10 @@ bool     g_ag_lock_inputs_captured = false;
 //--- that checkable rather than asserted. They are deliberately kept
 //--- separate from g_ag_degraded, which the Q10 gate sets and the numbers
 //--- field reads, precisely so the two cannot be confused.
+//--- Readers of g_ag_obs_connected, both loggers: AgObservabilityNote for
+//--- the waiting_on note, and since the D2D4 build AgPnlNumbersString for
+//--- the DEGRADED| prefix on the LOCKED numbers group (owner ruling
+//--- D2D4-6(a) of 2026-09-09). Neither is a decision path.
 bool     g_ag_obs_connected        = true;    // TERMINAL_CONNECTED, sampled every tick
 bool     g_ag_obs_resync_prev      = false;   // edge detector for the RESYNC lines
 
@@ -145,16 +149,44 @@ void AgArmTimer()
   }
 
 //+------------------------------------------------------------------+
-//| ACTIVE governing numbers as a LIFE-line field group (A6, 4.5).   |
-//| Empty until the first completed ACTIVE pass, or outside ACTIVE.  |
+//| Governing numbers as a LIFE-line field group, two states.        |
+//| ACTIVE (A6, 4.5): empty until the first completed ACTIVE pass.   |
 //| Prefixed DEGRADED| whenever g_ag_degraded holds (Q10 FINAL,      |
 //| owner finding 2026-08-09): the numbers are last-known figures    |
 //| from before a disconnect, and a reader of the numbers field      |
 //| alone, without cross-referencing waiting_on, must not be able    |
 //| to mistake them for a fresh, live evaluation.                    |
+//| LOCKED (defect 4 of the fix order FINAL of 2026-08-19, owner     |
+//| rulings D2D4-3(a), 4(a), 5(a), 6(a) and 7(a) of 2026-09-09, plan |
+//| docs/FIXPLAN_PHASE3_DEFECTS_2_4_2026-09-08.md section 3.4): THE  |
+//| SNAPSHOT AND ACCOUNT GROUP, built by AgLockedNumbersString in    |
+//| Log.mqh from what a lock still makes meaningful. locked_until    |
+//| and the two Q6 snapshot fields are the model the window is       |
+//| judged by, so they are the governing figures and the live limit  |
+//| is not printed. balance is ACCOUNT_BALANCE and floating is       |
+//| AgFloating, read here on every tick, the same per tick cost the  |
+//| ACTIVE pass already carries. equity is balance plus floating,    |
+//| never an ACCOUNT_EQUITY read (D2D4-4(a)). No history walk. The   |
+//| DEGRADED| prefix is keyed on g_ag_obs_connected, the Stage 6     |
+//| connection sample, read here in a logger and nowhere on a        |
+//| decision path (D2D4-6(a)); while disconnected the two platform   |
+//| reads return last-known figures and the prefix says so. What the |
+//| 2026-08-18 liquidation cost, thirteen positions force closed     |
+//| under a LOCKED line carrying not one figure, is what this gives  |
+//| back: balance and equity on every LOCKED line, readable from the |
+//| journal alone. Nothing here gates, delays or suppresses anything.|
 //+------------------------------------------------------------------+
 string AgPnlNumbersString()
   {
+   if(g_ag_state == AG_STATE_LOCKED)
+     {
+      double balance  = AccountInfoDouble(ACCOUNT_BALANCE);
+      double floating = AgFloating();
+      string locked_prefix = g_ag_obs_connected ? "" : "DEGRADED|";
+      return locked_prefix + AgLockedNumbersString(g_ag_locked_until, g_ag_state_limit_snap,
+                                                   g_ag_state_base_snap, balance, floating,
+                                                   balance + floating);
+     }
    if(g_ag_state != AG_STATE_ACTIVE || !g_ag_have_pnl_numbers)
       return "";
    string prefix = g_ag_degraded ? "DEGRADED|" : "";
@@ -167,6 +199,13 @@ string AgPnlNumbersString()
   }
 
 //+------------------------------------------------------------------+
+//| Chart banner. The last line is state specific: SAFE_HALT names   |
+//| the halt and the resume procedure, ACTIVE carries pnl vs limit,  |
+//| and LOCKED carries the snapshot limit and the balance (defect 4, |
+//| owner ruling D2D4-8(b) of 2026-09-09), so the on chart record    |
+//| matches the journal's LOCKED group. The Phase 1 placeholder now  |
+//| survives for SYNCING only.                                       |
+//+------------------------------------------------------------------+
 void AgRefreshBanner()
   {
    string pnl = "n/a (Phase 1, no ACTIVE pass has completed yet)";
@@ -175,6 +214,9 @@ void AgRefreshBanner()
    else if(g_ag_state == AG_STATE_ACTIVE && g_ag_have_pnl_numbers)
       pnl = (g_ag_degraded ? "DEGRADED: " : "")
           + DoubleToString(g_ag_last_pnl, 2) + " vs -" + DoubleToString(g_ag_last_limit, 2);
+   else if(g_ag_state == AG_STATE_LOCKED)
+      pnl = "locked: snapshot limit " + DoubleToString(g_ag_state_limit_snap, 2)
+          + ", balance " + DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE), 2);
    AgBanner(AgStateName(g_ag_state), AgLockReasonName(g_ag_lock_reason), g_ag_locked_until, pnl);
   }
 
@@ -900,7 +942,10 @@ int OnInit()
   {
    g_ag_verbosity = LogVerbosity;
    g_ag_login     = AccountInfoInteger(ACCOUNT_LOGIN);
-   AgInfo("init|build=R10|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
+   //--- build label, standing rule 7's identity channel: D2D4 names the
+   //--- content of this build, the defect 2 and defect 4 fixes (owner
+   //--- ruling D2D4-13(a) of 2026-09-09).
+   AgInfo("init|build=D2D4|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
 
    //--- core config validation (Q4): refuse to run, visibly
    string why = "";
