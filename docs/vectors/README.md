@@ -44,6 +44,26 @@ live hazard, because a row that loads it by mistake would run an input set this
 build does not have. Deleting those copies is a hand action in the terminal folder
 and belongs to the owner.
 
+## Synthetic checks in `AgPhase2StateVectors`
+
+The script `MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5` runs from the
+Navigator and prints one `AGVEC|<name>|PASS` line per check plus a final
+`AGVEC|SUMMARY|<pass>/<total>` line. On this build the summary reads `100/100`.
+The five checks added by the D2D4 build assert the exact string of the `LOCKED`
+numbers group, built by `AgLockedNumbersString` in `Log.mqh`, before the build is
+deployed:
+
+| Check | Asserts |
+|---|---|
+| `d2d4_locked_group_exact_string` | `locked_until=2026.09.01 01:00:00\|limit_snap=117.54\|base_snap=2350.86\|balance=2311.26\|floating=-115.50\|equity=2195.76` for those six arguments |
+| `d2d4_locked_group_field_order` | the six keys appear in that order, `locked_until` first |
+| `d2d4_locked_group_two_decimal_rendering` | two decimals throughout: 99.2985 renders `99.30`, -52.254 renders `-52.25`, 1880.876 renders `1880.88` |
+| `d2d4_locked_group_corrupt_state_renders_zero` | a zeroed snapshot renders `limit_snap=0.00\|base_snap=0.00` while `balance` and `equity` still carry |
+| `d2d4_locked_group_carries_only_the_six_ruled_fields` | the formatter's own output carries no `breach_time`, `peak`, `ratchet`, `anchor=`, `realized=`, `\|limit=`, `pnl` or `DEGRADED` |
+
+The `DEGRADED\|` prefix on a live `LOCKED` line is added by the advisor, not by
+the formatter, and is keyed on the terminal's connection state.
+
 ## Which copy is operative
 
 The **terminal Presets folder is the operative copy**. It is the only one the

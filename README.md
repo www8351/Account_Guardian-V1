@@ -67,7 +67,7 @@ stateDiagram-v2
 Restart recovery weighs three independent witnesses at the `SYNCING` exit and the **strictest wins**:
 
 1. **The state file** on disk, `AccountGuardian\state_<login>.dat`, carrying the reason, the expiry, and the breach snapshot.
-2. **A terminal global variable** mirror, `AG_LOCK_<login>`, rewritten from memory every tick so clearing it by hand is undone within a second.
+2. **A terminal global variable** mirror, `AG_LOCK_<login>`, rewritten from memory every tick while `ACTIVE` or `LOCKED`, so clearing it by hand is undone within a second. While `SYNCING` it is left untouched, so the value a fresh start inherits is still there when the witness reads it, and the value found at startup is journaled as `lock GV mirror at init`.
 3. **A replay of the broker's deal history** since the day anchor. This one is the authority, because it lives on the server and a local machine cannot forge or delete it. The replay walks the day's deals in order and tracks the running minimum of cumulative realized PnL, so a loss that breached and then recovered still locks: the dip is what counts, not the final total.
 
 A witness can only add a lock, never remove one. If history cannot be read, the pass is declared not evaluable and the advisor stays in `SYNCING` for another pass, rather than reading a failed read as "no deals, therefore no breach".
@@ -173,7 +173,22 @@ AG|2026.08.17 23:57:59|LIFE|state=ACTIVE|seconds_in_state=3478|waiting_on=-|anch
 
 A `DEGRADED|` prefix on the numbers means the terminal was disconnected and these are last known figures, not a fresh evaluation. No breach decision is taken from a disconnected pass, and after reconnect the advisor re-runs the history-stability check before it resumes deciding.
 
-The numbers field is present in `ACTIVE` only. A `LOCKED` line carries state, seconds, and `waiting_on`, and no PnL figures.
+In `LOCKED` the numbers field carries the snapshot and account group instead, so the balance and the equity at any sampled instant inside a locked window are readable from the journal alone:
+
+```
+AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >= locked_until|locked_until=2026.08.19 01:00:00|limit_snap=106.66|base_snap=2133.13|balance=2034.73|floating=-9.10|equity=2025.63|server=...|local=...
+```
+
+| Field | What it tells you |
+|---|---|
+| `locked_until` | When the lock expires, on the broker clock. |
+| `limit_snap` | The limit snapshotted at the breach. This is the figure the locked window is judged by; a limit changed while locked is ignored and journaled. |
+| `base_snap` | The day base snapshotted at the breach. |
+| `balance` | Account balance right now. |
+| `floating` | Profit plus swap across every open position right now. |
+| `equity` | `balance + floating`. |
+
+A `DEGRADED|` prefix on the `LOCKED` group means the terminal was disconnected when the line was written, so `balance` and `floating` are the platform's last known figures. A lock declared after a corrupt state file carries `limit_snap=0.00` and `base_snap=0.00`, because that lock has no trustworthy snapshot. The breach instant itself is not on the line; it is on the transition line and in the state file. While locked the advisor walks no deal history; the group is two platform reads and one pass over the open positions.
 
 <!-- screenshot: the Experts tab showing a run of ACTIVE LIFE lines with the numbers field -->
 
@@ -317,7 +332,7 @@ stateDiagram-v2
 שחזור אחרי הפעלה מחדש שוקל שלושה עדים בלתי תלויים ביציאה מ`SYNCING`, **והמחמיר מנצח**:
 
 1. **קובץ המצב** בדיסק, `AccountGuardian\state_<login>.dat`, הנושא את הסיבה, את מועד הפקיעה ואת תצלום החריגה.
-2. **משתנה גלובלי של הטרמינל** בשם `AG_LOCK_<login>`, הנכתב מחדש מהזיכרון בכל פעימה, כך שמחיקה ידנית שלו מבוטלת בתוך שנייה.
+2. **משתנה גלובלי של הטרמינל** בשם `AG_LOCK_<login>`, הנכתב מחדש מהזיכרון בכל פעימה במצבים `ACTIVE` ו`LOCKED`, כך שמחיקה ידנית שלו מבוטלת בתוך שנייה. במצב `SYNCING` הוא אינו נכתב כלל, כך שהערך שהפעלה טרייה ירשה עדיין נמצא שם כשהעד קורא אותו, והערך שנמצא בעלייה נרשם ביומן בשורה `lock GV mirror at init`.
 3. **שחזור היסטוריית העסקאות של הברוקר** מאז עוגן היום. זהו העד הסמכותי, כי הוא יושב בשרת ומכונה מקומית אינה יכולה לזייף או למחוק אותו. השחזור עובר על עסקאות היום לפי הסדר ועוקב אחר המינימום הרץ של הרווח וההפסד הממומש המצטבר, כך שהפסד שחרג ואחר כך התאושש עדיין נועל: מה שקובע הוא השפל, לא הסכום הסופי.
 
 עד יכול רק להוסיף נעילה, לעולם לא להסיר אחת. אם אי אפשר לקרוא את ההיסטוריה, המעבר מוכרז כבלתי ניתן להערכה והיועץ נשאר ב`SYNCING` למעבר נוסף, במקום לקרוא כישלון קריאה כאילו פירושו שאין עסקאות ולכן אין חריגה.
@@ -423,7 +438,22 @@ AG|2026.08.17 23:57:59|LIFE|state=ACTIVE|seconds_in_state=3478|waiting_on=-|anch
 
 הקידומת `DEGRADED|` על המספרים פירושה שהטרמינל היה מנותק ואלה נתונים אחרונים ידועים, לא הערכה טרייה. שום החלטת חריגה אינה מתקבלת ממעבר מנותק, ואחרי החיבור מחדש היועץ מריץ שוב את בדיקת יציבות ההיסטוריה לפני שהוא חוזר להכריע.
 
-שדה המספרים קיים במצב `ACTIVE` בלבד. שורת `LOCKED` נושאת מצב, שניות ושדה `waiting_on`, ובלי נתוני רווח והפסד.
+במצב `LOCKED` שדה המספרים נושא במקום זאת את קבוצת התצלום והחשבון, כך שהיתרה וההון בכל רגע דגום בתוך חלון נעול ניתנים לקריאה מהיומן לבדו:
+
+```
+AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >= locked_until|locked_until=2026.08.19 01:00:00|limit_snap=106.66|base_snap=2133.13|balance=2034.73|floating=-9.10|equity=2025.63|server=...|local=...
+```
+
+| שדה | מה הוא מספר לך |
+|---|---|
+| `locked_until` | מועד פקיעת הנעילה, בשעון הברוקר. |
+| `limit_snap` | המגבלה שצולמה ברגע החריגה. זהו הנתון שלפיו נשפט חלון הנעילה; שינוי מגבלה בזמן נעילה מתעלמים ממנו ורושמים אותו ביומן. |
+| `base_snap` | בסיס היום שצולם ברגע החריגה. |
+| `balance` | יתרת החשבון ברגע זה. |
+| `floating` | רווח ועוד עמלת החלפה על פני כל הפוזיציות הפתוחות ברגע זה. |
+| `equity` | הסכום `balance + floating`. |
+
+הקידומת `DEGRADED|` על קבוצת `LOCKED` פירושה שהטרמינל היה מנותק כשהשורה נכתבה, ולכן `balance` ו`floating` הם הנתונים האחרונים הידועים לפלטפורמה. נעילה שהוכרזה אחרי קובץ מצב פגום נושאת `limit_snap=0.00` ו`base_snap=0.00`, כי לנעילה כזו אין תצלום אמין. רגע החריגה עצמו אינו מופיע בשורה; הוא נמצא בשורת המעבר ובקובץ המצב. בזמן נעילה היועץ אינו עובר על היסטוריית העסקאות; הקבוצה היא שתי קריאות מהפלטפורמה ומעבר אחד על הפוזיציות הפתוחות.
 
 <!-- screenshot: the Experts tab showing a run of ACTIVE LIFE lines with the numbers field -->
 
