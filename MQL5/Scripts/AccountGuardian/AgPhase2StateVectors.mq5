@@ -589,6 +589,64 @@ void OnStart()
               r10_why);
    AgVecCheck("r10_validate_accepts_defaults", AgValidateLimits(550, 200, r10_why), "550/200");
 
+   //--- D2D4, defect 4 of the fix order FINAL of 2026-08-19 (owner rulings
+   //--- D2D4-3(a), 4(a), 5(a), 7(a) and 9(a) of 2026-09-09). The LOCKED
+   //--- numbers group is built by a pure function in Log.mqh, reachable from
+   //--- this script through Persist.mqh's includes, so its exact string is
+   //--- proven here before the build is deployed. The fixture is the
+   //--- 2026-08-31 V1-A lock's own snapshot, limit 117.54 and base 2350.86,
+   //--- with a balance and a floating the artifact of that day could not
+   //--- carry, which is the defect. equity is what the EA passes, balance
+   //--- plus floating; the formatter never derives it (D2D4-4(a)).
+   datetime d2d4_until = D'2026.09.01 01:00:00';
+   string   d2d4_s     = AgLockedNumbersString(d2d4_until, 117.54, 2350.86, 2311.26, -115.50, 2195.76);
+   AgVecCheck("d2d4_locked_group_exact_string",
+              d2d4_s == "locked_until=2026.09.01 01:00:00|limit_snap=117.54|base_snap=2350.86"
+                        "|balance=2311.26|floating=-115.50|equity=2195.76",
+              d2d4_s);
+
+   //--- The six fields in the ruled order, each introduced by its own key.
+   int d2d4_p1 = StringFind(d2d4_s, "locked_until=");
+   int d2d4_p2 = StringFind(d2d4_s, "|limit_snap=");
+   int d2d4_p3 = StringFind(d2d4_s, "|base_snap=");
+   int d2d4_p4 = StringFind(d2d4_s, "|balance=");
+   int d2d4_p5 = StringFind(d2d4_s, "|floating=");
+   int d2d4_p6 = StringFind(d2d4_s, "|equity=");
+   AgVecCheck("d2d4_locked_group_field_order",
+              d2d4_p1 == 0 && d2d4_p2 > d2d4_p1 && d2d4_p3 > d2d4_p2 && d2d4_p4 > d2d4_p3
+              && d2d4_p5 > d2d4_p4 && d2d4_p6 > d2d4_p5,
+              d2d4_s);
+
+   //--- Two decimals is the rendering, the ACTIVE group's own: the sub-cent
+   //--- limit the state file stores at 8 decimals (c8 above) prints as the
+   //--- cent, exactly as the banner and the breach arithmetic line print it,
+   //--- and a negative floating keeps its sign.
+   string d2d4_r = AgLockedNumbersString(d2d4_until, 99.2985, 1985.97, 1933.13, -52.254, 1880.876);
+   AgVecCheck("d2d4_locked_group_two_decimal_rendering",
+              d2d4_r == "locked_until=2026.09.01 01:00:00|limit_snap=99.30|base_snap=1985.97"
+                        "|balance=1933.13|floating=-52.25|equity=1880.88",
+              d2d4_r);
+
+   //--- D2D4-7(a): a CORRUPT_STATE lock's zeroed snapshot renders as 0.00, a
+   //--- faithful print of what AgStateSetCorrupt stored, while the live
+   //--- figures still carry.
+   string d2d4_c = AgLockedNumbersString(d2d4_until, 0.0, 0.0, 239.63, 0.0, 239.63);
+   AgVecCheck("d2d4_locked_group_corrupt_state_renders_zero",
+              d2d4_c == "locked_until=2026.09.01 01:00:00|limit_snap=0.00|base_snap=0.00"
+                        "|balance=239.63|floating=0.00|equity=239.63",
+              d2d4_c);
+
+   //--- D2D4-5(a) and D8: nothing the rulings omitted leaks in. breach_time
+   //--- is not reported, no pre breach mechanism figure is reported, the live
+   //--- limit is not reported, and the formatter carries no DEGRADED prefix
+   //--- of its own, that being the EA builder's under D2D4-6(a).
+   AgVecCheck("d2d4_locked_group_carries_only_the_six_ruled_fields",
+              StringFind(d2d4_s, "breach_time") < 0 && StringFind(d2d4_s, "peak") < 0
+              && StringFind(d2d4_s, "ratchet") < 0 && StringFind(d2d4_s, "anchor=") < 0
+              && StringFind(d2d4_s, "realized=") < 0 && StringFind(d2d4_s, "|limit=") < 0
+              && StringFind(d2d4_s, "pnl") < 0 && StringFind(d2d4_s, "DEGRADED") < 0,
+              d2d4_s);
+
    PrintFormat("AGVEC|SUMMARY|%d/%d", g_pass, g_total);
   }
 //+------------------------------------------------------------------+

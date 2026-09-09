@@ -87,6 +87,42 @@ void AgProofOfLife(const string state_name, const int seconds_in_state,
   }
 
 //+------------------------------------------------------------------+
+//| LOCKED governing numbers as a LIFE-line field group. Defect 4 of |
+//| the fix order FINAL of 2026-08-19, owner rulings D2D4-3(a),      |
+//| D2D4-4(a), D2D4-5(a), D2D4-7(a) and D2D4-9(a) of 2026-09-09,     |
+//| plan docs/FIXPLAN_PHASE3_DEFECTS_2_4_2026-09-08.md section 3.4.  |
+//| A PURE FUNCTION OF ITS ARGUMENTS, placed here rather than in the |
+//| EA so the vectors script can assert the exact string (ruling C   |
+//| precedent of 2026-08-18): it reads no global, takes no platform  |
+//| read and touches no clock. The EA's builder supplies the values: |
+//| locked_until and the two Q6 snapshot fields from the state model |
+//| the locked window is judged by, balance from ACCOUNT_BALANCE,    |
+//| floating from AgFloating, and equity as balance plus floating,   |
+//| never an ACCOUNT_EQUITY read (D2D4-4(a)). Deliberately ABSENT:   |
+//| breach_time, which the shape 1 FINAL of 2026-08-20 requires be   |
+//| reported with its provenance and is therefore not reported at    |
+//| all (D2D4-5(a)); the live limit, which governs nothing under Q6; |
+//| and peak, peak_level or ratchet_level, PRE BREACH ONLY under D8. |
+//| A CORRUPT_STATE lock renders its zeroed snapshot as 0.00, a      |
+//| faithful print of the model (D2D4-7(a)). The DEGRADED| prefix is |
+//| the caller's (D2D4-6(a)), keyed on the Stage 6 connection sample |
+//| inside the EA's builder, which keeps this function pure and the  |
+//| Stage 6 static row clean. Two decimals throughout, the ACTIVE    |
+//| group's own rendering.                                           |
+//+------------------------------------------------------------------+
+string AgLockedNumbersString(const datetime locked_until, const double limit_snap,
+                             const double base_snap, const double balance,
+                             const double floating, const double equity)
+  {
+   return "locked_until=" + TimeToString(locked_until, TIME_DATE | TIME_SECONDS)
+        + "|limit_snap=" + DoubleToString(limit_snap, 2)
+        + "|base_snap=" + DoubleToString(base_snap, 2)
+        + "|balance=" + DoubleToString(balance, 2)
+        + "|floating=" + DoubleToString(floating, 2)
+        + "|equity=" + DoubleToString(equity, 2);
+  }
+
+//+------------------------------------------------------------------+
 //| Chart banner: state, lock reason, locked_until, PnL vs limit.    |
 //+------------------------------------------------------------------+
 void AgBanner(const string state_name, const string lock_reason,
