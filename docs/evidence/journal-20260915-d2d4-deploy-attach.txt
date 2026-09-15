@@ -4392,3 +4392,133 @@ KK	0	18:18:59.624	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:19:01|INFO|l
 QQ	0	18:19:26.622	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:19:28|LIFE|state=ACTIVE|seconds_in_state=28|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:19:28|local=2026.09.15 18:19:26
 EJ	0	18:19:29.621	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:19:31|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
 IO	0	18:19:56.627	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:19:58|LIFE|state=ACTIVE|seconds_in_state=58|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:19:58|local=2026.09.15 18:19:56
+FM	0	18:19:59.628	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:20:01|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+QL	0	18:20:26.635	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:20:28|LIFE|state=ACTIVE|seconds_in_state=88|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:20:28|local=2026.09.15 18:20:26
+KO	0	18:20:29.641	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:20:31|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+MN	0	18:20:56.622	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:20:58|LIFE|state=ACTIVE|seconds_in_state=118|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:20:58|local=2026.09.15 18:20:56
+QN	0	18:20:59.628	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:21:01|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+EH	0	18:21:26.623	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:21:28|LIFE|state=ACTIVE|seconds_in_state=148|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:21:28|local=2026.09.15 18:21:26
+EQ	0	18:21:29.625	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:21:31|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+CK	0	18:21:56.615	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:21:58|LIFE|state=ACTIVE|seconds_in_state=178|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:21:58|local=2026.09.15 18:21:56
+JS	0	18:21:59.618	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:22:01|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+QJ	0	18:22:26.620	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:22:28|LIFE|state=ACTIVE|seconds_in_state=208|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:22:28|local=2026.09.15 18:22:26
+QR	0	18:22:29.621	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:22:31|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+QE	0	18:22:56.627	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:22:58|LIFE|state=ACTIVE|seconds_in_state=238|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:22:58|local=2026.09.15 18:22:56
+DE	0	18:22:59.627	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:23:01|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+JF	0	18:23:05.965	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|v0_synthetic_login_range_cannot_hit_live_account|PASS
+HD	0	18:23:05.965	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|a1_state_path_differs_from_halt_path|PASS
+IL	0	18:23:05.965	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|a2_state_path_names_the_login|PASS
+RO	0	18:23:05.965	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|a3_magic_is_agstate_not_aghalt|PASS
+HD	0	18:23:05.972	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|state file NOT written: the lock state model was never loaded this session, so writing it would overwrite a real lock with a default-constructed empty one
+FF	0	18:23:05.972	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|b1_save_refuses_when_model_never_loaded|PASS
+OG	0	18:23:05.973	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|b2_refused_save_left_the_file_byte_identical|PASS
+MR	0	18:23:05.975	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c1_save_succeeds_when_loaded|PASS
+NQ	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c2_roundtrip_load_returns_loaded|PASS
+OR	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c3_roundtrip_reason|PASS
+CJ	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c4_roundtrip_locked_until|PASS
+JP	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c5_roundtrip_breach_time|PASS
+DS	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c6_roundtrip_limit_snapshot|PASS
+CI	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c7_roundtrip_base_snapshot|PASS
+HF	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|c8_limit_snapshot_keeps_sub_cent_precision|PASS
+LJ	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d1_missing_file_returns_missing|PASS
+CS	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d2_missing_file_sets_loaded_true|PASS
+NO	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d3_missing_file_model_is_neutral|PASS
+PJ	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d4_missing_file_locked_until_is_zero|PASS
+CH	0	18:23:05.980	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d5_missing_file_wrote_nothing|PASS
+KN	0	18:23:05.988	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|state file failed checksum or does not parse, quarantined as AccountGuardian\state_990000002.dat.bad.15, locking via CORRUPT_STATE until 2026.09.16 01:00:00 and writing a fresh file
+CJ	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e1_bad_checksum_returns_corrupt|PASS
+FN	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e2_bad_checksum_locks_via_corrupt_state|PASS
+IM	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e3_corrupt_locked_until_is_next_day_anchor|PASS
+LQ	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e4_corrupt_carries_no_breach_time|PASS
+JJ	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e5_corrupt_carries_no_limit_snapshot|PASS
+MJ	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e6_corrupt_carries_no_base_snapshot|PASS
+CJ	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e7_corrupt_file_was_quarantined_not_deleted|PASS
+FN	0	18:23:05.990	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e8_a_fresh_file_was_written|PASS
+LP	0	18:23:05.995	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e9_fresh_file_reloads_cleanly|PASS
+NI	0	18:23:05.995	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e10_fresh_file_still_says_corrupt_state|PASS
+EF	0	18:23:05.995	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e11_fresh_file_preserves_locked_until|PASS
+QD	0	18:23:06.001	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|e12_quarantine_holds_the_original_bytes|PASS
+FO	0	18:23:06.004	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|state file failed checksum or does not parse, quarantined as AccountGuardian\state_990000002.dat.bad.16, locking via CORRUPT_STATE until 2026.09.16 01:00:00 and writing a fresh file
+MQ	0	18:23:06.006	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|f1_second_corruption_did_not_reuse_the_first_quarantine_name|PASS
+MJ	0	18:23:06.013	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|state file carries login 990000004 but this account is 990000003, quarantined as AccountGuardian\state_990000003.dat.bad.8, locking via CORRUPT_STATE until 2026.09.16 01:00:00 and writing a fresh file
+KF	0	18:23:06.015	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|g1_login_mismatch_returns_its_own_code|PASS
+HJ	0	18:23:06.015	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|g2_login_mismatch_locks_via_corrupt_state|PASS
+OL	0	18:23:06.015	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|g3_login_mismatch_locked_until_is_next_day_anchor|PASS
+EO	0	18:23:06.015	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|g4_foreign_lock_values_were_not_adopted|PASS
+QQ	0	18:23:06.015	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|g5_foreign_file_was_quarantined|PASS
+CK	0	18:23:06.019	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|g6_fresh_file_after_mismatch_reloads_cleanly|PASS
+QG	0	18:23:06.027	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|state file failed checksum or does not parse, quarantined as AccountGuardian\state_990000005.dat.bad.8, locking via CORRUPT_STATE until 2026.09.16 01:00:00 and writing a fresh file
+GG	0	18:23:06.028	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|h1_unknown_format_version_is_rejected|PASS
+JH	0	18:23:06.028	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|h2_unknown_version_locks_via_corrupt_state|PASS
+EH	0	18:23:06.037	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|state file failed checksum or does not parse, quarantined as AccountGuardian\state_990000006.dat.bad.8, locking via CORRUPT_STATE until 2026.09.16 01:00:00 and writing a fresh file
+RG	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|h3_halt_file_at_the_state_path_is_rejected|PASS
+RJ	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|h4_cross_read_locks_via_corrupt_state|PASS
+MQ	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i1_q1_base_is_next_day_anchor|PASS
+CQ	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i2_latch_floor_is_zero_while_unseeded|PASS
+DO	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i3_ruling_three_frozen_adds_a_full_day|PASS
+CK	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i4_ruling_three_is_exactly_one_extra_day|PASS
+RF	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i5_pre_anchor_breach_does_not_lock_for_minutes|PASS
+IE	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i6_pre_anchor_unfrozen_still_takes_the_imminent_anchor|PASS
+CG	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i7_ruling_four_floors_a_stale_computed_value|PASS
+GM	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i8_ruling_four_is_a_floor_not_a_replacement|PASS
+HR	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i9_witness_value_beyond_the_ceiling_is_clamped|PASS
+RP	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i10_witness_value_inside_the_bounds_is_untouched|PASS
+NQ	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i11_rewound_clock_floor_sits_above_the_clamp_ceiling|PASS
+HL	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i12_rewound_clock_floor_wins_over_the_clamp|PASS
+GK	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i13_rewound_clock_floor_wins_even_for_an_inflated_witness|PASS
+LE	0	18:23:06.039	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|i14_computed_path_is_not_clamped|PASS
+LK	0	18:23:06.040	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|INFO|ratchet seeded|anchor=2026.02.10 01:00:00|floor=100.00
+JJ	0	18:23:06.041	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j1_seed_takes_the_live_limit|PASS
+NK	0	18:23:06.041	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j1b_seed_stores_the_floor|PASS
+GR	0	18:23:06.041	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j1c_seed_stores_the_day_anchor|PASS
+GS	0	18:23:06.045	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j2_lowers_on_a_decrease|PASS
+LH	0	18:23:06.045	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j2b_enforces_the_lowered_value|PASS
+LJ	0	18:23:06.045	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|ratchet HOLDING against a raised limit (question SEVEN): live=150.00 floor=80.00; the floor is enforced until the next day anchor
+ES	0	18:23:06.045	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j3_holds_the_floor_against_a_raised_limit|PASS
+JP	0	18:23:06.045	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j3b_enforces_the_floor_not_the_raised_limit|PASS
+IH	0	18:23:06.045	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|INFO|ratchet reseeded at rollover|old_anchor=2026.02.10 01:00:00|new_anchor=2026.02.11 01:00:00|old_floor=80.00|new_floor=150.00
+LF	0	18:23:06.048	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j4_reseeds_at_rollover|PASS
+QL	0	18:23:06.048	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j4b_reseed_moves_the_day_anchor|PASS
+HL	0	18:23:06.048	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j4c_reseed_enforces_the_new_live_limit|PASS
+PE	0	18:23:06.052	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j5_no_reseed_on_a_backward_step|PASS
+CE	0	18:23:06.052	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j5b_backward_step_does_not_move_the_anchor|PASS
+LH	0	18:23:06.052	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j5c_backward_step_still_enforces_the_held_floor|PASS
+MN	0	18:23:06.060	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j6_floor_file_reloads|PASS
+EN	0	18:23:06.060	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j6b_floor_survives_a_restart|PASS
+JJ	0	18:23:06.060	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j7_stale_floor_is_declined|PASS
+KK	0	18:23:06.060	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j7b_same_day_floor_is_applied|PASS
+CM	0	18:23:06.068	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|floor file failed checksum or does not parse, quarantined as AccountGuardian\floor_990000011.dat.bad.6, the ratchet reseeds from the live limit on the next completed pass (no lock follows: the floor is not lock state)
+LG	0	18:23:06.070	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j8_corrupt_floor_is_quarantined|PASS
+OI	0	18:23:06.070	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j8b_corrupt_floor_resets_to_nothing|PASS
+LS	0	18:23:06.070	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|j8c_corrupt_floor_file_was_not_deleted|PASS
+NL	0	18:23:06.073	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|INFO|ratchet seeded|anchor=2026.02.10 01:00:00|floor=106.66
+RS	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k1_roundtrip_floor_reloads|PASS
+PP	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k2_no_hold_warn_on_the_reloaded_floor|PASS
+KG	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k2b_reloaded_floor_is_not_rewritten|PASS
+QG	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k2c_enforced_value_tracks_the_live_limit|PASS
+FJ	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k3_half_cent_above_does_not_lower_the_floor|PASS
+CR	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k4_half_cent_below_does_not_warn|PASS
+OL	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AG|2026.09.15 18:23:07|WARN|ratchet HOLDING against a raised limit (question SEVEN): live=106.66 floor=106.64; the floor is enforced until the next day anchor
+PG	0	18:23:06.082	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k5_two_cent_raise_still_warns|PASS
+MK	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|k6_two_cent_decrease_still_lowers_the_floor|PASS
+NJ	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_percent_member_count_is_22|PASS
+HQ	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_currency_member_count_is_48|PASS
+NM	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_percent_floor_and_ceiling|PASS
+II	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_percent_off_grid_rejected|PASS
+OG	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_currency_two_segments|PASS
+LP	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_map_percent_550_is_5_50|PASS
+LO	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_map_percent_25_is_0_25|PASS
+CH	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_map_currency_200|PASS
+QI	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_default_limit_is_min_of_legs|PASS
+PN	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_validate_rejects_currency_zero|PASS
+QN	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|r10_validate_accepts_defaults|PASS
+QG	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d2d4_locked_group_exact_string|PASS
+ID	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d2d4_locked_group_field_order|PASS
+OS	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d2d4_locked_group_two_decimal_rendering|PASS
+JM	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d2d4_locked_group_corrupt_state_renders_zero|PASS
+PL	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|d2d4_locked_group_carries_only_the_six_ruled_fields|PASS
+HM	0	18:23:06.084	AgPhase2StateVectors (BTCUSD.ecn,M15)	AGVEC|SUMMARY|100/100
+PJ	0	18:23:26.627	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:23:28|LIFE|state=ACTIVE|seconds_in_state=268|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:23:28|local=2026.09.15 18:23:26
+LR	0	18:23:29.635	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:23:31|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
+KE	0	18:23:56.629	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:23:58|LIFE|state=ACTIVE|seconds_in_state=298|waiting_on=-|anchor=2026.09.15 01:00:00|realized=0.00|floating=0.00|base=2294.76|limit=126.21|pnl_vs_limit=0.00 vs -126.21|server=2026.09.15 18:23:58|local=2026.09.15 18:23:56
+IE	0	18:23:59.635	AccountGuardian (XAUUSD.ecn,M15)	AG|2026.09.15 18:24:01|INFO|lock level|enforced_limit=126.21|peak=0.00|ratchet_level=-126.21|peak_level=-126.21|chosen=tie|pnl=0.00|realized=0.00|floating=0.00
