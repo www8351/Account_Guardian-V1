@@ -146,7 +146,7 @@ The guardian must never be the hazard: no spurious flatten from deposits or with
 
 ## 8. Phased build plan and acceptance matrices
 
-### Phase 0, skeleton, no trading calls compiled in
+### Phase 0, skeleton, no trade API compiled in
 - Single instance: second attach refuses with Alert; crashed-instance takeover works after mutex heartbeat staleness. OnDeinit releases the mutex by zeroing the mutex heartbeat GV (deliberate-release marker), so the takeover row is exercised via hard kill, where the mutex heartbeat stays non-zero and goes stale.
 - Crash loop (per Amendments A1 and A4): the process is hard-killed, not gracefully re-inited, CrashLoopMaxInits + 1 times in a row, with each adjacent pair of inits no more than CrashLoopWindowSeconds apart. Show: SAFE_HALT entered, halt file persisted, SAFE_HALT survives a further terminal restart, EA closes nothing throughout, and service resumes only via the documented manual deletion of the halt file.
 - Clean re-inits (input change, chart symbol change, recompile) repeated inside the window do NOT accumulate toward SAFE_HALT.
