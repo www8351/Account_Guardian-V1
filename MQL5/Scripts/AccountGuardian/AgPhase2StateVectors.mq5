@@ -7,7 +7,13 @@
 //| mismatch rule and the .bad quarantine.                           |
 //| One AGVEC line per case plus a final AGVEC|SUMMARY|<pass>/<total>|
 //| line, the same contract AgPhase1ClockVectors already uses.       |
-//| Makes no trade calls and opens no chart.                         |
+//| Includes SweepPolicy.mqh, the sweep engine's pure policy (owner  |
+//| ruling ENF-24(b) of 2026-09-16), and still makes no trade call:  |
+//| the policy file carries no trade API, Sweep.mqh is not included, |
+//| and the ENF-0 checks below prove the retcode classes, the        |
+//| backoff schedule, the ordering, the flat predicate, the Q3 names |
+//| and every sweep journal line shape on fixed arguments. Opens no  |
+//| chart.                                                           |
 //|                                                                  |
 //| IT DOES WRITE FILES, which the clock vectors did not, because    |
 //| the thing under test is a file format. Two properties keep that  |
@@ -32,6 +38,7 @@
 #property script_show_inputs
 
 #include <AccountGuardian/Persist.mqh>
+#include <AccountGuardian/SweepPolicy.mqh>
 
 //--- Synthetic logins. None of these is a real account and none of them
 //--- may ever equal the live one; vector 0 enforces that.
@@ -80,6 +87,18 @@ void AgVecCheckMoney(const string name, const double got, const double want)
   {
    AgVecCheck(name, MathAbs(got - want) < 0.000001,
               "got=" + DoubleToString(got, 8) + " want=" + DoubleToString(want, 8));
+  }
+
+//--- ENF-0, P92: one retcode constant, two checks. The numeric value the
+//--- compiler carries is asserted against plan 2.7.4's documentation value,
+//--- and the classifier's answer against the ruled class, so a divergence
+//--- between the documentation and the compiler is measured on the build.
+void AgVecRetcode(const string name, const uint constant, const uint want_value, const int want_class)
+  {
+   AgVecCheckInt("enf_value_" + name + "_is_" + (string)want_value, (long)constant, (long)want_value);
+   AgVecCheck("enf_class_" + name + "_is_" + AgRetcodeClassName(want_class),
+              AgRetcodeClass(constant) == want_class,
+              "got=" + AgRetcodeClassName(AgRetcodeClass(constant)));
   }
 
 //+------------------------------------------------------------------+
@@ -646,6 +665,197 @@ void OnStart()
               && StringFind(d2d4_s, "realized=") < 0 && StringFind(d2d4_s, "|limit=") < 0
               && StringFind(d2d4_s, "pnl") < 0 && StringFind(d2d4_s, "DEGRADED") < 0,
               d2d4_s);
+
+   //================================================================
+   //--- ENF-0, the enforcement phase (owner rulings ENF-1 to ENF-29 of
+   //--- 2026-09-16, plan docs/PLAN_ENFORCEMENT_SWEEP_2026-09-16.md 3.10).
+   //--- Everything under test is a pure function in SweepPolicy.mqh; no
+   //--- request is built, nothing is sent, and the trade API is not
+   //--- linked. The retcode table of plan 2.7.4 is documentation derived,
+   //--- so P92 asserts every constant's numeric value on this compiler.
+   //================================================================
+
+   //--- P92, the retcode constants and their ruled classes, plan 2.7.4
+   AgVecRetcode("DONE",                 TRADE_RETCODE_DONE,                 10009, AG_RC_DONE);
+   AgVecRetcode("POSITION_CLOSED",      TRADE_RETCODE_POSITION_CLOSED,      10036, AG_RC_DONE);
+   AgVecRetcode("PLACED",               TRADE_RETCODE_PLACED,               10008, AG_RC_PLACED);
+   AgVecRetcode("REQUOTE",              TRADE_RETCODE_REQUOTE,              10004, AG_RC_RETRY);
+   AgVecRetcode("REJECT",               TRADE_RETCODE_REJECT,               10006, AG_RC_RETRY);
+   AgVecRetcode("DONE_PARTIAL",         TRADE_RETCODE_DONE_PARTIAL,         10010, AG_RC_RETRY);
+   AgVecRetcode("ERROR",                TRADE_RETCODE_ERROR,                10011, AG_RC_RETRY);
+   AgVecRetcode("TIMEOUT",              TRADE_RETCODE_TIMEOUT,              10012, AG_RC_RETRY);
+   AgVecRetcode("PRICE_CHANGED",        TRADE_RETCODE_PRICE_CHANGED,        10020, AG_RC_RETRY);
+   AgVecRetcode("PRICE_OFF",            TRADE_RETCODE_PRICE_OFF,            10021, AG_RC_RETRY);
+   AgVecRetcode("TOO_MANY_REQUESTS",    TRADE_RETCODE_TOO_MANY_REQUESTS,    10024, AG_RC_RETRY);
+   AgVecRetcode("LOCKED",               TRADE_RETCODE_LOCKED,               10028, AG_RC_RETRY);
+   AgVecRetcode("FROZEN",               TRADE_RETCODE_FROZEN,               10029, AG_RC_RETRY);
+   AgVecRetcode("CONNECTION",           TRADE_RETCODE_CONNECTION,           10031, AG_RC_RETRY);
+   AgVecRetcode("CLOSE_ORDER_EXIST",    TRADE_RETCODE_CLOSE_ORDER_EXIST,    10039, AG_RC_RETRY);
+   AgVecRetcode("TRADE_DISABLED",       TRADE_RETCODE_TRADE_DISABLED,       10017, AG_RC_HOLD);
+   AgVecRetcode("MARKET_CLOSED",        TRADE_RETCODE_MARKET_CLOSED,        10018, AG_RC_HOLD);
+   AgVecRetcode("SERVER_DISABLES_AT",   TRADE_RETCODE_SERVER_DISABLES_AT,   10026, AG_RC_HOLD);
+   AgVecRetcode("CLIENT_DISABLES_AT",   TRADE_RETCODE_CLIENT_DISABLES_AT,   10027, AG_RC_HOLD);
+   AgVecRetcode("ONLY_REAL",            TRADE_RETCODE_ONLY_REAL,            10032, AG_RC_HOLD);
+   AgVecRetcode("LONG_ONLY",            TRADE_RETCODE_LONG_ONLY,            10042, AG_RC_HOLD);
+   AgVecRetcode("SHORT_ONLY",           TRADE_RETCODE_SHORT_ONLY,           10043, AG_RC_HOLD);
+   AgVecRetcode("CLOSE_ONLY",           TRADE_RETCODE_CLOSE_ONLY,           10044, AG_RC_HOLD);
+   AgVecRetcode("HEDGE_PROHIBITED",     TRADE_RETCODE_HEDGE_PROHIBITED,     10046, AG_RC_HOLD);
+   AgVecRetcode("CANCEL",               TRADE_RETCODE_CANCEL,               10007, AG_RC_REFUSE);
+   AgVecRetcode("INVALID",              TRADE_RETCODE_INVALID,              10013, AG_RC_REFUSE);
+   AgVecRetcode("INVALID_VOLUME",       TRADE_RETCODE_INVALID_VOLUME,       10014, AG_RC_REFUSE);
+   AgVecRetcode("INVALID_PRICE",        TRADE_RETCODE_INVALID_PRICE,        10015, AG_RC_REFUSE);
+   AgVecRetcode("INVALID_STOPS",        TRADE_RETCODE_INVALID_STOPS,        10016, AG_RC_REFUSE);
+   AgVecRetcode("NO_MONEY",             TRADE_RETCODE_NO_MONEY,             10019, AG_RC_REFUSE);
+   AgVecRetcode("INVALID_EXPIRATION",   TRADE_RETCODE_INVALID_EXPIRATION,   10022, AG_RC_REFUSE);
+   AgVecRetcode("ORDER_CHANGED",        TRADE_RETCODE_ORDER_CHANGED,        10023, AG_RC_REFUSE);
+   AgVecRetcode("NO_CHANGES",           TRADE_RETCODE_NO_CHANGES,           10025, AG_RC_REFUSE);
+   AgVecRetcode("INVALID_FILL",         TRADE_RETCODE_INVALID_FILL,         10030, AG_RC_REFUSE);
+   AgVecRetcode("LIMIT_ORDERS",         TRADE_RETCODE_LIMIT_ORDERS,         10033, AG_RC_REFUSE);
+   AgVecRetcode("LIMIT_VOLUME",         TRADE_RETCODE_LIMIT_VOLUME,         10034, AG_RC_REFUSE);
+   AgVecRetcode("INVALID_ORDER",        TRADE_RETCODE_INVALID_ORDER,        10035, AG_RC_REFUSE);
+   AgVecRetcode("INVALID_CLOSE_VOLUME", TRADE_RETCODE_INVALID_CLOSE_VOLUME, 10038, AG_RC_REFUSE);
+   AgVecRetcode("LIMIT_POSITIONS",      TRADE_RETCODE_LIMIT_POSITIONS,      10040, AG_RC_REFUSE);
+   AgVecRetcode("REJECT_CANCEL",        TRADE_RETCODE_REJECT_CANCEL,        10041, AG_RC_REFUSE);
+   AgVecRetcode("FIFO_CLOSE",           TRADE_RETCODE_FIFO_CLOSE,           10045, AG_RC_REFUSE);
+   //--- the two answers no constant carries: a request the terminal never
+   //--- sent, and a retcode the classifier does not know
+   AgVecCheck("enf_class_retcode_zero_is_retry", AgRetcodeClass(0) == AG_RC_RETRY,
+              AgRetcodeClassName(AgRetcodeClass(0)));
+   AgVecCheck("enf_class_unknown_retcode_is_refuse", AgRetcodeClass(99999) == AG_RC_REFUSE,
+              AgRetcodeClassName(AgRetcodeClass(99999)));
+   //--- ENF-12(a): the partial flag the caller reads
+   AgVecCheck("enf_partial_flag_on_10010", AgRetcodeIsPartial(TRADE_RETCODE_DONE_PARTIAL), "");
+   AgVecCheck("enf_partial_flag_off_10009", !AgRetcodeIsPartial(TRADE_RETCODE_DONE), "");
+   AgVecCheck("enf_class_names",
+              AgRetcodeClassName(AG_RC_DONE) == "done" && AgRetcodeClassName(AG_RC_RETRY) == "retry"
+              && AgRetcodeClassName(AG_RC_HOLD) == "hold" && AgRetcodeClassName(AG_RC_REFUSE) == "refuse"
+              && AgRetcodeClassName(AG_RC_PLACED) == "placed",
+              "class names diverge from done|retry|hold|refuse|placed");
+   AgVecCheck("enf_retcode_names",
+              AgRetcodeName(TRADE_RETCODE_MARKET_CLOSED) == "MARKET_CLOSED"
+              && AgRetcodeName(TRADE_RETCODE_CLIENT_DISABLES_AT) == "CLIENT_DISABLES_AT"
+              && AgRetcodeName(TRADE_RETCODE_DONE) == "DONE" && AgRetcodeName(0) == "NOT_SENT"
+              && AgRetcodeName(99999) == "UNKNOWN_99999",
+              AgRetcodeName(TRADE_RETCODE_MARKET_CLOSED));
+
+   //--- ENF-9(c), ENF-10(a): the schedule in passes, 1, 2, 4, 8, 16, 32, then
+   //--- the cap, attempts 1 through 8, and a non positive attempt waits one
+   AgVecCheckInt("enf_backoff_attempt_1_is_1",   AgBackoffPasses(1), 1);
+   AgVecCheckInt("enf_backoff_attempt_2_is_2",   AgBackoffPasses(2), 2);
+   AgVecCheckInt("enf_backoff_attempt_3_is_4",   AgBackoffPasses(3), 4);
+   AgVecCheckInt("enf_backoff_attempt_4_is_8",   AgBackoffPasses(4), 8);
+   AgVecCheckInt("enf_backoff_attempt_5_is_16",  AgBackoffPasses(5), 16);
+   AgVecCheckInt("enf_backoff_attempt_6_is_32",  AgBackoffPasses(6), 32);
+   AgVecCheckInt("enf_backoff_attempt_7_is_60",  AgBackoffPasses(7), 60);
+   AgVecCheckInt("enf_backoff_attempt_8_is_60",  AgBackoffPasses(8), 60);
+   AgVecCheckInt("enf_backoff_attempt_0_is_1",   AgBackoffPasses(0), 1);
+
+   //--- ENF-25(a), ENF-11(a), ENF-19(a), ENF-6(a): the constants as ruled
+   AgVecCheckInt("enf_hard_stop_is_10",           AG_SWEEP_HARD_STOP, 10);
+   AgVecCheckInt("enf_backoff_cap_is_60_passes",  AG_SWEEP_BACKOFF_CAP_PASSES, 60);
+   AgVecCheckInt("enf_rearm_is_60_passes",        AG_SWEEP_REARM_PASSES, 60);
+   AgVecCheckInt("enf_cadence_is_30_passes",      AG_SWEEP_CADENCE_PASSES, 30);
+   AgVecCheckInt("enf_magic_is_20260916",         AG_SWEEP_MAGIC, 20260916);
+   AgVecCheck("enf_comment_is_ag_sweep", AG_SWEEP_COMMENT == "AG sweep", AG_SWEEP_COMMENT);
+   AgVecCheckInt("enf_deviation_is_100_points",   AG_SWEEP_DEVIATION_POINTS, 100);
+
+   //--- ENF-7(a): three synthetic positions, most negative floating first,
+   //--- ties by ticket ascending, through the same insertion sort the engine
+   //--- runs on the comparator
+   ulong  s_ticket[3]   = {5, 9, 2};
+   double s_floating[3] = {-10.0, -30.0, -30.0};
+   for(int si = 1; si < 3; si++)
+     {
+      ulong kt = s_ticket[si]; double kf = s_floating[si];
+      int sj = si - 1;
+      while(sj >= 0 && AgSweepPositionCompare(s_floating[sj], s_ticket[sj], kf, kt) > 0)
+        {
+         s_ticket[sj + 1] = s_ticket[sj]; s_floating[sj + 1] = s_floating[sj];
+         sj--;
+        }
+      s_ticket[sj + 1] = kt; s_floating[sj + 1] = kf;
+     }
+   AgVecCheck("enf_order_most_negative_first_ties_by_ticket",
+              s_ticket[0] == 2 && s_ticket[1] == 9 && s_ticket[2] == 5,
+              "order=" + (string)s_ticket[0] + "," + (string)s_ticket[1] + "," + (string)s_ticket[2]);
+   AgVecCheckInt("enf_compare_larger_loss_sorts_first", AgSweepPositionCompare(-30.0, 9, -10.0, 5), -1);
+   AgVecCheckInt("enf_compare_tie_by_ticket_ascending",  AgSweepPositionCompare(-30.0, 9, -30.0, 2), 1);
+   AgVecCheckInt("enf_compare_equal_is_zero",            AgSweepPositionCompare(-30.0, 9, -30.0, 9), 0);
+
+   //--- ENF-16(b), the one pass half of flat
+   AgVecCheck("enf_flat_on_zero_zero",        AgSweepFlat(0, 0), "");
+   AgVecCheck("enf_not_flat_with_a_position", !AgSweepFlat(1, 0), "");
+   AgVecCheck("enf_not_flat_with_a_pending",  !AgSweepFlat(0, 1), "");
+
+   //--- Q3/F2 FINAL 2026-07-29, the account wide names in the ruled order
+   AgVecCheck("enf_q3_nothing_blocks_is_empty", AgTradeBlockName(true, true, true, true) == "", "");
+   AgVecCheck("enf_q3_terminal_trade_allowed_named",
+              AgTradeBlockName(false, true, true, true) == "TERMINAL_TRADE_ALLOWED=false", "");
+   AgVecCheck("enf_q3_mql_trade_allowed_named",
+              AgTradeBlockName(true, false, true, true) == "MQL_TRADE_ALLOWED=false", "");
+   AgVecCheck("enf_q3_account_trade_allowed_named",
+              AgTradeBlockName(true, true, false, true) == "ACCOUNT_TRADE_ALLOWED=false", "");
+   AgVecCheck("enf_q3_account_trade_expert_named",
+              AgTradeBlockName(true, true, true, false) == "ACCOUNT_TRADE_EXPERT=false", "");
+   AgVecCheck("enf_q3_first_blocking_state_wins",
+              AgTradeBlockName(false, false, false, false) == "TERMINAL_TRADE_ALLOWED=false", "");
+   //--- ENF-15(a): CLOSEONLY is named distinctly and is sendable; DISABLED holds
+   AgVecCheck("enf_symbol_mode_names",
+              AgSymbolTradeModeName(SYMBOL_TRADE_MODE_DISABLED) == "SYMBOL_TRADE_MODE_DISABLED"
+              && AgSymbolTradeModeName(SYMBOL_TRADE_MODE_LONGONLY) == "SYMBOL_TRADE_MODE_LONGONLY"
+              && AgSymbolTradeModeName(SYMBOL_TRADE_MODE_SHORTONLY) == "SYMBOL_TRADE_MODE_SHORTONLY"
+              && AgSymbolTradeModeName(SYMBOL_TRADE_MODE_CLOSEONLY) == "SYMBOL_TRADE_MODE_CLOSEONLY"
+              && AgSymbolTradeModeName(SYMBOL_TRADE_MODE_FULL) == "SYMBOL_TRADE_MODE_FULL",
+              AgSymbolTradeModeName(SYMBOL_TRADE_MODE_CLOSEONLY));
+   AgVecCheck("enf_closeonly_is_sendable", AgSymbolTradeModeSendable(SYMBOL_TRADE_MODE_CLOSEONLY), "");
+   AgVecCheck("enf_disabled_is_not_sendable", !AgSymbolTradeModeSendable(SYMBOL_TRADE_MODE_DISABLED), "");
+   AgVecCheck("enf_full_longonly_shortonly_are_sendable",
+              AgSymbolTradeModeSendable(SYMBOL_TRADE_MODE_FULL)
+              && AgSymbolTradeModeSendable(SYMBOL_TRADE_MODE_LONGONLY)
+              && AgSymbolTradeModeSendable(SYMBOL_TRADE_MODE_SHORTONLY), "");
+
+   //--- ENF-6(a): FOK when allowed, else IOC, else RETURN, on the flag set
+   AgVecCheckInt("enf_filling_fok_when_allowed",  (long)AgSweepFillingFor(SYMBOL_FILLING_FOK | SYMBOL_FILLING_IOC), (long)ORDER_FILLING_FOK);
+   AgVecCheckInt("enf_filling_ioc_when_no_fok",   (long)AgSweepFillingFor(SYMBOL_FILLING_IOC), (long)ORDER_FILLING_IOC);
+   AgVecCheckInt("enf_filling_return_when_neither", (long)AgSweepFillingFor(0), (long)ORDER_FILLING_RETURN);
+
+   //--- plan 2.7.3: the six pending types, and a market order is never one
+   AgVecCheck("enf_pending_types",
+              AgIsPendingType(ORDER_TYPE_BUY_LIMIT) && AgIsPendingType(ORDER_TYPE_SELL_LIMIT)
+              && AgIsPendingType(ORDER_TYPE_BUY_STOP) && AgIsPendingType(ORDER_TYPE_SELL_STOP)
+              && AgIsPendingType(ORDER_TYPE_BUY_STOP_LIMIT) && AgIsPendingType(ORDER_TYPE_SELL_STOP_LIMIT)
+              && !AgIsPendingType(ORDER_TYPE_BUY) && !AgIsPendingType(ORDER_TYPE_SELL), "");
+   AgVecCheck("enf_type_names",
+              AgPendingTypeName(ORDER_TYPE_SELL_STOP) == "sell_stop"
+              && AgPendingTypeName(ORDER_TYPE_BUY_STOP_LIMIT) == "buy_stop_limit"
+              && AgPositionTypeName(POSITION_TYPE_BUY) == "buy" && AgPositionTypeName(POSITION_TYPE_SELL) == "sell",
+              AgPendingTypeName(ORDER_TYPE_SELL_STOP));
+
+   //--- plan 3.5: every journal line shape on fixed arguments, field names exact
+   string enf_l = AgSweepPassLine(3, 1, 0, 1);
+   AgVecCheck("enf_line_sweep_pass", enf_l == "sweep pass|positions=3|pendings=1|held=0|sent=1", enf_l);
+   enf_l = AgSweepDeleteLine(701106401, "XAUUSD.ecn", "sell_stop", 10009, AG_RC_DONE, 1);
+   AgVecCheck("enf_line_sweep_delete",
+              enf_l == "sweep delete|order=701106401|symbol=XAUUSD.ecn|type=sell_stop|retcode=10009|class=done|attempt=1",
+              enf_l);
+   enf_l = AgSweepCloseLine(701106385, "XAUUSD.ecn", "sell", 0.3, -135.60, 10009, AG_RC_DONE, 1, 0.3);
+   AgVecCheck("enf_line_sweep_close",
+              enf_l == "sweep close|position=701106385|symbol=XAUUSD.ecn|type=sell|volume=0.30|floating=-135.60"
+                       "|retcode=10009|class=done|attempt=1|filled=0.30",
+              enf_l);
+   enf_l = AgSweepHeldLine("position", 701106385, "XAUUSD.ecn", "session closed", "2026.09.17 01:00:00", "2026.09.16 23:58:07");
+   AgVecCheck("enf_line_sweep_held",
+              enf_l == "sweep held|position=701106385|symbol=XAUUSD.ecn|reason=session closed"
+                       "|next_open=2026.09.17 01:00:00|since=2026.09.16 23:58:07",
+              enf_l);
+   enf_l = AgSweepBlockedLine("TERMINAL_TRADE_ALLOWED=false");
+   AgVecCheck("enf_line_sweep_blocked", enf_l == "sweep blocked|state=TERMINAL_TRADE_ALLOWED=false", enf_l);
+   enf_l = AgSweepCompleteLine(3, 5);
+   AgVecCheck("enf_line_sweep_complete", enf_l == "sweep complete|positions=0|pendings=0|attempts=3|elapsed=5", enf_l);
+   enf_l = AgSweepResumedLine("2026.09.16 14:58:54", "2026.09.16 15:05:12");
+   AgVecCheck("enf_line_sweep_resumed", enf_l == "sweep resumed|gap=2026.09.16 14:58:54..2026.09.16 15:05:12", enf_l);
+   enf_l = AgSweepAcceleratedLine(421828196);
+   AgVecCheck("enf_line_sweep_accelerated", enf_l == "sweep accelerated|transaction=DEAL_ADD|deal=421828196", enf_l);
 
    PrintFormat("AGVEC|SUMMARY|%d/%d", g_pass, g_total);
   }
