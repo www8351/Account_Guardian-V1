@@ -7,7 +7,7 @@
 ![platform](https://img.shields.io/badge/platform-MQL5-blue)
 ![terminal](https://img.shields.io/badge/terminal-MetaTrader%205-blue)
 ![status](https://img.shields.io/badge/status-active%20development-blue)
-![enforcement](https://img.shields.io/badge/enforcement-detect%20and%20lock%20only-orange)
+![enforcement](https://img.shields.io/badge/enforcement-lock%20and%20flatten-blue)
 ![license](https://img.shields.io/badge/license-educational%20use-lightgrey)
 
 [English](#english) · [עברית](#hebrew)
@@ -30,9 +30,11 @@
 
 ### What it does not do yet
 
-**This build detects and locks. It sends no order.** When a breach fires, the state machine enters `LOCKED`, alerts, and writes the lock to disk, and your open positions stay exactly where they are until you close them by hand. Floating loss keeps moving while locked. The flatten engine that would delete pending orders and close positions is the next enforcement phase and has not shipped: `Sweep.mqh` currently holds its contract as declarations and comments, and the whole build contains no trade API call anywhere, which is checkable with a grep.
+**This build detects, locks and flattens.** When a breach fires, the state machine enters `LOCKED`, alerts, writes the lock to disk, and from the next timer tick the sweep engine in `Sweep.mqh` deletes every pending order and closes every position on the account, one order per second, largest floating loss first, and keeps sweeping anything opened while locked. Every attempt is journaled with its return code, retries back off and stop at ten attempts per ticket, and a position the platform cannot close yet, a closed session for instance, is held and named on the journal and the chart until the platform accepts the close. The flatten engine is new in this build and its live acceptance on a demo account is still to run.
 
-Treat it as a loud, unbypassable stop signal, not as an automatic hand on the close button.
+What it still does not do: it does not report weekly figures (the input exists, the measurement does not), it sends alerts nowhere but the terminal popup and the journal, and it cannot act while the terminal is closed or disconnected, so a position opened from the phone during an outage is closed only once the terminal is back and locked.
+
+Treat it as a stop signal with a hand on the close button, not as a guarantee against a dead terminal.
 
 <!-- screenshot: terminal with the advisor attached to a chart, banner visible in the top left corner -->
 
@@ -59,7 +61,7 @@ stateDiagram-v2
 | `BOOT` | Before the first transition. Inputs are validated here, and a malformed core input refuses startup outright with a dated `REFUSED` banner left on the chart. |
 | `SYNCING` | Waiting for the broker's deal history to settle. Leaving requires 3 consecutive stable, connected polls of the deal count. No breach decision is ever taken from this state. |
 | `ACTIVE` | Measuring. One evaluation pass per timer tick. |
-| `LOCKED` | A breach is in force. Positions stay open, no order is sent, the expiry clock is the only exit. |
+| `LOCKED` | A breach is in force. The sweep engine deletes every pending order and closes every position, anything newly opened is closed within seconds of the platform accepting the close, and the expiry clock is the only exit. |
 | `SAFE_HALT` | The advisor believes its own environment is broken, typically a crash loop. It closes nothing, sweeps nothing, and is excluded from expiry. Resume is manual: stop the advisor, delete the halt file, restart. |
 
 **The two paths out of `LOCKED` both go through `SYNCING`.** An ordinary expiry lands in `SYNCING` so that the first pass eligible to declare a new breach is preceded by the same history-stability discipline a cold boot runs. And if the day's history still shows a breach, the boot derivation fires again on the way through and re-locks immediately. That is the boot-derived re-lock: `LOCKED → SYNCING → LOCKED` inside a few seconds, with no `ACTIVE` pass in between. It is the mechanism working, not a defect.
@@ -112,7 +114,7 @@ Three details in that diagram are worth spelling out.
 1. **Copy the source into the terminal data folder.** In the terminal, `File → Open Data Folder`, then copy `MQL5/Experts/AccountGuardian/` and `MQL5/Include/AccountGuardian/` into the matching folders there, keeping the same paths.
 2. **Compile.** Open `MQL5/Experts/AccountGuardian/AccountGuardian.mq5` in MetaEditor and press F7. The build is expected to report zero errors and zero warnings.
 3. **Restart the terminal** if it was already running when you copied the files. A running terminal does not pick up files added to its data folder after it started.
-4. **Enable algorithmic trading.** The `Algo Trading` button in the terminal toolbar must be green, and `Tools → Options → Expert Advisors` must allow automated trading. The advisor sends no order today, but it needs the same permission to run its timer and its journal, and it needs it to be already in place for the day enforcement ships.
+4. **Enable algorithmic trading.** The `Algo Trading` button in the terminal toolbar must be green, and `Tools → Options → Expert Advisors` must allow automated trading. While locked the advisor closes positions and deletes pending orders, so this permission is what lets it act; without it the lock still holds, but the sweep waits and journals `sweep blocked` until trading is allowed again.
 5. **Attach it to exactly one chart.** Any symbol, any timeframe. The measurement is account-wide and does not depend on which chart it sits on. Attaching a second instance on the same account is refused: an instance-level mutex, heartbeat-based, detects the live holder and the second copy declines to start.
 6. **Review the inputs in the properties dialog before accepting them.** A malformed core input refuses startup rather than running degraded.
 
@@ -194,22 +196,25 @@ A `DEGRADED|` prefix on the `LOCKED` group means the terminal was disconnected w
 
 ### At a breach
 
-Four lines and a popup, in this order:
+Four lines and a popup, in this order, then the sweep from the next timer tick:
 
 ```
 AG|...|INFO|breach arithmetic|realized=-98.40|floating=-9.10|base=2133.13|limit=106.66|pnl=-107.50
 AG|...|INFO|lock bounds|breach_time=2026.08.18 09:41:12|quote_frozen=0|latch_floor=2026.08.19 01:00:00|locked_until=2026.08.19 01:00:00
 AG|...|TRANSITION|ACTIVE->LOCKED|DAILY_BREACH|pnl=-107.50|limit=106.66|locked_until=2026.08.19 01:00:00
-AG|...|ALERT|DAILY_BREACH: account LOCKED until 2026.08.19 01:00:00 (pnl=-107.50 limit=106.66).
+AG|...|ALERT|DAILY_BREACH: account LOCKED until 2026.08.19 01:00:00 (pnl=-107.50 limit=106.66). Flattening 1 positions and deleting 0 pending orders.
+AG|...|INFO|sweep close|position=411788798|symbol=XAUUSD.ecn|type=buy|volume=0.01|floating=-9.10|retcode=10009|class=done|attempt=1|filled=0.01
+AG|...|INFO|sweep pass|positions=1|pendings=0|held=0|sent=1
+AG|...|INFO|sweep complete|positions=0|pendings=0|attempts=1|elapsed=3
 ```
 
-The alert is a real MetaTrader popup, not just a journal line. `breach arithmetic` is the full working, so the figure that locked you can always be reconstructed afterwards.
+The alert is a real MetaTrader popup, not just a journal line. `breach arithmetic` is the full working, so the figure that locked you can always be reconstructed afterwards. Every `sweep close` and `sweep delete` line carries the platform's return code (`10009` is done) and the attempt number, so a refused close is readable from the journal alone.
 
 <!-- screenshot: the DAILY_BREACH alert popup over the chart -->
 
 ### What LOCKED means
 
-* **Your positions stay open.** No order is sent. Nothing is closed, nothing is deleted, and floating loss keeps moving. Closing out is your decision and your click, and that is the shipped behaviour of this build rather than a bug.
+* **Your positions are closed and your pending orders deleted.** The sweep runs from the next timer tick: pending orders first, then positions from the largest floating loss down, one send per second so the advisor's own liveness signal keeps ticking. Anything opened while locked, from the phone included, is closed within seconds of the platform accepting a close. A close the platform refuses is retried with a doubling backoff, up to ten attempts, then held and named on the journal and the chart banner until the condition changes; a symbol whose session is closed is held with its next open named, and nothing is sent into a closed market.
 * **The limit and base at the moment of breach are snapshotted**, and the locked window is judged by that snapshot. Changing `DailyLossPercent` or `DailyLossCurrency` while locked changes nothing: the change is logged as ignored, naming both the old and the new value, and the snapshot continues to govern.
 * **Deleting the state file while the advisor is alive changes nothing**, because enforcement runs from memory. Clearing the global variable changes nothing either, because it is rewritten from memory on the next tick.
 * **A restart does not clear it.** The boot derivation weighs all three witnesses and re-locks.
@@ -234,14 +239,15 @@ Two things can make a lock last longer than you expect, both deliberate:
 | Phase 2 | Lock state machine: breach declaration, lock snapshot, expiry, boot derivation from three witnesses, the ratchet floor, observability. | **Done** |
 | Phase 3 | Defect fixes completed and verified: expiry routed through `SYNCING`, boot-derived locks persisting a real snapshot, the boot-derived re-lock verified across restarts. | **Done** |
 | Next | Realized-peak trailing floor: lock on giving back a day's realized profit, not only on dropping below the opening base. Designed and specified, awaiting deployment. | **Next** |
-| Later | Enforcement: delete pending orders and close positions on a lock, with per-position backoff and a retcode logged per attempt. Then richer alerting, then hardening. | **Later** |
+| Phase 3, sweep engine | Enforcement: delete pending orders and close positions on a lock, with per-position backoff, a retcode logged per attempt, a held state for what the platform refuses, and an accelerated pass on every new position while locked. Built; live acceptance on demo pending. | **Built** |
+| Later | Richer alerting, then hardening. | **Later** |
 
 ---
 
 ## FAQ
 
 **Why did it not close my position?**
-Because this build does not close anything. It detects the breach, locks the state machine, alerts, and persists the lock. The flatten engine is the next enforcement phase. Until it ships, the advisor is a stop signal you still have to act on.
+While locked it should have. Check the `Experts` tab for `sweep close` lines carrying the position ticket and read their `retcode` and `class`. `class=hold` means the platform refused the close for a named reason, a closed session or disabled trading, and the advisor holds the ticket and retries when the condition changes; `sweep blocked` lines mean algorithmic trading is switched off in the terminal and nothing can be sent until it is back on. A position opened while the terminal was closed or disconnected could not be acted on until the terminal reconnected. If none of those apply and the account is not locked, no breach has fired: the advisor closes nothing before a breach.
 
 **I raised my daily limit at midday and the advisor is still using the old, smaller one. Why?**
 That is the ratchet, and it is the point of it. Inside a trading day the enforced limit is the smallest value seen since the 01:00 anchor. Lowering it applies at once; raising it is held and logged with a warning naming both figures. Otherwise a bad afternoon could be survived by simply typing a bigger number, which is the exact behaviour the guardian exists to prevent. The floor resets on its own at the next 01:00 anchor, so tomorrow starts from whatever the inputs say then.
@@ -295,9 +301,11 @@ This software is provided as is, with no warranty of any kind. Nothing here is f
 
 ### מה הוא עדיין אינו עושה
 
-**הבנייה הזו מזהה ונועלת. היא אינה שולחת פקודה.** כשחריגה נורית, מכונת המצבים נכנסת ל`LOCKED`, מתריעה, וכותבת את הנעילה לדיסק, והפוזיציות הפתוחות שלך נשארות בדיוק היכן שהן עד שתסגור אותן ידנית. ההפסד הצף ממשיך לזוז גם בזמן נעילה. מנוע הסגירה שימחק פקודות ממתינות ויסגור פוזיציות הוא שלב האכיפה הבא והוא טרם נשלח: הקובץ `Sweep.mqh` מחזיק כרגע את החוזה שלו בהצהרות ובהערות בלבד, וכל הבנייה אינה מכילה שום קריאה לממשק המסחר, דבר שניתן לבדוק בחיפוש טקסט פשוט.
+**הבנייה הזו מזהה, נועלת וסוגרת.** כשחריגה נורית, מכונת המצבים נכנסת ל`LOCKED`, מתריעה, כותבת את הנעילה לדיסק, ומהפעימה הבאה של השעון מנוע הסגירה שבקובץ `Sweep.mqh` מוחק כל פקודה ממתינה וסוגר כל פוזיציה בחשבון, פקודה אחת בשנייה, ההפסד הצף הגדול ביותר תחילה, וממשיך לסרוק כל דבר שנפתח בזמן הנעילה. כל ניסיון נרשם ביומן עם קוד התגובה שלו, ניסיונות חוזרים מתרווחים בהדרגה ונעצרים אחרי עשרה ניסיונות לכרטיס, ופוזיציה שהפלטפורמה עדיין אינה יכולה לסגור, למשל בגלל מושב מסחר סגור, מוחזקת ונקובה בשמה ביומן ועל הגרף עד שהפלטפורמה מקבלת את הסגירה. מנוע הסגירה חדש בבנייה הזו, והקבלה החיה שלו על חשבון דמו טרם רצה.
 
-התייחס לזה כאל תמרור עצור רועש שאי אפשר לעקוף, ולא כאל יד אוטומטית על כפתור הסגירה.
+מה שהוא עדיין אינו עושה: הוא אינו מדווח נתונים שבועיים (הקלט קיים, המדידה לא), אינו שולח התראות לשום מקום מלבד החלון הקופץ והיומן של הטרמינל, ואינו יכול לפעול בזמן שהטרמינל סגור או מנותק, כך שפוזיציה שנפתחה מהטלפון במהלך נפילה נסגרת רק אחרי שהטרמינל חוזר ונעול.
+
+התייחס לזה כאל תמרור עצור עם יד על כפתור הסגירה, ולא כאל ערובה מפני טרמינל מת.
 
 <!-- screenshot: terminal with the advisor attached to a chart, banner visible in the top left corner -->
 
@@ -324,7 +332,7 @@ stateDiagram-v2
 | `BOOT` | לפני המעבר הראשון. הקלטים נבדקים כאן, וקלט ליבה פגום דוחה את העלייה לחלוטין ומשאיר על הגרף כרזת `REFUSED` נושאת תאריך. |
 | `SYNCING` | המתנה להתייצבות היסטוריית העסקאות של הברוקר. היציאה מחייבת שלוש דגימות יציבות ורצופות של מונה העסקאות. שום החלטת חריגה אינה מתקבלת מהמצב הזה. |
 | `ACTIVE` | מדידה. מעבר הערכה אחד בכל פעימת שעון. |
-| `LOCKED` | חריגה בתוקף. הפוזיציות נשארות פתוחות, שום פקודה אינה נשלחת, ושעון הפקיעה הוא היציאה היחידה. |
+| `LOCKED` | חריגה בתוקף. מנוע הסגירה מוחק כל פקודה ממתינה וסוגר כל פוזיציה, כל דבר שנפתח מחדש נסגר בתוך שניות מרגע שהפלטפורמה מקבלת את הסגירה, ושעון הפקיעה הוא היציאה היחידה. |
 | `SAFE_HALT` | היועץ מאמין שהסביבה שלו שבורה, בדרך כלל בעקבות לולאת קריסות. הוא אינו סוגר דבר, אינו סורק דבר, ואינו נכלל בפקיעה. החזרה לפעילות ידנית: לעצור את היועץ, למחוק את קובץ העצירה, ולהפעיל מחדש. |
 
 **שני המסלולים החוצה מ`LOCKED` עוברים דרך `SYNCING`.** פקיעה רגילה נוחתת ב`SYNCING`, כדי שלמעבר הראשון הרשאי להכריז על חריגה חדשה יקדם אותו משטר יציבות היסטוריה שעלייה קרה מריצה. ואם היסטוריית היום עדיין מראה חריגה, גזירת העלייה נורית שוב בדרך ונועלת מיד. זהו מנגנון הנעילה מחדש בעלייה: `LOCKED → SYNCING → LOCKED` בתוך שניות ספורות, בלי אף מעבר `ACTIVE` באמצע. זו המערכת עובדת, לא תקלה.
@@ -377,7 +385,7 @@ flowchart TD
 1. **העתק את המקור לתיקיית הנתונים של הטרמינל.** בטרמינל, `File → Open Data Folder`, ואז העתק את `MQL5/Experts/AccountGuardian/` ואת `MQL5/Include/AccountGuardian/` לתיקיות המקבילות שם, תוך שמירה על אותם נתיבים.
 2. **הדר.** פתח את `MQL5/Experts/AccountGuardian/AccountGuardian.mq5` בעורך `MetaEditor` והקש F7. הבנייה אמורה לדווח על אפס שגיאות ואפס אזהרות.
 3. **הפעל מחדש את הטרמינל** אם הוא כבר רץ בזמן העתקת הקבצים. טרמינל שרץ אינו קולט קבצים שנוספו לתיקיית הנתונים שלו אחרי שעלה.
-4. **אפשר מסחר אלגוריתמי.** הכפתור `Algo Trading` בסרגל הכלים חייב להיות ירוק, והמסלול `Tools → Options → Expert Advisors` חייב להתיר מסחר אוטומטי. היועץ אינו שולח פקודה היום, אך הוא זקוק לאותה הרשאה כדי להריץ את השעון ואת היומן שלו, וכדי שההרשאה כבר תהיה במקומה ביום שבו האכיפה תישלח.
+4. **אפשר מסחר אלגוריתמי.** הכפתור `Algo Trading` בסרגל הכלים חייב להיות ירוק, והמסלול `Tools → Options → Expert Advisors` חייב להתיר מסחר אוטומטי. בזמן נעילה היועץ סוגר פוזיציות ומוחק פקודות ממתינות, ולכן ההרשאה הזו היא מה שמאפשר לו לפעול; בלעדיה הנעילה עדיין מחזיקה, אך הסריקה ממתינה ורושמת ביומן `sweep blocked` עד שהמסחר מותר שוב.
 5. **חבר אותו לגרף אחד בלבד.** כל סימול, כל מסגרת זמן. המדידה היא ברמת החשבון ואינה תלויה בגרף שעליו הוא יושב. חיבור מופע שני על אותו חשבון נדחה: מנעול מופע מבוסס פעימות לב מזהה את המחזיק החי, והעותק השני מסרב לעלות.
 6. **עבור על הקלטים בחלון המאפיינים לפני אישורם.** קלט ליבה פגום דוחה את העלייה במקום לרוץ במצב מוחלש.
 
@@ -459,22 +467,25 @@ AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >=
 
 ### ברגע החריגה
 
-ארבע שורות וחלון קופץ, בסדר הזה:
+ארבע שורות וחלון קופץ, בסדר הזה, ואחריהן הסריקה מהפעימה הבאה של השעון:
 
 ```
 AG|...|INFO|breach arithmetic|realized=-98.40|floating=-9.10|base=2133.13|limit=106.66|pnl=-107.50
 AG|...|INFO|lock bounds|breach_time=2026.08.18 09:41:12|quote_frozen=0|latch_floor=2026.08.19 01:00:00|locked_until=2026.08.19 01:00:00
 AG|...|TRANSITION|ACTIVE->LOCKED|DAILY_BREACH|pnl=-107.50|limit=106.66|locked_until=2026.08.19 01:00:00
-AG|...|ALERT|DAILY_BREACH: account LOCKED until 2026.08.19 01:00:00 (pnl=-107.50 limit=106.66).
+AG|...|ALERT|DAILY_BREACH: account LOCKED until 2026.08.19 01:00:00 (pnl=-107.50 limit=106.66). Flattening 1 positions and deleting 0 pending orders.
+AG|...|INFO|sweep close|position=411788798|symbol=XAUUSD.ecn|type=buy|volume=0.01|floating=-9.10|retcode=10009|class=done|attempt=1|filled=0.01
+AG|...|INFO|sweep pass|positions=1|pendings=0|held=0|sent=1
+AG|...|INFO|sweep complete|positions=0|pendings=0|attempts=1|elapsed=3
 ```
 
-ההתראה היא חלון קופץ אמיתי של מטא טריידר, לא רק שורת יומן. השורה `breach arithmetic` היא החישוב המלא, כך שתמיד אפשר לשחזר בדיעבד את המספר שנעל אותך.
+ההתראה היא חלון קופץ אמיתי של מטא טריידר, לא רק שורת יומן. השורה `breach arithmetic` היא החישוב המלא, כך שתמיד אפשר לשחזר בדיעבד את המספר שנעל אותך. כל שורת `sweep close` ו`sweep delete` נושאת את קוד התגובה של הפלטפורמה (הערך `10009` פירושו בוצע) ואת מספר הניסיון, כך שסגירה שנדחתה קריאה מהיומן לבדו.
 
 <!-- screenshot: the DAILY_BREACH alert popup over the chart -->
 
 ### מה פירוש LOCKED
 
-* **הפוזיציות שלך נשארות פתוחות.** שום פקודה אינה נשלחת. שום דבר אינו נסגר, שום דבר אינו נמחק, וההפסד הצף ממשיך לזוז. הסגירה היא ההחלטה שלך והלחיצה שלך, וזו ההתנהגות שנשלחה בבנייה הזו ולא תקלה.
+* **הפוזיציות שלך נסגרות והפקודות הממתינות שלך נמחקות.** הסריקה רצה מהפעימה הבאה של השעון: קודם פקודות ממתינות, אחר כך פוזיציות מההפסד הצף הגדול ביותר ומטה, שליחה אחת בשנייה כדי שאות החיים של היועץ עצמו ימשיך לפעום. כל דבר שנפתח בזמן הנעילה, גם מהטלפון, נסגר בתוך שניות מרגע שהפלטפורמה מקבלת סגירה. סגירה שהפלטפורמה מסרבת לה מנוסה שוב בהשהיה מוכפלת, עד עשרה ניסיונות, ואז מוחזקת ונקובה בשמה ביומן ובכרזת הגרף עד שהתנאי משתנה; סימול שמושב המסחר שלו סגור מוחזק עם ציון הפתיחה הבאה, ושום פקודה אינה נשלחת לשוק סגור.
 * **המגבלה והבסיס ברגע החריגה מצולמים**, וחלון הנעילה נשפט לפי התצלום הזה. שינוי `DailyLossPercent` או `DailyLossCurrency` בזמן נעילה אינו משנה דבר: השינוי נרשם ביומן כמי שהתעלמו ממנו, בציון הערך הישן והחדש, והתצלום ממשיך לקבוע.
 * **מחיקת קובץ המצב בזמן שהיועץ חי אינה משנה דבר**, כי האכיפה רצה מהזיכרון. גם מחיקת המשתנה הגלובלי אינה משנה דבר, כי הוא נכתב מחדש מהזיכרון בפעימה הבאה.
 * **הפעלה מחדש אינה מנקה אותה.** גזירת העלייה שוקלת את שלושת העדים ונועלת שוב.
@@ -499,14 +510,15 @@ AG|...|ALERT|DAILY_BREACH: account LOCKED until 2026.08.19 01:00:00 (pnl=-107.50
 | שלב 2 | מכונת מצבי הנעילה: הכרזת חריגה, תצלום נעילה, פקיעה, גזירת נעילה בעלייה משלושה עדים, רצפת ההתהדקות, נראות. | **הושלם** |
 | שלב 3 | תיקוני פגמים שהושלמו ואומתו: ניתוב הפקיעה דרך `SYNCING`, נעילות שנגזרו בעלייה השומרות תצלום אמיתי, ואימות הנעילה מחדש בעלייה לאורך הפעלות מחדש. | **הושלם** |
 | הבא בתור | רצפה נגררת של שיא הרווח הממומש: נעילה על החזרת רווח ממומש של יום, ולא רק על ירידה מתחת לבסיס הפתיחה. תוכנן ואופיין, וממתין לפריסה. | **הבא בתור** |
-| בהמשך | אכיפה: מחיקת פקודות ממתינות וסגירת פוזיציות בנעילה, עם השהיה מדורגת לכל פוזיציה וקוד תגובה נרשם לכל ניסיון. אחר כך התרעות עשירות יותר, ואז חיסון. | **בהמשך** |
+| שלב 3, מנוע הסגירה | אכיפה: מחיקת פקודות ממתינות וסגירת פוזיציות בנעילה, עם השהיה מדורגת לכל פוזיציה, קוד תגובה נרשם לכל ניסיון, מצב החזקה למה שהפלטפורמה מסרבת לו, ומעבר מואץ על כל פוזיציה חדשה בזמן נעילה. נבנה; הקבלה החיה על דמו ממתינה. | **נבנה** |
+| בהמשך | התרעות עשירות יותר, ואז חיסון. | **בהמשך** |
 
 ---
 
 ## שאלות נפוצות
 
 **למה הוא לא סגר לי את הפוזיציה?**
-כי הבנייה הזו אינה סוגרת כלום. היא מזהה את החריגה, נועלת את מכונת המצבים, מתריעה, ושומרת את הנעילה לדיסק. מנוע הסגירה הוא שלב האכיפה הבא. עד שיישלח, היועץ הוא תמרור עצור שאתה עדיין צריך לפעול לפיו.
+בזמן נעילה הוא היה אמור לסגור. בדוק בלשונית `Experts` שורות `sweep close` הנושאות את מספר הפוזיציה, וקרא את השדות `retcode` ו`class` שלהן. הערך `class=hold` פירושו שהפלטפורמה סירבה לסגירה מסיבה נקובה, מושב סגור או מסחר מושבת, והיועץ מחזיק את הכרטיס ומנסה שוב כשהתנאי משתנה; שורות `sweep blocked` פירושן שהמסחר האלגוריתמי כבוי בטרמינל ושום דבר לא יישלח עד שיודלק מחדש. פוזיציה שנפתחה בזמן שהטרמינל היה סגור או מנותק לא יכלה להיסגר עד שהטרמינל התחבר מחדש. אם אף אחד מאלה אינו חל והחשבון אינו נעול, שום חריגה לא נורתה: היועץ אינו סוגר דבר לפני חריגה.
 
 **העליתי את המגבלה היומית באמצע היום והיועץ עדיין משתמש בישנה, הקטנה יותר. למה?**
 זו ההתהדקות, וזו כל מטרתה. בתוך יום מסחר המגבלה הנאכפת היא הערך הקטן ביותר שנצפה מאז עוגן 01:00. הורדה נכנסת לתוקף מיד; העלאה נעצרת ונרשמת עם אזהרה הנוקבת בשני המספרים. אחרת אפשר היה לשרוד צהריים גרועים פשוט בהקלדת מספר גדול יותר, וזו בדיוק ההתנהגות שהשומר קיים כדי למנוע. הרצפה מתאפסת מעצמה בעוגן 01:00 הבא, כך שמחר מתחיל ממה שהקלטים אומרים אז.
