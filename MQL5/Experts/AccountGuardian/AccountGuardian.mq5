@@ -1,12 +1,12 @@
 ﻿//+------------------------------------------------------------------+
 //| AccountGuardian.mq5                                              |
 //| Account-level lockout EA. Event wiring only (SPEC v0.1 sec 1).   |
-//| Phase 0 skeleton: no trading calls anywhere in the build.        |
+//| The trade API is reached from Sweep.mqh alone (SPEC 1, ENF-S2). |
 //+------------------------------------------------------------------+
 #property copyright "AccountGuardian"
 #property version   "1.00"
 #property strict
-#property description "Account-level lockout guardian. Phase 2: PnL engine plus lock semantics. Locks the state machine and sends no order; open positions stay open until closed by hand. No trading calls anywhere in the build."
+#property description "Account-level lockout guardian. On a daily loss breach it locks the state machine until the next day anchor and, while locked, flattens every position and deletes every pending order on the account through Sweep.mqh, the only file that reaches the trade API."
 
 #include <AccountGuardian/Log.mqh>
 #include <AccountGuardian/Clock.mqh>
@@ -183,9 +183,14 @@ string AgPnlNumbersString()
       double balance  = AccountInfoDouble(ACCOUNT_BALANCE);
       double floating = AgFloating();
       string locked_prefix = g_ag_obs_connected ? "" : "DEGRADED|";
+      //--- ENF-17(b): sweep=<open>/<held> appended here, in the EA builder and
+      //--- outside AgLockedNumbersString, so the six D2D4 fields and their
+      //--- formatter are untouched; the counts are the sweep's own from the
+      //--- last pass, one tick behind like every other field on this line.
       return locked_prefix + AgLockedNumbersString(g_ag_locked_until, g_ag_state_limit_snap,
                                                    g_ag_state_base_snap, balance, floating,
-                                                   balance + floating);
+                                                   balance + floating)
+           + "|sweep=" + (string)AgSweepOpenCount() + "/" + (string)AgSweepHeldCount();
      }
    if(g_ag_state != AG_STATE_ACTIVE || !g_ag_have_pnl_numbers)
       return "";
@@ -215,8 +220,15 @@ void AgRefreshBanner()
       pnl = (g_ag_degraded ? "DEGRADED: " : "")
           + DoubleToString(g_ag_last_pnl, 2) + " vs -" + DoubleToString(g_ag_last_limit, 2);
    else if(g_ag_state == AG_STATE_LOCKED)
+     {
       pnl = "locked: snapshot limit " + DoubleToString(g_ag_state_limit_snap, 2)
           + ", balance " + DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE), 2);
+      //--- SPEC 2 and ENF-11(a), ENF-14(b): the CANNOT_TRADE and CANNOT_FLATTEN
+      //--- sub-conditions of LOCKED, on the banner while they hold
+      string sweep_sub = AgSweepSubCondition();
+      if(sweep_sub != "")
+         pnl += ", " + sweep_sub;
+     }
    AgBanner(AgStateName(g_ag_state), AgLockReasonName(g_ag_lock_reason), g_ag_locked_until, pnl);
   }
 
@@ -412,11 +424,17 @@ int AgBootDerivation(ENUM_AG_LOCK_REASON &reason_out, datetime &until_out,
 //+------------------------------------------------------------------+
 //| Declare the lock. Q6 (FINAL): limit and base are snapshotted     |
 //| here and the locked window is judged by that snapshot, never by  |
-//| live inputs. Ruling TWO (FINAL 2026-08-18): the state machine    |
-//| locks and NO ORDER IS SENT. Positions stay open until the owner  |
-//| closes them by hand, the floating loss keeps moving, and that is |
-//| sanctioned rather than a defect. Sweep, flatten and pending      |
-//| deletion are Phase 3 and nothing here may reach for them.        |
+//| live inputs. ENFORCEMENT (owner rulings ENF-1 to ENF-29 of       |
+//| 2026-09-16, FINAL): the interim posture of 2026-08-18, ruling    |
+//| TWO, is SUPERSEDED in its no-order clause and in that clause    |
+//| only. This function still sends nothing itself: it locks, and    |
+//| the sweep in Sweep.mqh runs from the first LOCKED dispatch of    |
+//| the next timer tick (ENF-1(b), ENF-21(a)), flattening every      |
+//| position and deleting every pending order on the account. The   |
+//| ALERT names the counts the sweep is about to act on, read from   |
+//| one enumeration before the transition (ENF-18(a)), and the sweep |
+//| state is reset at the transition so every lock episode starts   |
+//| its schedule from zero.                                          |
 //+------------------------------------------------------------------+
 void AgDeclareLock(const datetime breach_time, const double limit, const double base,
                    const double pnl, const double realized, const double floating)
@@ -443,14 +461,20 @@ void AgDeclareLock(const datetime breach_time, const double limit, const double 
           + "|latch_floor=" + TimeToString(AgNextDayAnchor(g_ag_high_anchor), TIME_DATE | TIME_SECONDS)
           + "|locked_until=" + TimeToString(until, TIME_DATE | TIME_SECONDS));
 
+   //--- ENF-18(a): the counts the sweep is about to act on, one enumeration
+   //--- before the transition; the pending count comes from Sweep.mqh, the
+   //--- only file that enumerates orders.
+   int sweep_positions = PositionsTotal();
+   int sweep_pendings  = AgSweepCountPendings();
    AgTransition(AG_STATE_LOCKED, "DAILY_BREACH",
                 "pnl=" + DoubleToString(pnl, 2) + "|limit=" + DoubleToString(limit, 2)
                 + "|locked_until=" + TimeToString(until, TIME_DATE | TIME_SECONDS));
+   AgSweepReset();
    AgAlertEvent("DAILY_BREACH: account LOCKED until "
                 + TimeToString(until, TIME_DATE | TIME_SECONDS)
                 + " (pnl=" + DoubleToString(pnl, 2) + " limit=" + DoubleToString(limit, 2)
-                + "). Phase 2 locks the state machine and sends no order:"
-                " open positions stay open until you close them by hand.");
+                + "). Flattening " + (string)sweep_positions + " positions and deleting "
+                + (string)sweep_pendings + " pending orders.");
    g_ag_dynamic_waiting_on = "";
   }
 
@@ -523,12 +547,19 @@ void AgEnterLockFromBoot(const ENUM_AG_LOCK_REASON reason, const datetime until,
    if(!AgStateSave())
       AgWarn("boot-derived lock was NOT persisted; it holds in memory for this session");
 
+   //--- ENF-18(a) and ENF-21(a): the counts the sweep is about to act on from
+   //--- the first LOCKED dispatch after this transition, one enumeration
+   //--- before it; the boot ALERT keeps its own head, since this path has no
+   //--- pnl to print and its reason may be CORRUPT_STATE.
+   int sweep_positions = PositionsTotal();
+   int sweep_pendings  = AgSweepCountPendings();
    AgTransition(AG_STATE_LOCKED, "boot derivation: " + AgLockReasonName(reason),
                 "locked_until=" + TimeToString(until, TIME_DATE | TIME_SECONDS));
+   AgSweepReset();
    AgAlertEvent("LOCKED at boot by derivation (" + AgLockReasonName(reason) + ") until "
                 + TimeToString(until, TIME_DATE | TIME_SECONDS)
-                + ". Phase 2 locks the state machine and sends no order:"
-                " open positions stay open until you close them by hand.");
+                + ". Flattening " + (string)sweep_positions + " positions and deleting "
+                + (string)sweep_pendings + " pending orders.");
    g_ag_dynamic_waiting_on = "";
   }
 
@@ -942,10 +973,13 @@ int OnInit()
   {
    g_ag_verbosity = LogVerbosity;
    g_ag_login     = AccountInfoInteger(ACCOUNT_LOGIN);
-   //--- build label, standing rule 7's identity channel: D2D4 names the
-   //--- content of this build, the defect 2 and defect 4 fixes (owner
-   //--- ruling D2D4-13(a) of 2026-09-09).
-   AgInfo("init|build=D2D4|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
+   //--- build label, standing rule 7's identity channel: ENF names the
+   //--- content of this build, the enforcement phase (owner ruling
+   //--- ENF-26(a) of 2026-09-16).
+   AgInfo("init|build=ENF|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
+   //--- sweep state is in memory only and starts empty in every image; the
+   //--- LOCKED entry resets it again so each lock episode starts from zero
+   AgSweepReset();
 
    //--- core config validation (Q4): refuse to run, visibly
    string why = "";
@@ -1233,7 +1267,15 @@ void OnTimer()
    else if(g_ag_state == AG_STATE_ACTIVE)
       AgEvaluateActive();
    else if(g_ag_state == AG_STATE_LOCKED)
-      AgEvaluateLocked();   // Phase 2 Stage 3: expiry only. Stage 4 adds witness reconciliation.
+     {
+      AgEvaluateLocked();
+      //--- ENF-1(b), ENF-21(a), ENF-22(a): LOCKED is the only state whose
+      //--- dispatch sweeps, on every LOCKED tick, and an expiry this pass
+      //--- leaves the state so the sweep stops with it. Below the SAFE_HALT
+      //--- return above and gated on the state, which is static row ENF-S3.
+      if(g_ag_state == AG_STATE_LOCKED)
+         AgSweepPass("timer");
+     }
 
    //--- Stage 6: RESYNC entry and exit lines, edge-triggered on the flag the
    //--- Q10 reconnect-coherence gate already maintains. Placed AFTER the
@@ -1254,18 +1296,38 @@ void OnTimer()
          AgInfo("RESYNC exited|history stable again, evaluation resumes");
       g_ag_obs_resync_prev = g_ag_resyncing;
      }
-
-   // Phase 3 adds: sweep acceleration on OnTradeTransaction.
   }
 
 //+------------------------------------------------------------------+
 //| Acceleration only; correctness never depends on it (F13 FINAL).  |
+//| ENF-2(a): while LOCKED, a TRADE_TRANSACTION_DEAL_ADD whose deal  |
+//| is an entry (DEAL_ENTRY_IN, a position opened from any source,   |
+//| the mobile app included) runs one sweep pass at once instead of  |
+//| waiting up to one timer tick. The guardian's own closes fire     |
+//| this handler too and are filtered twice: a close is DEAL_ENTRY_  |
+//| OUT, and every guardian request carries AG_SWEEP_MAGIC (ENF-19). |
+//| Delivery is not guaranteed by the platform (SPEC 1), so the      |
+//| timer pass remains the path correctness rests on; this pass does |
+//| not advance the sweep's pass counter (ENF-10(a)). State gated,   |
+//| which is the second of the two call sites static row ENF-S3      |
+//| names.                                                           |
 //+------------------------------------------------------------------+
 void OnTradeTransaction(const MqlTradeTransaction &trans,
                         const MqlTradeRequest &request,
                         const MqlTradeResult &result)
   {
-   // Phase 3: trigger an immediate sweep pass while LOCKED.
+   if(g_ag_state != AG_STATE_LOCKED)
+      return;
+   if(trans.type != TRADE_TRANSACTION_DEAL_ADD)
+      return;
+   if(!HistoryDealSelect(trans.deal))
+      return;
+   if(HistoryDealGetInteger(trans.deal, DEAL_ENTRY) != DEAL_ENTRY_IN)
+      return;
+   if(HistoryDealGetInteger(trans.deal, DEAL_MAGIC) == AG_SWEEP_MAGIC)
+      return;
+   AgInfo(AgSweepAcceleratedLine(trans.deal));
+   AgSweepPass("accelerated");
   }
 
 //+------------------------------------------------------------------+
