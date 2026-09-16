@@ -48,7 +48,9 @@ and belongs to the owner.
 
 The script `MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5` runs from the
 Navigator and prints one `AGVEC|<name>|PASS` line per check plus a final
-`AGVEC|SUMMARY|<pass>/<total>` line. On this build the summary reads `100/100`.
+`AGVEC|SUMMARY|<pass>/<total>` line. On this build the summary reads `234/234`:
+the 100 checks of the D2D4 build plus the 134 ENF-0 checks listed in the section
+below.
 The five checks added by the D2D4 build assert the exact string of the `LOCKED`
 numbers group, built by `AgLockedNumbersString` in `Log.mqh`, before the build is
 deployed:
@@ -63,6 +65,30 @@ deployed:
 
 The `DEGRADED\|` prefix on a live `LOCKED` line is added by the advisor, not by
 the formatter, and is keyed on the terminal's connection state.
+
+## ENF-0, the sweep policy checks (enforcement build, owner rulings ENF-1 to ENF-29 of 2026-09-16)
+
+The script gains `#include <AccountGuardian/SweepPolicy.mqh>`, the sweep engine's
+pure policy file, and still makes no trade call: `Sweep.mqh`, the only file that
+reaches the trade API, is not included and the vectors binary links none of it.
+The 134 checks are prefixed `enf_` and take the denominator from 100 to 234.
+
+| Check group | Count | Asserts |
+|---|---|---|
+| `enf_value_<NAME>_is_<n>` | 41 | the numeric value of every retcode constant the classifier names, on this compiler, against the plan's documentation table (P92): `DONE` 10009, `DONE_PARTIAL` 10010, `MARKET_CLOSED` 10018, `CLIENT_DISABLES_AT` 10027, `POSITION_CLOSED` 10036 among them |
+| `enf_class_<NAME>_is_<class>` | 41 | the classifier's answer for each constant: `done`, `retry`, `hold`, `refuse` or `placed`, per plan 2.7.4 |
+| `enf_class_retcode_zero_is_retry`, `enf_class_unknown_retcode_is_refuse` | 2 | a request the terminal never sent is retry class; a retcode the classifier does not know is refuse class |
+| `enf_partial_flag_on_10010`, `enf_partial_flag_off_10009` | 2 | the `DONE_PARTIAL` flag the caller reads (ENF-12(a)) |
+| `enf_class_names`, `enf_retcode_names` | 2 | the class and retcode names the journal prints |
+| `enf_backoff_attempt_<k>_is_<n>` | 9 | the schedule in passes, 1, 2, 4, 8, 16, 32, 60, 60 for attempts 1 to 8, and 1 for attempt 0 (ENF-9(c), ENF-10(a)) |
+| `enf_hard_stop_is_10`, `enf_backoff_cap_is_60_passes`, `enf_rearm_is_60_passes`, `enf_cadence_is_30_passes`, `enf_magic_is_20260916`, `enf_comment_is_ag_sweep`, `enf_deviation_is_100_points` | 7 | the constants as ruled (ENF-25(a), ENF-11(a), ENF-19(a), ENF-6(a)) |
+| `enf_order_most_negative_first_ties_by_ticket`, `enf_compare_*` | 4 | three synthetic positions sort most negative floating first, ties by ticket ascending (ENF-7(a)) |
+| `enf_flat_on_zero_zero`, `enf_not_flat_*` | 3 | the one pass flat predicate (ENF-16(b)) |
+| `enf_q3_*` | 6 | the account wide Q3 names in the ruled order, and the empty string when nothing blocks |
+| `enf_symbol_mode_names`, `enf_closeonly_is_sendable`, `enf_disabled_is_not_sendable`, `enf_full_longonly_shortonly_are_sendable` | 4 | `SYMBOL_TRADE_MODE` named distinctly; CLOSEONLY sendable (ENF-15(a)), DISABLED held |
+| `enf_filling_*` | 3 | FOK when allowed, else IOC, else RETURN, on the symbol's flag set (ENF-6(a)) |
+| `enf_pending_types`, `enf_type_names` | 2 | the six pending types and the names the lines print |
+| `enf_line_sweep_*` | 8 | the exact string of every sweep journal line on fixed arguments: `sweep pass`, `sweep delete`, `sweep close`, `sweep held`, `sweep blocked`, `sweep complete`, `sweep resumed`, `sweep accelerated` |
 
 ## Which copy is operative
 
