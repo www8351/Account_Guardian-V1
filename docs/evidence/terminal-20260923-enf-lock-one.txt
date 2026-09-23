@@ -1,0 +1,158 @@
+﻿HO	0	15:04:08.951	Terminal	MetaTrader 5 x64 build 6182 started for MetaQuotes Ltd.
+MH	0	15:04:08.952	Terminal	Windows 11 build 26200, 10 x 12th Gen Intel Core i5-1235U, AVX2, 9 / 15 Gb memory, 162 / 346 Gb disk, UAC, GMT+2
+QH	0	15:04:08.952	Terminal	C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075
+MJ	0	15:04:08.953	MCP	started on 127.0.0.1:22346
+OP	0	15:04:09.944	Experts	expert AccountGuardian (XAUUSD.ecn,M15) loaded successfully
+ME	0	15:04:10.547	Network	'1200252169': authorized on JustMarkets-Demo3 through UK7_11 (ping: 76.15 ms, build 5800)
+DD	0	15:04:10.547	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.16 22:01:57
+QH	0	15:04:10.880	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 0 positions, 1 orders, 272 symbols, 0 spreads
+II	0	15:04:10.880	Network	'1200252169': trading has been enabled, demo account - hedging mode
+IM	0	15:04:10.880	Network	'1200252169': balance management has been disabled - demo account
+QO	0	15:04:12.201	Network	'1200252169': scanning network for access points
+KF	0	15:04:20.358	Network	'1200252169': scanning network finished
+LR	0	15:12:34.107	Trades	'1200252169': market sell 0.3 XAUUSD.ecn
+IH	0	15:12:34.187	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn
+HR	0	15:12:34.187	Trades	'1200252169': deal #455964316 sell 0.3 XAUUSD.ecn at 4317.41 done (based on order #752878178)
+JM	0	15:12:34.189	Trades	'1200252169': order #752878178 sell 0.3 / 0.3 XAUUSD.ecn at 4317.41 done in 82.336 ms
+JQ	0	15:12:34.785	Trades	use MetaTrader VPS Hosting Service to speed up the execution: 2.11 ms via 'VPS London LD4 50' instead of 74.01 ms
+KR	0	15:12:50.003	Trades	'1200252169': market sell 0.3 XAUUSD.ecn
+OI	0	15:12:50.084	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn
+QR	0	15:12:50.084	Trades	'1200252169': deal #455965443 sell 0.3 XAUUSD.ecn at 4317.45 done (based on order #752880138)
+MM	0	15:12:50.085	Trades	'1200252169': order #752880138 sell 0.3 / 0.3 XAUUSD.ecn at 4317.45 done in 82.687 ms
+DP	0	15:13:20.595	Trades	'1200252169': market buy 0.05 BTCUSD.ecn
+EE	0	15:13:20.674	Trades	'1200252169': accepted market buy 0.05 BTCUSD.ecn
+PO	0	15:13:20.674	Trades	'1200252169': deal #455968675 buy 0.05 BTCUSD.ecn at 85467.00 done (based on order #752885264)
+EQ	0	15:13:20.676	Trades	'1200252169': order #752885264 buy 0.05 / 0.05 BTCUSD.ecn at 85467.00 done in 81.293 ms
+OP	0	15:13:43.064	Trades	'1200252169': sell limit 0.05 BTCUSD.ecn at 88536.94
+IE	0	15:13:43.142	Trades	'1200252169': accepted sell limit 0.05 BTCUSD.ecn at 88536.94
+DP	0	15:13:43.142	Trades	'1200252169': order #752888252 sell limit 0.05 / 0.05 BTCUSD.ecn at 88536.94 done in 78.093 ms
+HL	0	15:24:00.679	Trades	'1200252169': modify order #712257887 buy limit 0.01 XAUUSD.ecn at 4225.00 sl: 0.00 tp: 0.00 -> 4258.58, sl: 0.00 tp: 0.00
+EH	0	15:24:00.765	Trades	'1200252169': accepted modify order #712257887 buy limit 0.01 XAUUSD.ecn at 4225.00 sl: 0.00 tp: 0.00 -> 4258.58, sl: 0.00 tp: 0.00
+EE	0	15:24:00.768	Trades	'1200252169': modify #712257887 buy limit 0.01 XAUUSD.ecn -> price: 4258.58, sl: 0.00, tp: 0.00 done in 89.626 ms
+DF	0	15:24:41.584	Trades	'1200252169': market buy 0.3 XAUUSD.ecn, close #752880138 sell 0.3 XAUUSD.ecn 4317.45
+NF	0	15:24:41.662	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn, close #752880138 sell 0.3 XAUUSD.ecn 4317.45
+HG	0	15:24:41.663	Trades	'1200252169': deal #456050288 buy 0.3 XAUUSD.ecn at 4313.52 done (based on order #753014316)
+EE	0	15:24:41.664	Trades	'1200252169': order #753014316 buy 0.3 / 0.3 XAUUSD.ecn at 4313.52 done in 80.827 ms
+MH	0	15:24:42.316	Trades	'1200252169': market buy 0.3 XAUUSD.ecn, close #752878178 sell 0.3 XAUUSD.ecn 4317.41
+DL	0	15:24:42.394	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn, close #752878178 sell 0.3 XAUUSD.ecn 4317.41
+LN	0	15:24:42.394	Trades	'1200252169': deal #456050333 buy 0.3 XAUUSD.ecn at 4313.60 done (based on order #753014383)
+GS	0	15:24:42.394	Trades	'1200252169': order #753014383 buy 0.3 / 0.3 XAUUSD.ecn at 4313.60 done in 78.648 ms
+PL	0	15:25:12.077	Trades	'1200252169': market sell 0.3 XAUUSD.ecn
+MG	0	15:25:12.185	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn
+NP	0	15:25:12.186	Trades	'1200252169': deal #456053779 sell 0.3 XAUUSD.ecn at 4314.31 done (based on order #753020158)
+LP	0	15:25:12.187	Trades	'1200252169': order #753020158 sell 0.3 / 0.3 XAUUSD.ecn at 4314.31 done in 110.330 ms
+EO	0	15:25:14.854	Trades	'1200252169': market sell 0.3 XAUUSD.ecn
+NF	0	15:25:14.931	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn
+DO	0	15:25:14.932	Trades	'1200252169': deal #456054001 sell 0.3 XAUUSD.ecn at 4314.45 done (based on order #753020597)
+FR	0	15:25:14.934	Trades	'1200252169': order #753020597 sell 0.3 / 0.3 XAUUSD.ecn at 4314.45 done in 80.451 ms
+QP	0	15:25:53.232	Trades	'1200252169': market buy 0.3 XAUUSD.ecn, close #753020597 sell 0.3 XAUUSD.ecn 4314.45
+OD	0	15:25:53.321	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn, close #753020597 sell 0.3 XAUUSD.ecn 4314.45
+PF	0	15:25:53.321	Trades	'1200252169': deal #456057091 buy 0.3 XAUUSD.ecn at 4313.60 done (based on order #753025823)
+NK	0	15:25:53.322	Trades	'1200252169': order #753025823 buy 0.3 / 0.3 XAUUSD.ecn at 4313.60 done in 89.990 ms
+LJ	0	15:25:53.934	Trades	'1200252169': market buy 0.3 XAUUSD.ecn, close #753020158 sell 0.3 XAUUSD.ecn 4314.31
+KJ	0	15:25:54.018	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn, close #753020158 sell 0.3 XAUUSD.ecn 4314.31
+DL	0	15:25:54.019	Trades	'1200252169': deal #456057199 buy 0.3 XAUUSD.ecn at 4313.81 done (based on order #753025952)
+HQ	0	15:25:54.020	Trades	'1200252169': order #753025952 buy 0.3 / 0.3 XAUUSD.ecn at 4313.81 done in 85.323 ms
+DR	0	15:26:01.425	Trades	'1200252169': market sell 0.3 XAUUSD.ecn
+LH	0	15:26:01.501	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn
+QR	0	15:26:01.502	Trades	'1200252169': deal #456057964 sell 0.3 XAUUSD.ecn at 4313.45 done (based on order #753027285)
+DM	0	15:26:01.503	Trades	'1200252169': order #753027285 sell 0.3 / 0.3 XAUUSD.ecn at 4313.45 done in 78.150 ms
+DS	0	15:26:05.983	Trades	'1200252169': market buy 0.3 XAUUSD.ecn, close #753027285 sell 0.3 XAUUSD.ecn 4313.45
+PS	0	15:26:06.059	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn, close #753027285 sell 0.3 XAUUSD.ecn 4313.45
+FS	0	15:26:06.064	Trades	'1200252169': deal #456058262 buy 0.3 XAUUSD.ecn at 4313.23 done (based on order #753027815)
+GH	0	15:26:06.065	Trades	'1200252169': order #753027815 buy 0.3 / 0.3 XAUUSD.ecn at 4313.23 done in 81.925 ms
+DD	0	15:26:07.339	Trades	'1200252169': market buy 0.3 XAUUSD.ecn
+PN	0	15:26:07.473	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn
+DE	0	15:26:07.475	Trades	'1200252169': deal #456058433 buy 0.3 XAUUSD.ecn at 4312.92 done (based on order #753028065)
+EI	0	15:26:07.475	Trades	'1200252169': order #753028065 buy 0.3 / 0.3 XAUUSD.ecn at 4312.92 done in 136.505 ms
+LJ	0	15:26:08.134	Trades	'1200252169': market buy 0.3 XAUUSD.ecn
+PP	0	15:26:08.214	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn
+NF	0	15:26:08.215	Trades	'1200252169': deal #456058555 buy 0.3 XAUUSD.ecn at 4312.79 done (based on order #753028219)
+GK	0	15:26:08.215	Trades	'1200252169': order #753028219 buy 0.3 / 0.3 XAUUSD.ecn at 4312.79 done in 81.011 ms
+QH	0	15:26:08.722	Trades	'1200252169': market buy 0.3 XAUUSD.ecn
+RQ	0	15:26:08.821	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn
+RH	0	15:26:08.822	Trades	'1200252169': deal #456058629 buy 0.3 XAUUSD.ecn at 4312.74 done (based on order #753028348)
+QF	0	15:26:08.825	Trades	'1200252169': order #753028348 buy 0.3 / 0.3 XAUUSD.ecn at 4312.74 done in 102.340 ms
+NH	0	15:26:20.726	Trades	'1200252169': market sell 0.3 XAUUSD.ecn, close #753028065 buy 0.3 XAUUSD.ecn 4312.92
+JL	0	15:26:20.806	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn, close #753028065 buy 0.3 XAUUSD.ecn 4312.92
+DQ	0	15:26:20.807	Trades	'1200252169': deal #456059630 sell 0.3 XAUUSD.ecn at 4313.89 done (based on order #753030124)
+KL	0	15:26:20.809	Trades	'1200252169': order #753030124 sell 0.3 / 0.3 XAUUSD.ecn at 4313.89 done in 83.328 ms
+OR	0	15:26:21.557	Trades	'1200252169': market sell 0.3 XAUUSD.ecn, close #753028219 buy 0.3 XAUUSD.ecn 4312.79
+NR	0	15:26:21.634	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn, close #753028219 buy 0.3 XAUUSD.ecn 4312.79
+DK	0	15:26:21.634	Trades	'1200252169': deal #456059738 sell 0.3 XAUUSD.ecn at 4313.77 done (based on order #753030255)
+NF	0	15:26:21.634	Trades	'1200252169': order #753030255 sell 0.3 / 0.3 XAUUSD.ecn at 4313.77 done in 77.262 ms
+FD	0	15:26:22.188	Trades	'1200252169': market sell 0.3 XAUUSD.ecn, close #753028348 buy 0.3 XAUUSD.ecn 4312.74
+CH	0	15:26:22.267	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn, close #753028348 buy 0.3 XAUUSD.ecn 4312.74
+OE	0	15:26:22.268	Trades	'1200252169': deal #456059775 sell 0.3 XAUUSD.ecn at 4313.90 done (based on order #753030340)
+NH	0	15:26:22.270	Trades	'1200252169': order #753030340 sell 0.3 / 0.3 XAUUSD.ecn at 4313.90 done in 81.552 ms
+IO	0	15:26:32.411	Trades	'1200252169': market buy 0.3 XAUUSD.ecn
+DD	0	15:26:32.493	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn
+EK	0	15:26:32.493	Trades	'1200252169': deal #456060448 buy 0.3 XAUUSD.ecn at 4313.46 done (based on order #753031555)
+KP	0	15:26:32.497	Trades	'1200252169': order #753031555 buy 0.3 / 0.3 XAUUSD.ecn at 4313.46 done in 85.663 ms
+CL	0	15:26:33.058	Trades	'1200252169': market buy 0.3 XAUUSD.ecn
+FF	0	15:26:33.139	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn
+EM	0	15:26:33.139	Trades	'1200252169': deal #456060458 buy 0.3 XAUUSD.ecn at 4313.46 done (based on order #753031569)
+LR	0	15:26:33.141	Trades	'1200252169': order #753031569 buy 0.3 / 0.3 XAUUSD.ecn at 4313.46 done in 83.208 ms
+HP	0	15:28:15.853	Trades	'1200252169': cancel order #712257887 buy limit 0.01 XAUUSD.ecn at 4258.58
+OQ	0	15:28:15.936	Trades	'1200252169': accepted cancel order #712257887 buy limit 0.01 XAUUSD.ecn at 4258.58
+LK	0	15:28:15.964	Trades	'1200252169': cancel #712257887 buy limit 0.01 XAUUSD.ecn at market done in 111.784 ms
+LJ	0	15:28:16.854	Trades	'1200252169': cancel order #752888252 sell limit 0.05 BTCUSD.ecn at 88536.94
+JD	0	15:28:16.932	Trades	'1200252169': accepted cancel order #752888252 sell limit 0.05 BTCUSD.ecn at 88536.94
+FM	0	15:28:16.935	Trades	'1200252169': cancel #752888252 sell limit 0.05 BTCUSD.ecn at market done in 81.894 ms
+KM	0	15:28:17.857	Trades	'1200252169': market sell 0.3 XAUUSD.ecn, close #753031555 buy 0.3 XAUUSD.ecn 4313.46
+PQ	0	15:28:17.934	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn, close #753031555 buy 0.3 XAUUSD.ecn 4313.46
+HN	0	15:28:17.934	Trades	'1200252169': deal #456070002 sell 0.3 XAUUSD.ecn at 4310.88 done (based on order #753047590)
+FQ	0	15:28:17.936	Trades	'1200252169': order #753047590 sell 0.3 / 0.3 XAUUSD.ecn at 4310.88 done in 79.102 ms
+RG	0	15:28:18.861	Trades	'1200252169': market sell 0.3 XAUUSD.ecn, close #753031569 buy 0.3 XAUUSD.ecn 4313.46
+EG	0	15:28:18.939	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn, close #753031569 buy 0.3 XAUUSD.ecn 4313.46
+HH	0	15:28:18.940	Trades	'1200252169': deal #456070125 sell 0.3 XAUUSD.ecn at 4310.96 done (based on order #753047739)
+LK	0	15:28:18.942	Trades	'1200252169': order #753047739 sell 0.3 / 0.3 XAUUSD.ecn at 4310.96 done in 80.920 ms
+EJ	0	15:28:19.868	Trades	'1200252169': market sell 0.05 BTCUSD.ecn, close #752885264 buy 0.05 BTCUSD.ecn 85467.00
+HN	0	15:28:19.952	Trades	'1200252169': accepted market sell 0.05 BTCUSD.ecn, close #752885264 buy 0.05 BTCUSD.ecn 85467.00
+PR	0	15:28:19.952	Trades	'1200252169': deal #456070288 sell 0.05 BTCUSD.ecn at 85445.50 done (based on order #753048023)
+IL	0	15:28:19.955	Trades	'1200252169': order #753048023 sell 0.05 / 0.05 BTCUSD.ecn at 85445.50 done in 87.448 ms
+KL	0	15:56:12.528	Trades	'1200252169': deal #456255793 buy 0.01 XAUUSD.ecn at 4306.07 done (based on order #753338779)
+MS	0	15:56:12.528	Trades	'1200252169': market sell 0.01 XAUUSD.ecn, close #753338779 buy 0.01 XAUUSD.ecn 4306.07
+OM	0	15:56:12.609	Trades	'1200252169': deal #456255797 sell 0.01 XAUUSD.ecn at 4306.01 done (based on order #753338795)
+PN	0	15:56:12.609	Trades	'1200252169': accepted market sell 0.01 XAUUSD.ecn
+LJ	0	15:56:12.610	Trades	'1200252169': order #753338795 sell 0.01 / 0.01 XAUUSD.ecn at 4306.01 done in 81.418 ms
+JF	0	15:56:31.781	Trades	'1200252169': deal #456258645 sell 0.01 XAUUSD.ecn at 4306.98 done (based on order #753343087)
+KH	0	15:56:31.781	Trades	'1200252169': market buy 0.01 XAUUSD.ecn, close #753343087 sell 0.01 XAUUSD.ecn 4306.98
+QL	0	15:56:31.863	Trades	'1200252169': accepted market buy 0.01 XAUUSD.ecn, close #753343087 sell 0.01 XAUUSD.ecn 4306.98
+RM	0	15:56:31.863	Trades	'1200252169': deal #456258720 buy 0.01 XAUUSD.ecn at 4307.05 done (based on order #753343153)
+PS	0	15:56:31.867	Trades	'1200252169': order #753343153 buy 0.01 / 0.01 XAUUSD.ecn at 4307.05 done in 86.268 ms
+FM	0	16:39:03.503	Experts	automated trading is disabled
+LJ	0	16:39:37.593	Trades	'1200252169': deal #456629975 buy 0.01 XAUUSD.ecn at 4304.11 done (based on order #753944253)
+RI	0	16:40:38.227	Experts	automated trading is enabled
+IP	0	16:40:38.857	Trades	'1200252169': market sell 0.01 XAUUSD.ecn, close #753944253 buy 0.01 XAUUSD.ecn 4304.11
+DD	0	16:40:38.945	Trades	'1200252169': accepted market sell 0.01 XAUUSD.ecn, close #753944253 buy 0.01 XAUUSD.ecn 4304.11
+EJ	0	16:40:38.945	Trades	'1200252169': deal #456636333 sell 0.01 XAUUSD.ecn at 4303.94 done (based on order #753956675)
+ID	0	16:40:38.945	Trades	'1200252169': order #753956675 sell 0.01 / 0.01 XAUUSD.ecn at 4303.94 done in 88.149 ms
+PD	0	16:57:29.634	Terminal	MetaTrader 5 x64 build 6182 started for MetaQuotes Ltd.
+RO	0	16:57:29.634	Terminal	Windows 11 build 26200, 10 x 12th Gen Intel Core i5-1235U, AVX2, 6 / 15 Gb memory, 163 / 346 Gb disk, UAC, GMT+2
+DS	0	16:57:29.634	Terminal	C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075
+HM	0	16:57:29.635	MCP	started on 127.0.0.1:22346
+CK	0	16:57:30.325	Experts	expert AccountGuardian (XAUUSD.ecn,M15) loaded successfully
+IP	0	16:57:30.998	Network	'1200252169': authorized on JustMarkets-Demo3 through UK7_11 (ping: 74.01 ms, build 5800)
+DR	0	16:57:30.998	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.23 16:56:42
+RM	0	16:57:31.317	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 1 positions, 0 orders, 272 symbols, 0 spreads
+JL	0	16:57:31.317	Network	'1200252169': trading has been enabled, demo account - hedging mode
+NS	0	16:57:31.317	Network	'1200252169': balance management has been disabled - demo account
+QE	0	16:58:05.595	Experts	automated trading is enabled
+DL	0	16:58:06.448	Trades	'1200252169': market sell 0.01 XAUUSD.ecn, close #754309603 buy 0.01 XAUUSD.ecn 4283.13
+RP	0	16:58:06.524	Trades	'1200252169': accepted market sell 0.01 XAUUSD.ecn, close #754309603 buy 0.01 XAUUSD.ecn 4283.13
+KM	0	16:58:06.526	Trades	'1200252169': deal #456868763 sell 0.01 XAUUSD.ecn at 4285.23 done (based on order #754333165)
+HQ	0	16:58:06.526	Trades	'1200252169': order #754333165 sell 0.01 / 0.01 XAUUSD.ecn at 4285.23 done in 77.980 ms
+IE	0	16:58:07.364	Trades	use MetaTrader VPS Hosting Service to speed up the execution: 2.09 ms via 'VPS London LD4 50' instead of 74.01 ms
+DS	1	17:06:25.456	Network	'1200252169': connection to JustMarkets-Demo3 lost
+CD	0	17:08:12.692	Network	'1200252169': authorized on JustMarkets-Demo3 through UK7_11 (ping: 74.01 ms, build 5800)
+GG	0	17:08:12.692	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.23 17:06:45
+QH	0	17:08:13.025	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 1 positions, 0 orders, 272 symbols, 0 spreads
+IH	0	17:08:13.025	Network	'1200252169': trading has been enabled, demo account - hedging mode
+ML	0	17:08:13.025	Network	'1200252169': balance management has been disabled - demo account
+RR	0	17:08:13.446	Trades	'1200252169': market sell 0.01 XAUUSD.ecn, close #754483266 buy 0.01 XAUUSD.ecn 4286.94
+NR	0	17:08:13.520	Trades	'1200252169': accepted market sell 0.01 XAUUSD.ecn, close #754483266 buy 0.01 XAUUSD.ecn 4286.94
+JH	0	17:08:13.520	Trades	'1200252169': deal #456968778 sell 0.01 XAUUSD.ecn at 4290.20 done (based on order #754508265)
+FF	0	17:08:13.522	Trades	'1200252169': order #754508265 sell 0.01 / 0.01 XAUUSD.ecn at 4290.20 done in 76.011 ms
+GH	0	17:08:13.914	Network	'1200252169': scanning network for access points
+FL	0	17:08:22.047	Network	'1200252169': scanning network finished
