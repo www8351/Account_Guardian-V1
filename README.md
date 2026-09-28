@@ -30,7 +30,7 @@
 
 ### What it does not do yet
 
-**This build detects, locks and flattens.** When a breach fires, the state machine enters `LOCKED`, alerts, writes the lock to disk, and from the next timer tick the sweep engine in `Sweep.mqh` deletes every pending order and closes every position on the account, one order per second, largest floating loss first, and keeps sweeping anything opened while locked. Every attempt is journaled with its return code, retries back off and stop at ten attempts per ticket, and a position the platform cannot close yet, a closed session for instance, is held and named on the journal and the chart until the platform accepts the close. The flatten engine is new in this build and its live acceptance on a demo account is still to run.
+**This build detects, locks and flattens.** When a breach fires, the state machine enters `LOCKED`, alerts, writes the lock to disk, and from the next timer tick the sweep engine in `Sweep.mqh` closes every position on the account, largest floating loss first, then deletes every pending order, one order per second, and keeps sweeping anything opened while locked. Every attempt is journaled with its return code, retries back off and stop at ten attempts per ticket, and a position the platform cannot close yet, a closed session for instance, is held and named on the journal and the chart until the platform accepts the close. The flatten engine is new in this build and its live acceptance on a demo account is still to run.
 
 What it still does not do: it does not report weekly figures (the input exists, the measurement does not), it sends alerts nowhere but the terminal popup and the journal, and it cannot act while the terminal is closed or disconnected, so a position opened from the phone during an outage is closed only once the terminal is back and locked.
 
@@ -61,7 +61,7 @@ stateDiagram-v2
 | `BOOT` | Before the first transition. Inputs are validated here, and a malformed core input refuses startup outright with a dated `REFUSED` banner left on the chart. |
 | `SYNCING` | Waiting for the broker's deal history to settle. Leaving requires 3 consecutive stable, connected polls of the deal count. No breach decision is ever taken from this state. |
 | `ACTIVE` | Measuring. One evaluation pass per timer tick. |
-| `LOCKED` | A breach is in force. The sweep engine deletes every pending order and closes every position, anything newly opened is closed within seconds of the platform accepting the close, and the expiry clock is the only exit. |
+| `LOCKED` | A breach is in force. The sweep engine closes every position, then deletes every pending order, anything newly opened is closed within seconds of the platform accepting the close, and the expiry clock is the only exit. |
 | `SAFE_HALT` | The advisor believes its own environment is broken, typically a crash loop. It closes nothing, sweeps nothing, and is excluded from expiry. Resume is manual: stop the advisor, delete the halt file, restart. |
 
 **The two paths out of `LOCKED` both go through `SYNCING`.** An ordinary expiry lands in `SYNCING` so that the first pass eligible to declare a new breach is preceded by the same history-stability discipline a cold boot runs. And if the day's history still shows a breach, the boot derivation fires again on the way through and re-locks immediately. That is the boot-derived re-lock: `LOCKED → SYNCING → LOCKED` inside a few seconds, with no `ACTIVE` pass in between. It is the mechanism working, not a defect.
@@ -178,7 +178,7 @@ A `DEGRADED|` prefix on the numbers means the terminal was disconnected and thes
 In `LOCKED` the numbers field carries the snapshot and account group instead, so the balance and the equity at any sampled instant inside a locked window are readable from the journal alone:
 
 ```
-AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >= locked_until|locked_until=2026.08.19 01:00:00|limit_snap=106.66|base_snap=2133.13|balance=2034.73|floating=-9.10|equity=2025.63|server=...|local=...
+AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >= locked_until|locked_until=2026.08.19 01:00:00|limit_snap=106.66|base_snap=2133.13|balance=2034.73|floating=-9.10|equity=2025.63|sweep=1/0|server=...|local=...
 ```
 
 | Field | What it tells you |
@@ -189,6 +189,7 @@ AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >=
 | `balance` | Account balance right now. |
 | `floating` | Profit plus swap across every open position right now. |
 | `equity` | `balance + floating`. |
+| `sweep` | Written `open/held`. `open` is the positions plus pending orders still on the book, `held` how many of them the sweep is holding for a named reason. Counted on every connected pass, a pass blocked by disabled trading included, and lowered as each close or delete is accepted. |
 
 A `DEGRADED|` prefix on the `LOCKED` group means the terminal was disconnected when the line was written, so `balance` and `floating` are the platform's last known figures. A lock declared after a corrupt state file carries `limit_snap=0.00` and `base_snap=0.00`, because that lock has no trustworthy snapshot. The breach instant itself is not on the line; it is on the transition line and in the state file. While locked the advisor walks no deal history; the group is two platform reads and one pass over the open positions.
 
@@ -214,7 +215,7 @@ The alert is a real MetaTrader popup, not just a journal line. `breach arithmeti
 
 ### What LOCKED means
 
-* **Your positions are closed and your pending orders deleted.** The sweep runs from the next timer tick: pending orders first, then positions from the largest floating loss down, one send per second so the advisor's own liveness signal keeps ticking. Anything opened while locked, from the phone included, is closed within seconds of the platform accepting a close. A close the platform refuses is retried with a doubling backoff, up to ten attempts, then held and named on the journal and the chart banner until the condition changes; a symbol whose session is closed is held with its next open named, and nothing is sent into a closed market.
+* **Your positions are closed and your pending orders deleted.** The sweep runs from the next timer tick: positions first, from the largest floating loss down, then pending orders, one send per second so the advisor's own liveness signal keeps ticking. Anything opened while locked, from the phone included, is closed within seconds of the platform accepting a close. A close the platform refuses is retried with a doubling backoff, up to ten attempts, then held and named on the journal and the chart banner until the condition changes; a symbol whose session is closed is held with its next open named, and nothing is sent into a closed market.
 * **The limit and base at the moment of breach are snapshotted**, and the locked window is judged by that snapshot. Changing `DailyLossPercent` or `DailyLossCurrency` while locked changes nothing: the change is logged as ignored, naming both the old and the new value, and the snapshot continues to govern.
 * **Deleting the state file while the advisor is alive changes nothing**, because enforcement runs from memory. Clearing the global variable changes nothing either, because it is rewritten from memory on the next tick.
 * **A restart does not clear it.** The boot derivation weighs all three witnesses and re-locks.
@@ -239,7 +240,7 @@ Two things can make a lock last longer than you expect, both deliberate:
 | Phase 2 | Lock state machine: breach declaration, lock snapshot, expiry, boot derivation from three witnesses, the ratchet floor, observability. | **Done** |
 | Phase 3 | Defect fixes completed and verified: expiry routed through `SYNCING`, boot-derived locks persisting a real snapshot, the boot-derived re-lock verified across restarts. | **Done** |
 | Next | Realized-peak trailing floor: lock on giving back a day's realized profit, not only on dropping below the opening base. Designed and specified, awaiting deployment. | **Next** |
-| Phase 3, sweep engine | Enforcement: delete pending orders and close positions on a lock, with per-position backoff, a retcode logged per attempt, a held state for what the platform refuses, and an accelerated pass on every new position while locked. Built; live acceptance on demo pending. | **Built** |
+| Phase 3, sweep engine | Enforcement: close positions and delete pending orders on a lock, with per-position backoff, a retcode logged per attempt, a held state for what the platform refuses, and an accelerated pass on every new position while locked. Built; live acceptance on demo pending. | **Built** |
 | Later | Richer alerting, then hardening. | **Later** |
 
 ---
@@ -301,7 +302,7 @@ This software is provided as is, with no warranty of any kind. Nothing here is f
 
 ### מה הוא עדיין אינו עושה
 
-**הבנייה הזו מזהה, נועלת וסוגרת.** כשחריגה נורית, מכונת המצבים נכנסת ל`LOCKED`, מתריעה, כותבת את הנעילה לדיסק, ומהפעימה הבאה של השעון מנוע הסגירה שבקובץ `Sweep.mqh` מוחק כל פקודה ממתינה וסוגר כל פוזיציה בחשבון, פקודה אחת בשנייה, ההפסד הצף הגדול ביותר תחילה, וממשיך לסרוק כל דבר שנפתח בזמן הנעילה. כל ניסיון נרשם ביומן עם קוד התגובה שלו, ניסיונות חוזרים מתרווחים בהדרגה ונעצרים אחרי עשרה ניסיונות לכרטיס, ופוזיציה שהפלטפורמה עדיין אינה יכולה לסגור, למשל בגלל מושב מסחר סגור, מוחזקת ונקובה בשמה ביומן ועל הגרף עד שהפלטפורמה מקבלת את הסגירה. מנוע הסגירה חדש בבנייה הזו, והקבלה החיה שלו על חשבון דמו טרם רצה.
+**הבנייה הזו מזהה, נועלת וסוגרת.** כשחריגה נורית, מכונת המצבים נכנסת ל`LOCKED`, מתריעה, כותבת את הנעילה לדיסק, ומהפעימה הבאה של השעון מנוע הסגירה שבקובץ `Sweep.mqh` סוגר כל פוזיציה בחשבון, ההפסד הצף הגדול ביותר תחילה, ואחר כך מוחק כל פקודה ממתינה, פקודה אחת בשנייה, וממשיך לסרוק כל דבר שנפתח בזמן הנעילה. כל ניסיון נרשם ביומן עם קוד התגובה שלו, ניסיונות חוזרים מתרווחים בהדרגה ונעצרים אחרי עשרה ניסיונות לכרטיס, ופוזיציה שהפלטפורמה עדיין אינה יכולה לסגור, למשל בגלל מושב מסחר סגור, מוחזקת ונקובה בשמה ביומן ועל הגרף עד שהפלטפורמה מקבלת את הסגירה. מנוע הסגירה חדש בבנייה הזו, והקבלה החיה שלו על חשבון דמו טרם רצה.
 
 מה שהוא עדיין אינו עושה: הוא אינו מדווח נתונים שבועיים (הקלט קיים, המדידה לא), אינו שולח התראות לשום מקום מלבד החלון הקופץ והיומן של הטרמינל, ואינו יכול לפעול בזמן שהטרמינל סגור או מנותק, כך שפוזיציה שנפתחה מהטלפון במהלך נפילה נסגרת רק אחרי שהטרמינל חוזר ונעול.
 
@@ -332,7 +333,7 @@ stateDiagram-v2
 | `BOOT` | לפני המעבר הראשון. הקלטים נבדקים כאן, וקלט ליבה פגום דוחה את העלייה לחלוטין ומשאיר על הגרף כרזת `REFUSED` נושאת תאריך. |
 | `SYNCING` | המתנה להתייצבות היסטוריית העסקאות של הברוקר. היציאה מחייבת שלוש דגימות יציבות ורצופות של מונה העסקאות. שום החלטת חריגה אינה מתקבלת מהמצב הזה. |
 | `ACTIVE` | מדידה. מעבר הערכה אחד בכל פעימת שעון. |
-| `LOCKED` | חריגה בתוקף. מנוע הסגירה מוחק כל פקודה ממתינה וסוגר כל פוזיציה, כל דבר שנפתח מחדש נסגר בתוך שניות מרגע שהפלטפורמה מקבלת את הסגירה, ושעון הפקיעה הוא היציאה היחידה. |
+| `LOCKED` | חריגה בתוקף. מנוע הסגירה סוגר כל פוזיציה ואחר כך מוחק כל פקודה ממתינה, כל דבר שנפתח מחדש נסגר בתוך שניות מרגע שהפלטפורמה מקבלת את הסגירה, ושעון הפקיעה הוא היציאה היחידה. |
 | `SAFE_HALT` | היועץ מאמין שהסביבה שלו שבורה, בדרך כלל בעקבות לולאת קריסות. הוא אינו סוגר דבר, אינו סורק דבר, ואינו נכלל בפקיעה. החזרה לפעילות ידנית: לעצור את היועץ, למחוק את קובץ העצירה, ולהפעיל מחדש. |
 
 **שני המסלולים החוצה מ`LOCKED` עוברים דרך `SYNCING`.** פקיעה רגילה נוחתת ב`SYNCING`, כדי שלמעבר הראשון הרשאי להכריז על חריגה חדשה יקדם אותו משטר יציבות היסטוריה שעלייה קרה מריצה. ואם היסטוריית היום עדיין מראה חריגה, גזירת העלייה נורית שוב בדרך ונועלת מיד. זהו מנגנון הנעילה מחדש בעלייה: `LOCKED → SYNCING → LOCKED` בתוך שניות ספורות, בלי אף מעבר `ACTIVE` באמצע. זו המערכת עובדת, לא תקלה.
@@ -449,7 +450,7 @@ AG|2026.08.17 23:57:59|LIFE|state=ACTIVE|seconds_in_state=3478|waiting_on=-|anch
 במצב `LOCKED` שדה המספרים נושא במקום זאת את קבוצת התצלום והחשבון, כך שהיתרה וההון בכל רגע דגום בתוך חלון נעול ניתנים לקריאה מהיומן לבדו:
 
 ```
-AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >= locked_until|locked_until=2026.08.19 01:00:00|limit_snap=106.66|base_snap=2133.13|balance=2034.73|floating=-9.10|equity=2025.63|server=...|local=...
+AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >= locked_until|locked_until=2026.08.19 01:00:00|limit_snap=106.66|base_snap=2133.13|balance=2034.73|floating=-9.10|equity=2025.63|sweep=1/0|server=...|local=...
 ```
 
 | שדה | מה הוא מספר לך |
@@ -460,6 +461,7 @@ AG|...|LIFE|state=LOCKED|seconds_in_state=2121|waiting_on=expiry: TimeCurrent >=
 | `balance` | יתרת החשבון ברגע זה. |
 | `floating` | רווח ועוד עמלת החלפה על פני כל הפוזיציות הפתוחות ברגע זה. |
 | `equity` | הסכום `balance + floating`. |
+| `sweep` | נכתב בצורה `open/held`. הערך `open` הוא מספר הפוזיציות והפקודות הממתינות שעדיין פתוחות, והערך `held` הוא כמה מהן הסריקה מחזיקה מסיבה נקובה. הספירה נעשית בכל מעבר מחובר, גם במעבר שנחסם בגלל מסחר מושבת, והיא יורדת עם כל סגירה או מחיקה שמתקבלת. |
 
 הקידומת `DEGRADED|` על קבוצת `LOCKED` פירושה שהטרמינל היה מנותק כשהשורה נכתבה, ולכן `balance` ו`floating` הם הנתונים האחרונים הידועים לפלטפורמה. נעילה שהוכרזה אחרי קובץ מצב פגום נושאת `limit_snap=0.00` ו`base_snap=0.00`, כי לנעילה כזו אין תצלום אמין. רגע החריגה עצמו אינו מופיע בשורה; הוא נמצא בשורת המעבר ובקובץ המצב. בזמן נעילה היועץ אינו עובר על היסטוריית העסקאות; הקבוצה היא שתי קריאות מהפלטפורמה ומעבר אחד על הפוזיציות הפתוחות.
 
@@ -485,7 +487,7 @@ AG|...|INFO|sweep complete|positions=0|pendings=0|attempts=1|elapsed=3
 
 ### מה פירוש LOCKED
 
-* **הפוזיציות שלך נסגרות והפקודות הממתינות שלך נמחקות.** הסריקה רצה מהפעימה הבאה של השעון: קודם פקודות ממתינות, אחר כך פוזיציות מההפסד הצף הגדול ביותר ומטה, שליחה אחת בשנייה כדי שאות החיים של היועץ עצמו ימשיך לפעום. כל דבר שנפתח בזמן הנעילה, גם מהטלפון, נסגר בתוך שניות מרגע שהפלטפורמה מקבלת סגירה. סגירה שהפלטפורמה מסרבת לה מנוסה שוב בהשהיה מוכפלת, עד עשרה ניסיונות, ואז מוחזקת ונקובה בשמה ביומן ובכרזת הגרף עד שהתנאי משתנה; סימול שמושב המסחר שלו סגור מוחזק עם ציון הפתיחה הבאה, ושום פקודה אינה נשלחת לשוק סגור.
+* **הפוזיציות שלך נסגרות והפקודות הממתינות שלך נמחקות.** הסריקה רצה מהפעימה הבאה של השעון: קודם פוזיציות, מההפסד הצף הגדול ביותר ומטה, ואחר כך פקודות ממתינות, שליחה אחת בשנייה כדי שאות החיים של היועץ עצמו ימשיך לפעום. כל דבר שנפתח בזמן הנעילה, גם מהטלפון, נסגר בתוך שניות מרגע שהפלטפורמה מקבלת סגירה. סגירה שהפלטפורמה מסרבת לה מנוסה שוב בהשהיה מוכפלת, עד עשרה ניסיונות, ואז מוחזקת ונקובה בשמה ביומן ובכרזת הגרף עד שהתנאי משתנה; סימול שמושב המסחר שלו סגור מוחזק עם ציון הפתיחה הבאה, ושום פקודה אינה נשלחת לשוק סגור.
 * **המגבלה והבסיס ברגע החריגה מצולמים**, וחלון הנעילה נשפט לפי התצלום הזה. שינוי `DailyLossPercent` או `DailyLossCurrency` בזמן נעילה אינו משנה דבר: השינוי נרשם ביומן כמי שהתעלמו ממנו, בציון הערך הישן והחדש, והתצלום ממשיך לקבוע.
 * **מחיקת קובץ המצב בזמן שהיועץ חי אינה משנה דבר**, כי האכיפה רצה מהזיכרון. גם מחיקת המשתנה הגלובלי אינה משנה דבר, כי הוא נכתב מחדש מהזיכרון בפעימה הבאה.
 * **הפעלה מחדש אינה מנקה אותה.** גזירת העלייה שוקלת את שלושת העדים ונועלת שוב.
@@ -510,7 +512,7 @@ AG|...|INFO|sweep complete|positions=0|pendings=0|attempts=1|elapsed=3
 | שלב 2 | מכונת מצבי הנעילה: הכרזת חריגה, תצלום נעילה, פקיעה, גזירת נעילה בעלייה משלושה עדים, רצפת ההתהדקות, נראות. | **הושלם** |
 | שלב 3 | תיקוני פגמים שהושלמו ואומתו: ניתוב הפקיעה דרך `SYNCING`, נעילות שנגזרו בעלייה השומרות תצלום אמיתי, ואימות הנעילה מחדש בעלייה לאורך הפעלות מחדש. | **הושלם** |
 | הבא בתור | רצפה נגררת של שיא הרווח הממומש: נעילה על החזרת רווח ממומש של יום, ולא רק על ירידה מתחת לבסיס הפתיחה. תוכנן ואופיין, וממתין לפריסה. | **הבא בתור** |
-| שלב 3, מנוע הסגירה | אכיפה: מחיקת פקודות ממתינות וסגירת פוזיציות בנעילה, עם השהיה מדורגת לכל פוזיציה, קוד תגובה נרשם לכל ניסיון, מצב החזקה למה שהפלטפורמה מסרבת לו, ומעבר מואץ על כל פוזיציה חדשה בזמן נעילה. נבנה; הקבלה החיה על דמו ממתינה. | **נבנה** |
+| שלב 3, מנוע הסגירה | אכיפה: סגירת פוזיציות ומחיקת פקודות ממתינות בנעילה, עם השהיה מדורגת לכל פוזיציה, קוד תגובה נרשם לכל ניסיון, מצב החזקה למה שהפלטפורמה מסרבת לו, ומעבר מואץ על כל פוזיציה חדשה בזמן נעילה. נבנה; הקבלה החיה על דמו ממתינה. | **נבנה** |
 | בהמשך | התרעות עשירות יותר, ואז חיסון. | **בהמשך** |
 
 ---
