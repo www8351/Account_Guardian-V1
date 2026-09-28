@@ -94,7 +94,10 @@ int      g_ag_sweep_flat_passes      = 0;
 bool     g_ag_sweep_complete_armed   = true;
 int      g_ag_sweep_episode_start    = 0;
 int      g_ag_sweep_episode_attempts = 0;
-//--- the counts the LOCKED LIFE line reports (ENF-17(b)), from the last pass
+//--- the counts the LOCKED LIFE line reports (ENF-17(b)), set from the
+//--- enumeration of every connected pass, a blocked one included, and the
+//--- open count lowered by each done send (ENF-DEF-1(b)); a disconnected
+//--- pass leaves both as they were
 int      g_ag_sweep_open_count       = 0;
 int      g_ag_sweep_held_count       = 0;
 
@@ -128,8 +131,9 @@ void AgSweepReset()
 
 //--- the two counts the EA builder appends to the LOCKED LIFE line as
 //--- sweep=<open>/<held> (ENF-17(b)); open is positions plus pendings
-//--- still on the book at the last pass, held the tickets among them
-//--- the sweep is holding for a named reason.
+//--- on the book as the last connected pass enumerated it, less each
+//--- done send of that pass, held the tickets among them the sweep is
+//--- holding for a named reason (ENF-DEF-1(b)).
 int AgSweepOpenCount() { return g_ag_sweep_open_count; }
 int AgSweepHeldCount() { return g_ag_sweep_held_count; }
 
@@ -265,6 +269,18 @@ int AgSweepFindTicket(const ulong ticket, const bool is_order)
    return n;
   }
 
+//--- Whether a ticket the sweep already knows is held. Finds and never
+//--- creates, so a pass that returns before the walk counts its held
+//--- tickets without adding state (ENF-DEF-1(b)).
+bool AgSweepTicketHeld(const ulong ticket, const bool is_order)
+  {
+   int n = ArraySize(g_ag_sweep_tickets);
+   for(int i = 0; i < n; i++)
+      if(g_ag_sweep_tickets[i].ticket == ticket && g_ag_sweep_tickets[i].is_order == is_order)
+         return g_ag_sweep_tickets[i].hold != AG_SWEEP_HOLD_NONE;
+   return false;
+  }
+
 string AgSweepHoldReason(const int idx)
   {
    switch(g_ag_sweep_tickets[idx].hold)
@@ -324,16 +340,18 @@ ENUM_ORDER_TYPE_FILLING AgSweepFilling(const string symbol)
 //| pass counter.                                                    |
 //|                                                                  |
 //| Order of operations: the connection, read fresh, with the        |
-//| coverage gap line on the reconnect edge (ENF-20(a)); the account |
+//| coverage gap line on the reconnect edge (ENF-20(a)); enumeration |
+//| of pendings then positions, positions sorted most negative       |
+//| floating first, and the open and held counts set from it, so a   |
+//| blocked pass reports what is open (ENF-DEF-1(b)); the account    |
 //| wide block, the CANNOT_TRADE sub-condition, one ALERT at entry   |
 //| and one at exit and the journal line at the cadence (ENF-14(b)); |
-//| enumeration of pendings then positions, positions sorted most    |
-//| negative floating first (ENF-7(a)); the flat detector on two     |
-//| consecutive passes that sent nothing (ENF-16(b)); then the walk, |
-//| positions before pendings (ENF-31), every ticket's hold and      |
-//| cadence handled, and the first DUE ticket sent: session          |
-//| pre-check and trade mode (ENF-13(c), ENF-15(a)), the request,    |
-//| the send, the classification, one journal line per attempt.      |
+//| the flat detector on two consecutive passes that sent nothing    |
+//| (ENF-16(b)); then the walk, positions before pendings (ENF-31),  |
+//| every ticket's hold and cadence handled, and the first DUE       |
+//| ticket sent: session pre-check and trade mode (ENF-13(c),        |
+//| ENF-15(a)), the request, the send, the classification, one       |
+//| journal line per attempt, the open count lowered by a done send. |
 //+------------------------------------------------------------------+
 void AgSweepPass(const string origin)
   {
@@ -356,31 +374,6 @@ void AgSweepPass(const string origin)
      {
       g_ag_sweep_connected = true;
       AgInfo(AgSweepResumedLine(AgSweepStamp(g_ag_sweep_gap_from), AgSweepStamp(AgSweepServerNow())));
-     }
-
-   //--- The account wide block, one read per state per pass.
-   string blocking = "";
-   if(!AgTradeAllowed(blocking))
-     {
-      if(!g_ag_sweep_blocked || blocking != g_ag_sweep_blocked_state)
-        {
-         g_ag_sweep_blocked         = true;
-         g_ag_sweep_blocked_state   = blocking;
-         g_ag_sweep_blocked_at_pass = pass;
-         AgInfo(AgSweepBlockedLine(blocking));
-         AgAlertEvent("CANNOT_TRADE while LOCKED: " + blocking
-                      + "; the sweep sends nothing until trading is restored and resumes the moment it is");
-        }
-      else if((pass - g_ag_sweep_blocked_at_pass) % AG_SWEEP_CADENCE_PASSES == 0)
-         AgInfo(AgSweepBlockedLine(blocking));
-      return;
-     }
-   if(g_ag_sweep_blocked)
-     {
-      AgAlertEvent("trading restored while LOCKED: " + g_ag_sweep_blocked_state
-                   + " cleared; the sweep resumes this pass");
-      g_ag_sweep_blocked       = false;
-      g_ag_sweep_blocked_state = "";
      }
 
    //--- Enumerate pendings, then positions, the AgFloating pattern with
@@ -440,6 +433,44 @@ void AgSweepPass(const string origin)
         }
       p_ticket[j + 1] = kt; p_symbol[j + 1] = ks; p_type[j + 1] = ky;
       p_volume[j + 1] = kv; p_floating[j + 1] = kf;
+     }
+
+   //--- ENF-DEF-1(b): the counts the LOCKED LIFE line reports are set here,
+   //--- from this enumeration, before the blocked return below, so a pass
+   //--- that sends nothing still says what is open and what is held.
+   int held_now = 0;
+   for(int i = 0; i < n_positions; i++)
+      if(AgSweepTicketHeld(p_ticket[i], false))
+         held_now++;
+   for(int i = 0; i < n_orders; i++)
+      if(AgSweepTicketHeld(o_ticket[i], true))
+         held_now++;
+   g_ag_sweep_open_count = n_positions + n_orders;
+   g_ag_sweep_held_count = held_now;
+
+   //--- The account wide block, one read per state per pass.
+   string blocking = "";
+   if(!AgTradeAllowed(blocking))
+     {
+      if(!g_ag_sweep_blocked || blocking != g_ag_sweep_blocked_state)
+        {
+         g_ag_sweep_blocked         = true;
+         g_ag_sweep_blocked_state   = blocking;
+         g_ag_sweep_blocked_at_pass = pass;
+         AgInfo(AgSweepBlockedLine(blocking));
+         AgAlertEvent("CANNOT_TRADE while LOCKED: " + blocking
+                      + "; the sweep sends nothing until trading is restored and resumes the moment it is");
+        }
+      else if((pass - g_ag_sweep_blocked_at_pass) % AG_SWEEP_CADENCE_PASSES == 0)
+         AgInfo(AgSweepBlockedLine(blocking));
+      return;
+     }
+   if(g_ag_sweep_blocked)
+     {
+      AgAlertEvent("trading restored while LOCKED: " + g_ag_sweep_blocked_state
+                   + " cleared; the sweep resumes this pass");
+      g_ag_sweep_blocked       = false;
+      g_ag_sweep_blocked_state = "";
      }
 
    //--- The flat detector, ENF-16(b): two consecutive passes that sent
@@ -604,6 +635,10 @@ void AgSweepPass(const string origin)
       //--- THE CLASSES.
       if(cls == AG_RC_DONE)
         {
+         //--- ENF-DEF-1(b): a done send closed the position or removed the
+         //--- order, so the LIFE line after this pass no longer counts it
+         if(g_ag_sweep_open_count > 0)
+            g_ag_sweep_open_count--;
          //--- the next enumeration is the evidence the ticket is gone
          //--- (plan 2.7.7); a held ticket that finally closed gets its exit ALERT
          if(g_ag_sweep_tickets[idx].alerted)
@@ -651,7 +686,6 @@ void AgSweepPass(const string origin)
         }
      }
 
-   g_ag_sweep_open_count = n_positions + n_orders;
    g_ag_sweep_held_count = held;
 
    //--- sweep pass: once per pass that sent anything, and once when the
