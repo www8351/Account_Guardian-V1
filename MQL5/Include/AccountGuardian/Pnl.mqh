@@ -9,6 +9,10 @@
 #define AG_PNL_MQH
 
 #include <AccountGuardian/Clock.mqh>
+//--- For AG_SWEEP_MAGIC (PK-4(c1), 2026-09-28). SweepPolicy.mqh includes
+//--- nothing and carries no trade API, so this pulls in no cycle and no
+//--- trade call, and the weekly path below stays provably unable to trade.
+#include <AccountGuardian/SweepPolicy.mqh>
 
 //+------------------------------------------------------------------+
 //| History-select upper bound: a clock-independent constant, never  |
@@ -109,15 +113,35 @@ double AgDealValue(const ulong ticket)
 //| it is read. That is the split the ratchet epsilon FINAL of       |
 //| 2026-08-18 draws, and it is why running_min beside it is a plain |
 //| < and always has been.                                           |
+//|                                                                  |
+//| PK BUILD, THE FOURTH WITNESS (owner rulings PK-1(c), PK-4(c1)    |
+//| and PK-10(a) of 2026-09-28, and the build rulings of the same    |
+//| date). This same walk reads DEAL_MAGIC once per deal and reports |
+//| the latest deal carrying AG_SWEEP_MAGIC, its DEAL_TIME in        |
+//| sweep_time and its ticket in sweep_ticket, both 0 when today has |
+//| none. Every close the sweep sends carries that magic, is sent    |
+//| only while LOCKED, and is a BUY or SELL deal inside the F12      |
+//| whitelist, so it is already in this walk; the boot derivation    |
+//| reads it as server side evidence of a lock today. The deals are  |
+//| sorted, so the last match in the fold is the latest by           |
+//| (DEAL_TIME, DEAL_TICKET). NO SECOND WALK AND NO FURTHER HISTORY  |
+//| READ: one more integer read per deal, the ticket already in      |
+//| hand. The six-output signature below this function stays byte    |
+//| identical as a forwarder onto it, the shape AgRealizedFold took  |
+//| at version 1, which is what keeps AgRealizedFold beneath it byte |
+//| identical.                                                       |
 //+------------------------------------------------------------------+
 double AgRealizedRunFold(const datetime anchor, bool &ok, double &running_min,
-                         double &running_max, ulong &max_ticket, datetime &max_time)
+                         double &running_max, ulong &max_ticket, datetime &max_time,
+                         datetime &sweep_time, ulong &sweep_ticket)
   {
    ok          = true;
    running_min = 0.0;
    running_max = 0.0;
    max_ticket  = 0;
    max_time    = 0;
+   sweep_time  = 0;
+   sweep_ticket = 0;
    if(!HistorySelect(anchor, AG_HISTORY_SELECT_TO))
      {
       ok = false;
@@ -175,8 +199,32 @@ double AgRealizedRunFold(const datetime anchor, bool &ok, double &running_min,
          max_ticket  = tickets[i];
          max_time    = times[i];
         }
+      //--- PK-4(c1): the one further read per deal. Sorted ascending, so the
+      //--- last match is the latest AG_SWEEP_MAGIC deal of the day.
+      if(HistoryDealGetInteger(tickets[i], DEAL_MAGIC) == AG_SWEEP_MAGIC)
+        {
+         sweep_time   = times[i];
+         sweep_ticket = tickets[i];
+        }
      }
    return cumulative;
+  }
+
+//+------------------------------------------------------------------+
+//| The six-output signature, byte identical, now a forwarder that   |
+//| discards the two PK outputs, the shape AgRealizedFold took at    |
+//| version 1 (owner ruling (a) of 2026-09-28 on point 1 of the PK   |
+//| build stop). AgRealizedFold below calls it unchanged; every      |
+//| figure it has ever produced is reproduced, the walk underneath   |
+//| being the identical walk with two further out parameters.        |
+//+------------------------------------------------------------------+
+double AgRealizedRunFold(const datetime anchor, bool &ok, double &running_min,
+                         double &running_max, ulong &max_ticket, datetime &max_time)
+  {
+   datetime discard_sweep_time   = 0;
+   ulong    discard_sweep_ticket = 0;
+   return AgRealizedRunFold(anchor, ok, running_min, running_max, max_ticket, max_time,
+                            discard_sweep_time, discard_sweep_ticket);
   }
 
 //+------------------------------------------------------------------+

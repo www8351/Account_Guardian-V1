@@ -1085,7 +1085,10 @@ double AgPeakUpdate(const datetime window_anchor, const double enforced_limit,
    double   reconstructed = 0.0;
    ulong    max_ticket    = 0;
    datetime max_time      = 0;
-   AgRealizedRunFold(window_anchor, ok, discard_min, reconstructed, max_ticket, max_time);
+   datetime discard_sweep_time   = 0;
+   ulong    discard_sweep_ticket = 0;
+   AgRealizedRunFold(window_anchor, ok, discard_min, reconstructed, max_ticket, max_time,
+                     discard_sweep_time, discard_sweep_ticket);
    if(!ok)
      {
       //--- F6: a false HistorySelect is a stability failure and never zero
