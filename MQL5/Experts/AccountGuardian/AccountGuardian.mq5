@@ -1045,7 +1045,7 @@ int OnInit()
    //--- build label, standing rule 7's identity channel: ENF names the
    //--- content of this build, the enforcement phase (owner ruling
    //--- ENF-26(a) of 2026-09-16).
-   AgInfo("init|build=ENF31|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
+   AgInfo("init|build=PK|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
    //--- sweep state is in memory only and starts empty in every image; the
    //--- LOCKED entry resets it again so each lock episode starts from zero
    AgSweepReset();
