@@ -1,0 +1,61 @@
+﻿GM	0	03:16:09.618	Network	'1200252169': scanning network for access points
+IK	0	03:16:17.778	Network	'1200252169': scanning network finished
+LP	1	08:12:53.173	Network	'1200252169': connection to JustMarkets-Demo3 lost
+QH	0	08:12:56.641	Network	'1200252169': authorized on JustMarkets-Demo3 through UK3 (ping: 72.90 ms, build 5800)
+GD	0	08:12:56.641	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.28 07:46:13
+FH	0	08:12:56.859	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 1 positions, 0 orders, 272 symbols, 0 spreads
+NI	0	08:12:56.859	Network	'1200252169': trading has been enabled, demo account - hedging mode
+NM	0	08:12:56.859	Network	'1200252169': balance management has been disabled - demo account
+GR	0	08:12:59.606	Trades	'1200252169': market sell 0.01 XAUUSD.ecn, close #781624897 buy 0.01 XAUUSD.ecn 4286.02
+PR	0	08:12:59.682	Trades	'1200252169': accepted market sell 0.01 XAUUSD.ecn, close #781624897 buy 0.01 XAUUSD.ecn 4286.02
+FO	0	08:12:59.682	Trades	'1200252169': deal #474207035 sell 0.01 XAUUSD.ecn at 4191.83 done (based on order #787278640)
+LG	0	08:12:59.683	Trades	'1200252169': order #787278640 sell 0.01 / 0.01 XAUUSD.ecn at 4191.83 done in 76.656 ms
+LI	0	08:32:17.334	Experts	expert AccountGuardian (XAUUSD.ecn,M15) removed
+GO	0	08:32:24.953	Experts	expert AccountGuardian (XAUUSD.ecn,M15) loaded successfully
+OR	0	08:34:29.953	Scripts	script AgPhase2StateVectors (BTCUSD.ecn,M15) loaded successfully
+LJ	0	08:34:31.531	Scripts	script AgPhase2StateVectors (BTCUSD.ecn,M15) removed
+MR	0	09:16:10.777	Network	'1200252169': scanning network for access points
+LR	0	09:16:19.061	Network	'1200252169': scanning network finished
+QE	0	10:31:37.984	Experts	expert AccountGuardian (XAUUSD.ecn,M15) removed
+RP	0	10:31:39.132	Terminal	exit with code 0
+FI	0	10:31:39.167	Network	'1200252169': disconnected from JustMarkets-Demo3
+PO	0	10:31:39.266	Terminal	stopped with 0
+LO	0	10:31:39.269	Terminal	shutdown with 0
+FG	0	10:31:45.106	LiveUpdate	start "C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\liveupdate\terminal64.exe" /update /path:"C:\Program Files\MetaTrader 5" 
+EO	0	10:31:45.259	Terminal	exit with code 0
+FD	0	10:31:45.261	Terminal	stopped with 0
+KP	0	10:31:45.375	Terminal	shutdown with 0
+ER	0	10:31:57.349	Terminal	updating C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\MQL5 folder
+MN	0	10:31:57.349	Terminal	2 files updated
+GD	0	10:31:58.608	Terminal	MetaTrader 5 x64 build 6230 started for MetaQuotes Ltd.
+OL	0	10:31:58.609	Terminal	Windows 11 build 26200, 10 x 12th Gen Intel Core i5-1235U, AVX2, 5 / 15 Gb memory, 161 / 346 Gb disk, UAC, GMT+2
+FS	0	10:31:58.609	Terminal	C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075
+QM	0	10:31:58.610	MCP	started on 127.0.0.1:22346
+RD	0	10:31:59.574	Experts	expert AccountGuardian (XAUUSD.ecn,M15) loaded successfully
+IL	0	10:31:59.884	Network	'1200252169': authorized on JustMarkets-Demo3 through UK3 (ping: 69.16 ms, build 5800)
+QS	0	10:31:59.884	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.28 08:12:57
+QM	0	10:32:00.127	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 0 positions, 0 orders, 272 symbols, 0 spreads
+JL	0	10:32:00.127	Network	'1200252169': trading has been enabled, demo account - hedging mode
+JP	0	10:32:00.127	Network	'1200252169': balance management has been disabled - demo account
+LE	0	10:37:38.474	Trades	'1200252169': sell limit 0.3 BTCUSD.ecn at 84654.76
+PM	0	10:37:38.547	Trades	'1200252169': accepted sell limit 0.3 BTCUSD.ecn at 84654.76
+HM	0	10:37:38.548	Trades	'1200252169': order #788607187 sell limit 0.3 / 0.3 BTCUSD.ecn at 84654.76 done in 73.312 ms
+HP	0	10:37:49.712	Trades	'1200252169': market buy 0.3 XAUUSD.ecn
+JJ	0	10:37:49.784	Trades	'1200252169': accepted market buy 0.3 XAUUSD.ecn
+DP	0	10:37:49.784	Trades	'1200252169': deal #474955669 buy 0.3 XAUUSD.ecn at 4155.94 done (based on order #788608575)
+IN	0	10:37:49.787	Trades	'1200252169': order #788608575 buy 0.3 / 0.3 XAUUSD.ecn at 4155.94 done in 74.720 ms
+RE	0	10:37:50.449	Trades	use MetaTrader VPS Hosting Service to speed up the execution: 2.18 ms via 'VPS London LD4 52' instead of 69.16 ms
+PQ	0	10:38:24.392	Trades	'1200252169': market sell 0.3 XAUUSD.ecn, close #788608575 buy 0.3 XAUUSD.ecn 4155.94
+DE	0	10:38:24.467	Trades	'1200252169': accepted market sell 0.3 XAUUSD.ecn, close #788608575 buy 0.3 XAUUSD.ecn 4155.94
+HJ	0	10:38:24.467	Trades	'1200252169': deal #474963294 sell 0.3 XAUUSD.ecn at 4152.70 done (based on order #788620245)
+OE	0	10:38:24.467	Trades	'1200252169': order #788620245 sell 0.3 / 0.3 XAUUSD.ecn at 4152.70 done in 75.114 ms
+FF	0	10:38:25.401	Trades	'1200252169': cancel order #788607187 sell limit 0.3 BTCUSD.ecn at 84654.76
+GH	0	10:38:25.475	Trades	'1200252169': accepted cancel order #788607187 buy 0  at market
+QS	0	10:38:25.476	Trades	'1200252169': cancel #788607187 sell limit 0.3 BTCUSD.ecn at market done in 75.042 ms
+MN	0	10:44:00.910	Experts	automated trading is disabled
+EH	0	10:45:37.304	Trades	'1200252169': deal #475005047 buy 0.01 XAUUSD.ecn at 4153.53 done (based on order #788701408)
+MO	0	10:47:03.289	Experts	automated trading is enabled
+QF	0	10:47:03.400	Trades	'1200252169': market sell 0.01 XAUUSD.ecn, close #788701408 buy 0.01 XAUUSD.ecn 4153.53
+QF	0	10:47:03.472	Trades	'1200252169': accepted market sell 0.01 XAUUSD.ecn, close #788701408 buy 0.01 XAUUSD.ecn 4153.53
+LK	0	10:47:03.472	Trades	'1200252169': deal #475011295 sell 0.01 XAUUSD.ecn at 4153.54 done (based on order #788714148)
+GK	0	10:47:03.473	Trades	'1200252169': order #788714148 sell 0.01 / 0.01 XAUUSD.ecn at 4153.54 done in 72.860 ms
