@@ -544,6 +544,11 @@ void AgEnterLockFromBoot(const ENUM_AG_LOCK_REASON reason, const datetime until,
       //--- what made have_snapshot false on every later boot for this lock,
       //--- putting tier 1 of the cascade permanently out of reach.
       AgStateSetBreach(until, derived_breach_time, derived_limit, derived_base);
+   //--- PK-9(a): AgStateSetBreach writes DAILY_BREACH, so a lock the sweep
+   //--- witness supplied has its own reason set after it, and the file
+   //--- carries it in the existing int-valued L field with no format change.
+   if(reason == AG_LOCK_SWEEP_WITNESS)
+      g_ag_state_reason = AG_LOCK_SWEEP_WITNESS;
    if(!AgStateSave())
       AgWarn("boot-derived lock was NOT persisted; it holds in memory for this session");
 

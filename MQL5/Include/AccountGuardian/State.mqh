@@ -17,11 +17,17 @@ enum ENUM_AG_STATE
    AG_STATE_SAFE_HALT = 4
   };
 
+//--- AG_LOCK_SWEEP_WITNESS (owner ruling PK-9(a) of 2026-09-28): the reason
+//--- a boot derivation names when the guardian's own AG_SWEEP_MAGIC deals in
+//--- today's server history are what re-derive the lock. It travels inside
+//--- the state file's existing int-valued L field, so there is no format
+//--- change and AG_STATE_FORMAT_VERSION stays 1.
 enum ENUM_AG_LOCK_REASON
   {
    AG_LOCK_NONE          = 0,
    AG_LOCK_DAILY_BREACH  = 1,
-   AG_LOCK_CORRUPT_STATE = 2
+   AG_LOCK_CORRUPT_STATE = 2,
+   AG_LOCK_SWEEP_WITNESS = 3
   };
 
 ENUM_AG_STATE       g_ag_state        = AG_STATE_BOOT;
@@ -49,6 +55,7 @@ string AgLockReasonName(const ENUM_AG_LOCK_REASON r)
       case AG_LOCK_NONE:          return "-";
       case AG_LOCK_DAILY_BREACH:  return "DAILY_BREACH";
       case AG_LOCK_CORRUPT_STATE: return "CORRUPT_STATE";
+      case AG_LOCK_SWEEP_WITNESS: return "SWEEP_WITNESS";
      }
    return "UNKNOWN";
   }
