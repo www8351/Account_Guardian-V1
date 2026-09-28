@@ -26,7 +26,7 @@
 * **Realized and floating loss are measured together.** Realized is the sum of the day's closed buy and sell deals, profit plus swap plus commission plus fee. Floating is profit plus swap across every open position. A position carried across the rollover counts its floating loss against the day it is still open on.
 * **A breach locks the account until the next day anchor.** The lock is written to disk with a snapshot of the limit and base at the moment it fired. The only way out is time: `TimeCurrent >= locked_until`. There is no manual override, no input that shortens it, and no reconnect that clears it.
 * **The limit ratchets down, never up, inside a day.** Lowering the limit mid-day takes effect immediately. Raising it does not: the tightest limit seen since the day anchor is held and enforced, and the raise is logged loudly. The floor resets on its own at the next 01:00 anchor.
-* **It survives restarts by rebuilding from broker history.** After a restart the advisor replays the day's deals from the server and re-derives whether it should be locked, so killing the terminal, deleting its state file, or both does not hand back a fresh daily allowance.
+* **It survives restarts by rebuilding from broker history.** After a restart the advisor replays the day's deals from the server and re-derives whether it should be locked, so killing the terminal, deleting its state file, or both does not hand back a fresh daily allowance. The replay also rebuilds the day's realized high and finds the advisor's own closes from an earlier lock, so a lock that fired on giving back profit comes back as well. One narrow case cannot be rebuilt, and it is named under the restart witnesses below.
 
 ### What it does not do yet
 
@@ -66,13 +66,16 @@ stateDiagram-v2
 
 **The two paths out of `LOCKED` both go through `SYNCING`.** An ordinary expiry lands in `SYNCING` so that the first pass eligible to declare a new breach is preceded by the same history-stability discipline a cold boot runs. And if the day's history still shows a breach, the boot derivation fires again on the way through and re-locks immediately. That is the boot-derived re-lock: `LOCKED → SYNCING → LOCKED` inside a few seconds, with no `ACTIVE` pass in between. It is the mechanism working, not a defect.
 
-Restart recovery weighs three independent witnesses at the `SYNCING` exit and the **strictest wins**:
+Restart recovery weighs four independent witnesses at the `SYNCING` exit and the **strictest wins**:
 
 1. **The state file** on disk, `AccountGuardian\state_<login>.dat`, carrying the reason, the expiry, and the breach snapshot.
 2. **A terminal global variable** mirror, `AG_LOCK_<login>`, rewritten from memory every tick while `ACTIVE` or `LOCKED`, so clearing it by hand is undone within a second. While `SYNCING` it is left untouched, so the value a fresh start inherits is still there when the witness reads it, and the value found at startup is journaled as `lock GV mirror at init`.
-3. **A replay of the broker's deal history** since the day anchor. This one is the authority, because it lives on the server and a local machine cannot forge or delete it. The replay walks the day's deals in order and tracks the running minimum of cumulative realized PnL, so a loss that breached and then recovered still locks: the dip is what counts, not the final total.
+3. **A replay of the broker's deal history** since the day anchor. This one is the authority, because it lives on the server and a local machine cannot forge or delete it. The replay walks the day's deals in order and tracks the running minimum of cumulative realized PnL, so a loss that breached and then recovered still locks: the dip is what counts, not the final total. The same walk tracks the running maximum, the day's realized high, and if realized plus floating now sits at or below that high less the limit, the lock is rebuilt too and the journal says `boot witness PEAK fired`. That is how a lock that fired on giving back a day's profit survives a restart with its local files gone.
+4. **The advisor's own sweep closes** in the same history. Every close the sweep sends carries the advisor's own magic number and is sent only while locked, so one of them in today's history proves a lock today that no local file can erase. It locks until the next 01:00 anchor after the latest such close, under the reason `SWEEP_WITNESS`, and the journal says `boot witness SWEEP fired`.
 
 A witness can only add a lock, never remove one. If history cannot be read, the pass is declared not evaluable and the advisor stays in `SYNCING` for another pass, rather than reading a failed read as "no deals, therefore no breach".
+
+**One case is still not rebuilt, stated here rather than hidden.** If a lock fired on giving back profit, the sweep closed nothing because nothing was open or every close was held, and the day's realized figure now sits above the realized high less the limit, then with the state file and the global variable both deleted the history holds no trace of that lock and a restart comes up unlocked. A lock whose sweep closed anything, or whose realized figure is still at or below that level, is rebuilt. A lock rebuilt from sweep closes alone runs to the next 01:00 anchor after the close, so the extra day a frozen feed adds at a breach is not rebuilt that way.
 
 ---
 
@@ -218,7 +221,7 @@ The alert is a real MetaTrader popup, not just a journal line. `breach arithmeti
 * **Your positions are closed and your pending orders deleted.** The sweep runs from the next timer tick: positions first, from the largest floating loss down, then pending orders, one send per second so the advisor's own liveness signal keeps ticking. Anything opened while locked, from the phone included, is closed within seconds of the platform accepting a close. A close the platform refuses is retried with a doubling backoff, up to ten attempts, then held and named on the journal and the chart banner until the condition changes; a symbol whose session is closed is held with its next open named, and nothing is sent into a closed market.
 * **The limit and base at the moment of breach are snapshotted**, and the locked window is judged by that snapshot. Changing `DailyLossPercent` or `DailyLossCurrency` while locked changes nothing: the change is logged as ignored, naming both the old and the new value, and the snapshot continues to govern.
 * **Deleting the state file while the advisor is alive changes nothing**, because enforcement runs from memory. Clearing the global variable changes nothing either, because it is rewritten from memory on the next tick.
-* **A restart does not clear it.** The boot derivation weighs all three witnesses and re-locks.
+* **A restart does not clear it.** The boot derivation weighs all four witnesses and re-locks.
 
 ### How the lock releases
 
@@ -254,10 +257,10 @@ While locked it should have. Check the `Experts` tab for `sweep close` lines car
 That is the ratchet, and it is the point of it. Inside a trading day the enforced limit is the smallest value seen since the 01:00 anchor. Lowering it applies at once; raising it is held and logged with a warning naming both figures. Otherwise a bad afternoon could be survived by simply typing a bigger number, which is the exact behaviour the guardian exists to prevent. The floor resets on its own at the next 01:00 anchor, so tomorrow starts from whatever the inputs say then.
 
 **What happens if the terminal restarts in the middle of the day?**
-On startup the advisor waits for the broker's deal history to settle, then replays the day's deals since the 01:00 anchor and re-derives the answer, alongside its own state file and its global variable mirror. If the day breached, it locks again, and it does so even if the breach had recovered by the time you restarted, because the replay tracks the running minimum rather than the final total. If history cannot be read, it stays in `SYNCING` and keeps trying rather than concluding that nothing happened.
+On startup the advisor waits for the broker's deal history to settle, then replays the day's deals since the 01:00 anchor and re-derives the answer, alongside its own state file and its global variable mirror. If the day breached, it locks again, and it does so even if the breach had recovered by the time you restarted, because the replay tracks the running minimum rather than the final total. A lock that fired on giving back profit is rebuilt from the day's realized high, or from the advisor's own sweep closes. If history cannot be read, it stays in `SYNCING` and keeps trying rather than concluding that nothing happened.
 
 **Can I clear a lock by deleting the state file, or by reinstalling?**
-Not by itself. The state file and the global variable are accelerators, so recognition is instant without a full replay. The authority is the broker's own deal history, which is server-side. Deleting local files while the inputs are untouched leaves the history witness fully able to re-derive the lock. Deleting local files *and* inflating the limit inputs is a known residual gap, stated here rather than hidden, and the ratchet floor narrows it inside the same day.
+Not by itself. The state file and the global variable are accelerators, so recognition is instant without a full replay. The authority is the broker's own deal history, which is server-side. Deleting local files while the inputs are untouched leaves the history witnesses able to re-derive the lock, with one narrow exception: a lock that fired on giving back profit, whose sweep closed nothing, and whose realized figure now sits above the day's realized high less the limit, leaves no trace in history and is not rebuilt. Deleting local files *and* inflating the limit inputs is a known residual gap, stated here rather than hidden, and the ratchet floor narrows it inside the same day.
 
 **Should I run this on a demo account first?**
 Yes. Run it on demo for at least a full trading day, ideally across a weekend, and read the journal. You want to see the day rollover at 01:00, a `SYNCING → ACTIVE` transition after a restart, and the `LIFE` numbers tracking your own account. The behaviour is identical on live, but the consequences of a misconfigured limit are not.
@@ -298,7 +301,7 @@ This software is provided as is, with no warranty of any kind. Nothing here is f
 * **הפסד ממומש והפסד צף נמדדים יחד.** הממומש הוא סכום עסקאות הקנייה והמכירה שנסגרו היום, רווח ועוד עמלת החלפה ועוד עמלה ועוד אגרה. הצף הוא רווח ועוד עמלת החלפה על פני כל הפוזיציות הפתוחות. פוזיציה שנשארת פתוחה מעבר לגלגול היום נספרת ליום שבו היא עדיין פתוחה.
 * **חריגה נועלת את החשבון עד עוגן היום הבא.** הנעילה נכתבת לדיסק יחד עם תצלום של המגבלה ושל הבסיס ברגע שהיא נורתה. הדרך היחידה החוצה היא זמן: `TimeCurrent >= locked_until`. אין עקיפה ידנית, אין קלט שמקצר אותה, ואין התחברות מחדש שמנקה אותה.
 * **המגבלה מתהדקת בלבד בתוך היום.** הורדת המגבלה באמצע היום נכנסת לתוקף מיד. העלאה שלה לא: הערך ההדוק ביותר שנצפה מאז עוגן היום נשמר ונאכף, וההעלאה נרשמת ביומן בקול רם. הרצפה מתאפסת מעצמה בעוגן 01:00 הבא.
-* **הוא שורד הפעלות מחדש בשחזור מהיסטוריית הברוקר.** אחרי הפעלה מחדש היועץ משחזר את עסקאות היום מהשרת ומסיק מחדש אם עליו להיות נעול, כך שסגירת הטרמינל, מחיקת קובץ המצב שלו, או שניהם, אינם מחזירים לך מכסת הפסד חדשה.
+* **הוא שורד הפעלות מחדש בשחזור מהיסטוריית הברוקר.** אחרי הפעלה מחדש היועץ משחזר את עסקאות היום מהשרת ומסיק מחדש אם עליו להיות נעול, כך שסגירת הטרמינל, מחיקת קובץ המצב שלו, או שניהם, אינם מחזירים לך מכסת הפסד חדשה. השחזור גם בונה מחדש את שיא הרווח הממומש של היום ומוצא את הסגירות של היועץ עצמו מנעילה קודמת, כך שגם נעילה שנורתה על החזרת רווח חוזרת. מקרה צר אחד אינו ניתן לשחזור, והוא מפורט ברשימת העדים שלהלן.
 
 ### מה הוא עדיין אינו עושה
 
@@ -338,13 +341,16 @@ stateDiagram-v2
 
 **שני המסלולים החוצה מ`LOCKED` עוברים דרך `SYNCING`.** פקיעה רגילה נוחתת ב`SYNCING`, כדי שלמעבר הראשון הרשאי להכריז על חריגה חדשה יקדם אותו משטר יציבות היסטוריה שעלייה קרה מריצה. ואם היסטוריית היום עדיין מראה חריגה, גזירת העלייה נורית שוב בדרך ונועלת מיד. זהו מנגנון הנעילה מחדש בעלייה: `LOCKED → SYNCING → LOCKED` בתוך שניות ספורות, בלי אף מעבר `ACTIVE` באמצע. זו המערכת עובדת, לא תקלה.
 
-שחזור אחרי הפעלה מחדש שוקל שלושה עדים בלתי תלויים ביציאה מ`SYNCING`, **והמחמיר מנצח**:
+שחזור אחרי הפעלה מחדש שוקל ארבעה עדים בלתי תלויים ביציאה מ`SYNCING`, **והמחמיר מנצח**:
 
 1. **קובץ המצב** בדיסק, `AccountGuardian\state_<login>.dat`, הנושא את הסיבה, את מועד הפקיעה ואת תצלום החריגה.
 2. **משתנה גלובלי של הטרמינל** בשם `AG_LOCK_<login>`, הנכתב מחדש מהזיכרון בכל פעימה במצבים `ACTIVE` ו`LOCKED`, כך שמחיקה ידנית שלו מבוטלת בתוך שנייה. במצב `SYNCING` הוא אינו נכתב כלל, כך שהערך שהפעלה טרייה ירשה עדיין נמצא שם כשהעד קורא אותו, והערך שנמצא בעלייה נרשם ביומן בשורה `lock GV mirror at init`.
-3. **שחזור היסטוריית העסקאות של הברוקר** מאז עוגן היום. זהו העד הסמכותי, כי הוא יושב בשרת ומכונה מקומית אינה יכולה לזייף או למחוק אותו. השחזור עובר על עסקאות היום לפי הסדר ועוקב אחר המינימום הרץ של הרווח וההפסד הממומש המצטבר, כך שהפסד שחרג ואחר כך התאושש עדיין נועל: מה שקובע הוא השפל, לא הסכום הסופי.
+3. **שחזור היסטוריית העסקאות של הברוקר** מאז עוגן היום. זהו העד הסמכותי, כי הוא יושב בשרת ומכונה מקומית אינה יכולה לזייף או למחוק אותו. השחזור עובר על עסקאות היום לפי הסדר ועוקב אחר המינימום הרץ של הרווח וההפסד הממומש המצטבר, כך שהפסד שחרג ואחר כך התאושש עדיין נועל: מה שקובע הוא השפל, לא הסכום הסופי. אותו מעבר עוקב גם אחר המקסימום הרץ, שיא הרווח הממומש של היום, ואם הממומש ועוד הצף יושבים עכשיו בשיא הזה פחות המגבלה או מתחתיו, גם אז הנעילה נבנית מחדש, והיומן רושם את השורה `boot witness PEAK fired`. כך נעילה שנורתה על החזרת רווח של יום שורדת הפעלה מחדש גם כשהקבצים המקומיים שלה נמחקו.
+4. **הסגירות של היועץ עצמו** באותה היסטוריה. כל סגירה שמנוע הסגירה שולח נושאת את מספר הקסם של היועץ ונשלחת רק בזמן נעילה, ולכן סגירה כזו בהיסטוריה של היום מוכיחה נעילה היום, ששום קובץ מקומי אינו יכול למחוק. הנעילה נמשכת עד עוגן 01:00 הבא אחרי הסגירה האחרונה מסוג זה, בסיבה `SWEEP_WITNESS`, והיומן רושם את השורה `boot witness SWEEP fired`.
 
 עד יכול רק להוסיף נעילה, לעולם לא להסיר אחת. אם אי אפשר לקרוא את ההיסטוריה, המעבר מוכרז כבלתי ניתן להערכה והיועץ נשאר ב`SYNCING` למעבר נוסף, במקום לקרוא כישלון קריאה כאילו פירושו שאין עסקאות ולכן אין חריגה.
+
+**מקרה אחד עדיין אינו נבנה מחדש, והוא נאמר כאן במפורש ואינו מוסתר.** אם נעילה נורתה על החזרת רווח, מנוע הסגירה לא סגר דבר כי שום דבר לא היה פתוח או שכל סגירה הוחזקה, והממומש של היום יושב עכשיו מעל שיא הרווח הממומש פחות המגבלה, אז כשקובץ המצב והמשתנה הגלובלי נמחקו שניהם, בהיסטוריה אין שום עקבה של הנעילה הזו, והפעלה מחדש עולה לא נעולה. נעילה שמנוע הסגירה שלה סגר משהו, או שהממומש שלה עדיין בשיא הזה פחות המגבלה או מתחתיו, נבנית מחדש. נעילה שנבנית מחדש מהסגירות של מנוע הסגירה בלבד נמשכת עד עוגן 01:00 הבא אחרי הסגירה, כך שהיום הנוסף שזרם קפוא מוסיף ברגע החריגה אינו נבנה מחדש בדרך הזו.
 
 ---
 
@@ -490,7 +496,7 @@ AG|...|INFO|sweep complete|positions=0|pendings=0|attempts=1|elapsed=3
 * **הפוזיציות שלך נסגרות והפקודות הממתינות שלך נמחקות.** הסריקה רצה מהפעימה הבאה של השעון: קודם פוזיציות, מההפסד הצף הגדול ביותר ומטה, ואחר כך פקודות ממתינות, שליחה אחת בשנייה כדי שאות החיים של היועץ עצמו ימשיך לפעום. כל דבר שנפתח בזמן הנעילה, גם מהטלפון, נסגר בתוך שניות מרגע שהפלטפורמה מקבלת סגירה. סגירה שהפלטפורמה מסרבת לה מנוסה שוב בהשהיה מוכפלת, עד עשרה ניסיונות, ואז מוחזקת ונקובה בשמה ביומן ובכרזת הגרף עד שהתנאי משתנה; סימול שמושב המסחר שלו סגור מוחזק עם ציון הפתיחה הבאה, ושום פקודה אינה נשלחת לשוק סגור.
 * **המגבלה והבסיס ברגע החריגה מצולמים**, וחלון הנעילה נשפט לפי התצלום הזה. שינוי `DailyLossPercent` או `DailyLossCurrency` בזמן נעילה אינו משנה דבר: השינוי נרשם ביומן כמי שהתעלמו ממנו, בציון הערך הישן והחדש, והתצלום ממשיך לקבוע.
 * **מחיקת קובץ המצב בזמן שהיועץ חי אינה משנה דבר**, כי האכיפה רצה מהזיכרון. גם מחיקת המשתנה הגלובלי אינה משנה דבר, כי הוא נכתב מחדש מהזיכרון בפעימה הבאה.
-* **הפעלה מחדש אינה מנקה אותה.** גזירת העלייה שוקלת את שלושת העדים ונועלת שוב.
+* **הפעלה מחדש אינה מנקה אותה.** גזירת העלייה שוקלת את ארבעת העדים ונועלת שוב.
 
 ### איך הנעילה משתחררת
 
@@ -526,10 +532,10 @@ AG|...|INFO|sweep complete|positions=0|pendings=0|attempts=1|elapsed=3
 זו ההתהדקות, וזו כל מטרתה. בתוך יום מסחר המגבלה הנאכפת היא הערך הקטן ביותר שנצפה מאז עוגן 01:00. הורדה נכנסת לתוקף מיד; העלאה נעצרת ונרשמת עם אזהרה הנוקבת בשני המספרים. אחרת אפשר היה לשרוד צהריים גרועים פשוט בהקלדת מספר גדול יותר, וזו בדיוק ההתנהגות שהשומר קיים כדי למנוע. הרצפה מתאפסת מעצמה בעוגן 01:00 הבא, כך שמחר מתחיל ממה שהקלטים אומרים אז.
 
 **מה קורה אם הטרמינל עולה מחדש באמצע היום?**
-בעלייה היועץ ממתין להתייצבות היסטוריית העסקאות של הברוקר, ואז משחזר את עסקאות היום מאז עוגן 01:00 ומסיק מחדש את התשובה, לצד קובץ המצב שלו ומראת המשתנה הגלובלי. אם היום חרג, הוא נועל שוב, וזאת גם אם החריגה כבר התאוששה עד לרגע ההפעלה מחדש, כי השחזור עוקב אחר המינימום הרץ ולא אחר הסכום הסופי. אם אי אפשר לקרוא את ההיסטוריה, הוא נשאר ב`SYNCING` וממשיך לנסות, במקום להסיק ששום דבר לא קרה.
+בעלייה היועץ ממתין להתייצבות היסטוריית העסקאות של הברוקר, ואז משחזר את עסקאות היום מאז עוגן 01:00 ומסיק מחדש את התשובה, לצד קובץ המצב שלו ומראת המשתנה הגלובלי. אם היום חרג, הוא נועל שוב, וזאת גם אם החריגה כבר התאוששה עד לרגע ההפעלה מחדש, כי השחזור עוקב אחר המינימום הרץ ולא אחר הסכום הסופי. נעילה שנורתה על החזרת רווח נבנית מחדש משיא הרווח הממומש של היום, או מהסגירות של היועץ עצמו. אם אי אפשר לקרוא את ההיסטוריה, הוא נשאר ב`SYNCING` וממשיך לנסות, במקום להסיק ששום דבר לא קרה.
 
 **אפשר לנקות נעילה במחיקת קובץ המצב, או בהתקנה מחדש?**
-לא בפני עצמו. קובץ המצב והמשתנה הגלובלי הם מאיצים, כדי שהזיהוי יהיה מיידי בלי שחזור מלא. הסמכות היא היסטוריית העסקאות של הברוקר עצמו, שיושבת בשרת. מחיקת קבצים מקומיים בזמן שהקלטים לא נגעו משאירה את עד ההיסטוריה מסוגל לחלוטין לגזור מחדש את הנעילה. מחיקת קבצים מקומיים יחד עם ניפוח קלטי המגבלה היא פרצה שיורית ידועה, שנאמרת כאן במפורש ואינה מוסתרת, ורצפת ההתהדקות מצמצמת אותה בתוך אותו יום.
+לא בפני עצמו. קובץ המצב והמשתנה הגלובלי הם מאיצים, כדי שהזיהוי יהיה מיידי בלי שחזור מלא. הסמכות היא היסטוריית העסקאות של הברוקר עצמו, שיושבת בשרת. מחיקת קבצים מקומיים בזמן שהקלטים לא נגעו משאירה את עדי ההיסטוריה מסוגלים לגזור מחדש את הנעילה, עם חריג צר אחד: נעילה שנורתה על החזרת רווח, שמנוע הסגירה שלה לא סגר דבר, ושהממומש שלה יושב עכשיו מעל שיא הרווח הממומש של היום פחות המגבלה, אינה משאירה עקבה בהיסטוריה ואינה נבנית מחדש. מחיקת קבצים מקומיים יחד עם ניפוח קלטי המגבלה היא פרצה שיורית ידועה, שנאמרת כאן במפורש ואינה מוסתרת, ורצפת ההתהדקות מצמצמת אותה בתוך אותו יום.
 
 **כדאי להריץ את זה קודם על חשבון דמו?**
 כן. הרץ אותו על דמו לפחות יום מסחר מלא, רצוי גם לאורך סוף שבוע, וקרא את היומן. אתה רוצה לראות את גלגול היום בשעה 01:00, מעבר `SYNCING → ACTIVE` אחרי הפעלה מחדש, ואת מספרי ה`LIFE` עוקבים אחרי החשבון שלך. ההתנהגות זהה בחשבון חי, אבל ההשלכות של מגבלה שהוגדרה שגוי אינן זהות.
