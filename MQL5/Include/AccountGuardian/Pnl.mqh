@@ -257,6 +257,43 @@ double AgRealized(const datetime anchor, bool &ok)
   }
 
 //+------------------------------------------------------------------+
+//| PK BUILD, THE TWO PURE PARTS the boot derivation's two new       |
+//| witnesses rest on, placed here and not in the EA so the vectors  |
+//| script reaches them through Persist.mqh, the ruling C precedent  |
+//| of 2026-08-18 applied once more (item 4 of the build instruction |
+//| of 2026-09-28).                                                  |
+//|                                                                  |
+//| THE LIVE PEAK DISJUNCT (PK-3(b1)). Realized plus floating now at |
+//| or below the day's realized high water mark, reconstructed by    |
+//| the fold above, less the comparison limit, the flat 2026-07-30   |
+//| epsilon erring toward breach. It reads realized figures only for |
+//| its level, per D5, and compares full equity against it, per      |
+//| D1.2. running_max never sits below zero, so this reads true      |
+//| wherever the live loss disjunct does, the peak level never       |
+//| sitting below the ratchet level, which is the chosen field's own |
+//| invariant.                                                       |
+//+------------------------------------------------------------------+
+bool AgPeakLiveDisjunct(const double realized, const double floating,
+                        const double running_max, const double limit_cmp)
+  {
+   return (realized + floating <= running_max - limit_cmp + AG_PNL_EPSILON);
+  }
+
+//+------------------------------------------------------------------+
+//| THE SWEEP WITNESS'S EXPIRY (PK-4(c1)). The next day anchor after |
+//| the deal's own DEAL_TIME, floored at the Q8 latch exactly as     |
+//| every value the guardian computes for itself is (ruling FOUR, no |
+//| clamp). A deal from today always lands tomorrow's anchor, later  |
+//| than now, so a lock entered on it cannot expire on the tick it   |
+//| is entered. Ruling THREE's longer expiry is not recoverable from |
+//| a deal time and is not claimed.                                  |
+//+------------------------------------------------------------------+
+datetime AgSweepWitnessUntil(const datetime deal_time)
+  {
+   return AgApplyLatchFloor(AgNextDayAnchor(deal_time));
+  }
+
+//+------------------------------------------------------------------+
 //| Sum of ALL deals since anchor, trading and balance types alike   |
 //| (Q2 FINAL, the day-base identity). Same failure discipline as    |
 //| AgRealized. Runs its own HistorySelect: MQL5 history selection   |

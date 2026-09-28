@@ -276,6 +276,21 @@ bool AgQuoteFrozen()
 //| breach_time_out is the DERIVATION INSTANT and not the instant    |
 //| the loss crossed the limit, which the ruling requires be         |
 //| recorded as such rather than implied by the field's name.        |
+//|                                                                  |
+//| PK BUILD (owner rulings PK-1 to PK-15 of 2026-09-28, PK-14       |
+//| amended, and the build rulings of the same date). Two server     |
+//| side witnesses join the three above, after FILE and GV and       |
+//| beside the derived disjuncts. SWEEP (PK-4(c1)): the guardian's   |
+//| own AG_SWEEP_MAGIC deals in today's history, sent only while     |
+//| LOCKED, fire with the next anchor after the latest such deal and |
+//| name AG_LOCK_SWEEP_WITNESS (PK-9(a)). PEAK (PK-3(b1)): realized  |
+//| plus floating at or below the day's reconstructed realized high  |
+//| water mark less the comparison limit fires as DAILY_BREACH with  |
+//| the derived witness's own bounding. Together they re-derive a    |
+//| peak path lock with the file and the GV both gone, which the     |
+//| loss only disjuncts could not. The OR is unchanged: each only    |
+//| adds a lock, and the strictest until wins as before, a tie       |
+//| keeping the reason of the witness that fired first.              |
 //+------------------------------------------------------------------+
 int AgBootDerivation(ENUM_AG_LOCK_REASON &reason_out, datetime &until_out,
                      bool &have_snapshot_out, datetime &breach_time_out,
@@ -332,7 +347,17 @@ int AgBootDerivation(ENUM_AG_LOCK_REASON &reason_out, datetime &until_out,
    datetime anchor = AgDayAnchor(now);
    bool ok = true;
    double running_min = 0.0;
-   double realized = AgRealizedFold(anchor, ok, running_min);
+   //--- PK build: the fold called directly, one walk for every history
+   //--- witness, so realized and running_min are the figures the frozen
+   //--- AgRealizedFold forwards and the same walk also yields the running
+   //--- maximum (PEAK) and the latest AG_SWEEP_MAGIC deal (SWEEP).
+   double   running_max  = 0.0;
+   ulong    max_ticket   = 0;
+   datetime max_time     = 0;
+   datetime sweep_time   = 0;
+   ulong    sweep_ticket = 0;
+   double realized = AgRealizedRunFold(anchor, ok, running_min, running_max, max_ticket,
+                                       max_time, sweep_time, sweep_ticket);
    if(!ok)
      {
       AgWarn("boot derivation NOT EVALUABLE: the replay's HistorySelect failed,"
@@ -400,6 +425,45 @@ int AgBootDerivation(ENUM_AG_LOCK_REASON &reason_out, datetime &until_out,
              + "|limit_cmp=" + DoubleToString(limit_cmp, 2)
              + "|tier=" + (have_snapshot ? "snapshot"
                                           : (limit_cmp < live_limit ? "floor" : "live"))
+             + "|bounded=" + TimeToString(u, TIME_DATE | TIME_SECONDS));
+      if(!fired || u > until_out)   // strictest wins
+        {
+         until_out  = u;
+         reason_out = AG_LOCK_DAILY_BREACH;
+        }
+      fired = true;
+     }
+
+   //--- THE SWEEP WITNESS (PK-1(c), PK-4(c1), PK-9(a), PK-10(a)). Every close
+   //--- the sweep sends carries AG_SWEEP_MAGIC and is sent only while LOCKED,
+   //--- so such a deal in today's server history is a lock today that no
+   //--- local deletion can erase. The fold above reports the latest one.
+   if(sweep_time > 0)
+     {
+      datetime u = AgSweepWitnessUntil(sweep_time);
+      AgInfo("boot witness SWEEP fired|magic=" + (string)AG_SWEEP_MAGIC
+             + "|deal=" + (string)sweep_ticket
+             + "|deal_time=" + TimeToString(sweep_time, TIME_DATE | TIME_SECONDS)
+             + "|bounded=" + TimeToString(u, TIME_DATE | TIME_SECONDS));
+      if(!fired || u > until_out)   // strictest wins
+        {
+         until_out  = u;
+         reason_out = AG_LOCK_SWEEP_WITNESS;
+        }
+      fired = true;
+     }
+
+   //--- THE PEAK WITNESS (PK-1(b), PK-3(b1), PK-10(a)), the live peak
+   //--- disjunct beside the two above: realized plus floating against the
+   //--- day's reconstructed realized high water mark less limit_cmp, fired
+   //--- as DAILY_BREACH with the derived witness's own bounding.
+   bool disjunct_peak_live = AgPeakLiveDisjunct(realized, floating, running_max, limit_cmp);
+   if(disjunct_peak_live)
+     {
+      //--- A value the guardian computes for itself: floor only, no clamp.
+      datetime u = AgApplyLatchFloor(AgNextDayAnchor(now));
+      AgInfo("boot witness PEAK fired|running_max=" + DoubleToString(running_max, 2)
+             + "|pnl=" + DoubleToString(realized + floating, 2)
              + "|bounded=" + TimeToString(u, TIME_DATE | TIME_SECONDS));
       if(!fired || u > until_out)   // strictest wins
         {
