@@ -857,6 +857,85 @@ void OnStart()
    enf_l = AgSweepAcceleratedLine(421828196);
    AgVecCheck("enf_line_sweep_accelerated", enf_l == "sweep accelerated|transaction=DEAL_ADD|deal=421828196", enf_l);
 
+   //================================================================
+   //--- PK-0, the peak path witness (owner rulings PK-1 to PK-15 of
+   //--- 2026-09-28 and the build rulings of the same date). The two pure
+   //--- parts the boot derivation's new witnesses rest on live in Pnl.mqh
+   //--- and the new reason in State.mqh, all reached through Persist.mqh.
+   //--- AgBootDerivation itself is an EA function no script can include.
+   //================================================================
+
+   //--- THE LIVE PEAK DISJUNCT (PK-3(b1)) on the two locks of record, plan
+   //--- 2.6. LOCK ONE: peak 355.80, limit 147.54, flat book at 198.12 after
+   //--- the flatten and 202.83 by the end of that session, both at or below
+   //--- the peak level 208.26, so it fires. LOCK TWO: peak 253.00, limit
+   //--- 158.69, realized 113.50 and floating -0.04, 113.46 above the peak
+   //--- level 94.31, so it does not, which is the residual the SPEC names.
+   AgVecCheck("pk_peak_live_lock_one_flat_book_fires",
+              AgPeakLiveDisjunct(198.12, 0.00, 355.80, 147.54), "198.12 vs 355.80 and 147.54");
+   AgVecCheck("pk_peak_live_lock_one_late_margin_fires",
+              AgPeakLiveDisjunct(202.83, 0.00, 355.80, 147.54), "202.83 vs 355.80 and 147.54");
+   AgVecCheck("pk_peak_live_lock_two_does_not_fire",
+              !AgPeakLiveDisjunct(113.50, -0.04, 253.00, 158.69), "113.46 vs 253.00 and 158.69");
+   //--- the flat 2026-07-30 epsilon errs toward breach at the level itself
+   AgVecCheck("pk_peak_live_at_the_level_fires",
+              AgPeakLiveDisjunct(208.26, 0.00, 355.80, 147.54), "208.26 at the level 208.26");
+   AgVecCheck("pk_peak_live_above_the_level_does_not_fire",
+              !AgPeakLiveDisjunct(208.30, 0.00, 355.80, 147.54), "208.30 above the level 208.26");
+   //--- D1.2: floating counts against the level, a give back still open fires
+   AgVecCheck("pk_peak_live_floating_give_back_fires",
+              AgPeakLiveDisjunct(355.80, -150.00, 355.80, 147.54), "205.80 vs the level 208.26");
+   //--- a day with no realized gain: running_max 0 makes it the loss disjunct
+   AgVecCheck("pk_peak_live_no_gain_reads_as_the_loss_disjunct",
+              AgPeakLiveDisjunct(-164.95, 0.00, 0.00, 164.94)
+              && !AgPeakLiveDisjunct(-100.00, 0.00, 0.00, 164.94),
+              "-164.95 fires and -100.00 does not against 164.94");
+
+   //--- THE SWEEP WITNESS'S EXPIRY (PK-4(c1)), a function of the deal time
+   //--- and the latch. Latch unseeded first, so ruling FOUR contributes
+   //--- nothing and the rule is the next anchor after the deal (Q1, Q4).
+   datetime pk_saved_high   = g_ag_high_anchor;
+   bool     pk_saved_seeded = g_ag_high_anchor_seeded;
+   g_ag_high_anchor_seeded = false;
+   g_ag_high_anchor        = 0;
+   AgVecCheckDT("pk_sweep_until_lock_one_deal",
+                AgSweepWitnessUntil(D'2026.09.23 15:28:17'), D'2026.09.24 01:00:00');
+   AgVecCheckDT("pk_sweep_until_lock_two_deal",
+                AgSweepWitnessUntil(D'2026.09.26 16:35:36'), D'2026.09.27 01:00:00');
+   AgVecCheckDT("pk_sweep_until_before_the_anchor_takes_the_imminent_one",
+                AgSweepWitnessUntil(D'2026.09.24 00:30:00'), D'2026.09.24 01:00:00');
+   AgVecCheckDT("pk_sweep_until_at_the_anchor_second_counts_to_the_new_day",
+                AgSweepWitnessUntil(D'2026.09.24 01:00:00'), D'2026.09.25 01:00:00');
+   //--- ruling FOUR: a latch ahead of the deal floors the expiry
+   g_ag_high_anchor_seeded = true;
+   g_ag_high_anchor        = D'2026.09.26 01:00:00';
+   AgVecCheckDT("pk_sweep_until_latch_floor_wins",
+                AgSweepWitnessUntil(D'2026.09.23 15:28:17'), D'2026.09.27 01:00:00');
+   g_ag_high_anchor        = pk_saved_high;
+   g_ag_high_anchor_seeded = pk_saved_seeded;
+
+   //--- THE NEW REASON (PK-9(a)): its value, its name, and the round trip
+   //--- through the existing int-valued L field with the format unchanged.
+   AgVecCheckInt("pk_reason_sweep_witness_is_3", (long)AG_LOCK_SWEEP_WITNESS, 3);
+   AgVecCheck("pk_reason_sweep_witness_name",
+              AgLockReasonName(AG_LOCK_SWEEP_WITNESS) == "SWEEP_WITNESS",
+              AgLockReasonName(AG_LOCK_SWEEP_WITNESS));
+   g_ag_login        = AGVEC_LOGIN_ROUNDTRIP;
+   g_ag_state_loaded = true;
+   AgStateSetBreach(until_ref, breach_ref, limit_ref, base_ref);
+   g_ag_state_reason = AG_LOCK_SWEEP_WITNESS;   // as AgEnterLockFromBoot sets it
+   string pk_serial  = AgStateSerialize();
+   AgVecCheck("pk_reason_sweep_witness_serializes_as_l_3",
+              StringFind(pk_serial, "\nL|3|" + (string)((long)until_ref) + "|") > 0, pk_serial);
+   AgStateSave();
+   AgStateResetModel();
+   int pk_rc = AgStateLoad();
+   AgVecCheck("pk_reason_sweep_witness_round_trips_in_the_l_field",
+              pk_rc == 0 && g_ag_state_reason == AG_LOCK_SWEEP_WITNESS
+              && g_ag_state_locked_until == until_ref,
+              "rc=" + (string)pk_rc + " reason=" + (string)(int)g_ag_state_reason);
+   AgVecCheckInt("pk_state_format_version_is_still_1", AG_STATE_FORMAT_VERSION, 1);
+
    PrintFormat("AGVEC|SUMMARY|%d/%d", g_pass, g_total);
   }
 //+------------------------------------------------------------------+

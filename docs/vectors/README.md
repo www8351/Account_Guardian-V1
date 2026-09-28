@@ -48,9 +48,9 @@ and belongs to the owner.
 
 The script `MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5` runs from the
 Navigator and prints one `AGVEC|<name>|PASS` line per check plus a final
-`AGVEC|SUMMARY|<pass>/<total>` line. On this build the summary reads `234/234`:
-the 100 checks of the D2D4 build plus the 134 ENF-0 checks listed in the section
-below.
+`AGVEC|SUMMARY|<pass>/<total>` line. On this build the summary reads `251/251`:
+the 100 checks of the D2D4 build, the 134 ENF-0 checks and the 17 PK-0 checks,
+each listed in its section below.
 The five checks added by the D2D4 build assert the exact string of the `LOCKED`
 numbers group, built by `AgLockedNumbersString` in `Log.mqh`, before the build is
 deployed:
@@ -89,6 +89,21 @@ The 134 checks are prefixed `enf_` and take the denominator from 100 to 234.
 | `enf_filling_*` | 3 | FOK when allowed, else IOC, else RETURN, on the symbol's flag set (ENF-6(a)) |
 | `enf_pending_types`, `enf_type_names` | 2 | the six pending types and the names the lines print |
 | `enf_line_sweep_*` | 8 | the exact string of every sweep journal line on fixed arguments: `sweep pass`, `sweep delete`, `sweep close`, `sweep held`, `sweep blocked`, `sweep complete`, `sweep resumed`, `sweep accelerated` |
+
+## PK-0, the peak path witness checks (owner rulings PK-1 to PK-15 of 2026-09-28)
+
+The restart witnesses gain two server side members: the guardian's own sweep
+deals, and a live peak test against the day's realized high. Their pure parts
+live in `Pnl.mqh` and the new lock reason in `State.mqh`, both reached through
+`Persist.mqh`, so the script needs no new include. The boot derivation itself is
+an advisor function and no script can reach it. The 17 checks are prefixed `pk_`
+and take the denominator from 234 to 251.
+
+| Check group | Count | Asserts |
+|---|---|---|
+| `pk_peak_live_*` | 7 | the live peak test `realized + floating <= running_max - limit + 0.01`: the first recorded peak lock fires at 198.12 and 202.83 against a peak of 355.80 and a limit of 147.54; the second does not at 113.46 against 253.00 and 158.69; the level itself fires and 208.30 above it does not; a floating give back fires; and with no realized gain it reads as the plain loss test |
+| `pk_sweep_until_*` | 5 | the expiry a sweep deal implies: the next 01:00 anchor after the deal, for both recorded locks, for a deal before the anchor, for a deal on the anchor second, and floored by the anchor latch when the latch is ahead |
+| `pk_reason_*`, `pk_state_format_version_is_still_1` | 5 | the new reason is value 3 and prints `SWEEP_WITNESS`, serializes as `L\|3\|` in the state file, survives a save and a load, and the state format version is still 1 |
 
 ## Which copy is operative
 
