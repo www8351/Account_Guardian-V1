@@ -330,10 +330,10 @@ ENUM_ORDER_TYPE_FILLING AgSweepFilling(const string symbol)
 //| enumeration of pendings then positions, positions sorted most    |
 //| negative floating first (ENF-7(a)); the flat detector on two     |
 //| consecutive passes that sent nothing (ENF-16(b)); then the walk, |
-//| pendings before positions, every ticket's hold and cadence       |
-//| handled, and the first DUE ticket sent: session pre-check and    |
-//| trade mode (ENF-13(c), ENF-15(a)), the request, the send, the    |
-//| classification, one journal line per attempt.                    |
+//| positions before pendings (ENF-31), every ticket's hold and      |
+//| cadence handled, and the first DUE ticket sent: session          |
+//| pre-check and trade mode (ENF-13(c), ENF-15(a)), the request,    |
+//| the send, the classification, one journal line per attempt.      |
 //+------------------------------------------------------------------+
 void AgSweepPass(const string origin)
   {
@@ -425,7 +425,8 @@ void AgSweepPass(const string origin)
       p_floating[n_positions] = PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
       n_positions++;
      }
-   //--- ENF-7(a): most negative floating first, ties by ticket, insertion sort
+   //--- ENF-7(a), unchanged by ENF-31: most negative floating first, ties
+   //--- by ticket, insertion sort
    for(int i = 1; i < n_positions; i++)
      {
       ulong  kt = p_ticket[i]; string ks = p_symbol[i]; int ky = p_type[i];
@@ -461,15 +462,16 @@ void AgSweepPass(const string origin)
    int  idx       = -1;
    datetime now = 0, next_open = 0;
 
-   //--- THE WALK. Pendings first (ENF-7(a), SPEC 2's "delete pendings,
-   //--- begin sweep"), then the sorted positions. n_orders + n_positions
-   //--- candidates, index k below n_orders is a pending.
-   int candidates = n_orders + n_positions;
+   //--- THE WALK. The sorted positions first, then the pendings (ENF-31,
+   //--- superseding ENF-7(a) in its pendings first clause only).
+   //--- n_positions + n_orders candidates, index k below n_positions is a
+   //--- position.
+   int candidates = n_positions + n_orders;
    for(int k = 0; k < candidates; k++)
      {
-      bool   is_order = (k < n_orders);
-      ulong  ticket   = is_order ? o_ticket[k] : p_ticket[k - n_orders];
-      string symbol   = is_order ? o_symbol[k] : p_symbol[k - n_orders];
+      bool   is_order = (k >= n_positions);
+      ulong  ticket   = is_order ? o_ticket[k - n_positions] : p_ticket[k];
+      string symbol   = is_order ? o_symbol[k - n_positions] : p_symbol[k];
       idx = AgSweepFindTicket(ticket, is_order);
 
       //--- A held ticket: re-arm when its condition changes or at the cadence,
@@ -539,7 +541,8 @@ void AgSweepPass(const string origin)
       ZeroMemory(result);
       request.magic   = AG_SWEEP_MAGIC;
       request.comment = AG_SWEEP_COMMENT;
-      int    p        = k - n_orders;
+      int    p        = k;
+      int    o        = k - n_positions;
       double volume   = 0.0;
       double floating = 0.0;
       string type_name;
@@ -547,7 +550,7 @@ void AgSweepPass(const string origin)
         {
          request.action = TRADE_ACTION_REMOVE;
          request.order  = ticket;
-         type_name      = AgPendingTypeName(o_type[k]);
+         type_name      = AgPendingTypeName(o_type[o]);
         }
       else
         {
