@@ -1,0 +1,39 @@
+﻿MO	2	16:01:21.549	MQL5.community	authorization failed
+EP	2	16:01:22.405	MQL5.community	authorization failed
+MF	0	16:01:30.435	Network	'1200252169': authorized on JustMarkets-Demo3 through UK8 (ping: 90.04 ms, build 5800)
+EJ	0	16:01:30.435	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.26 16:01:07
+FJ	0	16:01:30.815	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 2 positions, 0 orders, 272 symbols, 0 spreads
+KG	0	16:01:30.815	Network	'1200252169': trading has been enabled, demo account - hedging mode
+OK	0	16:01:30.815	Network	'1200252169': balance management has been disabled - demo account
+CQ	0	16:01:31.185	Network	'1200252169': scanning network for access points
+ND	0	16:01:39.476	Network	'1200252169': scanning network finished
+IN	0	16:33:11.701	Trades	'1200252169': deal #471521184 buy 3 BTCUSD.ecn at 83895.00 done (based on order #782100571)
+QM	0	16:33:12.877	Trades	'1200252169': deal #471521190 buy 3 BTCUSD.ecn at 83896.00 done (based on order #782100581)
+JL	0	16:33:20.850	Trades	'1200252169': deal #471521235 buy 1 BTCUSD.ecn at 83894.50 done (based on order #782100639)
+RQ	0	16:35:37.074	Trades	'1200252169': market sell 3 BTCUSD.ecn, close #782100581 buy 3 BTCUSD.ecn 83896.00
+MQ	0	16:35:37.177	Trades	'1200252169': accepted market sell 3 BTCUSD.ecn, close #782100581 buy 3 BTCUSD.ecn 83896.00
+DH	0	16:35:37.178	Trades	'1200252169': deal #471522444 sell 3 BTCUSD.ecn at 83871.00 done (based on order #782102208)
+IG	0	16:35:37.179	Trades	'1200252169': order #782102208 sell 3 / 3 BTCUSD.ecn at 83871.00 done in 106.405 ms
+EH	0	16:35:38.058	Trades	'1200252169': market sell 3 BTCUSD.ecn, close #782100571 buy 3 BTCUSD.ecn 83895.00
+QH	0	16:35:38.143	Trades	'1200252169': accepted market sell 3 BTCUSD.ecn, close #782100571 buy 3 BTCUSD.ecn 83895.00
+HG	0	16:35:38.143	Trades	'1200252169': deal #471522459 sell 3 BTCUSD.ecn at 83873.50 done (based on order #782102222)
+FM	0	16:35:38.145	Trades	'1200252169': order #782102222 sell 3 / 3 BTCUSD.ecn at 83873.50 done in 86.046 ms
+CR	0	17:09:52.015	LiveUpdate	new version build 6230 (IDE: 6230, Tester: 6230) is available
+IL	0	17:11:09.028	LiveUpdate	'mt5clw64' downloaded (59505 kb)
+OJ	0	17:11:26.758	LiveUpdate	'mt5clwide64' downloaded (46117 kb)
+NS	0	17:11:31.259	LiveUpdate	'mt5clwtst64' downloaded (11348 kb)
+QJ	0	17:12:00.253	LiveUpdate	'mt5onnx64' downloaded (71373 kb)
+FR	0	17:12:00.257	LiveUpdate	downloaded successfully
+RR	0	17:12:00.259	LiveUpdate	'C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\liveupdate\mt5clw64.6230' saved
+JJ	0	17:12:00.260	LiveUpdate	'C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\liveupdate\mt5clwide64.6230' saved
+KF	0	17:12:00.260	LiveUpdate	'C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\liveupdate\mt5clwtst64.6230' saved
+MD	0	17:12:00.262	LiveUpdate	'C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\liveupdate\mt5onnx64.6230' saved
+FL	0	22:01:32.182	Network	'1200252169': scanning network for access points
+MI	0	22:01:40.490	Network	'1200252169': scanning network finished
+CQ	0	22:01:40.490	Network	'1200252169': auto connecting to a better access point with 89 % quality (previous: 86 %)
+RP	1	22:01:40.492	Network	'1200252169': connection to JustMarkets-Demo3 lost
+IG	0	22:01:41.215	Network	'1200252169': authorized on JustMarkets-Demo3 through UK3 (ping: 65.64 ms, build 5800)
+OD	0	22:01:41.215	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.26 19:22:37
+DH	0	22:01:41.428	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 1 positions, 0 orders, 272 symbols, 0 spreads
+LI	0	22:01:41.428	Network	'1200252169': trading has been enabled, demo account - hedging mode
+LM	0	22:01:41.428	Network	'1200252169': balance management has been disabled - demo account
