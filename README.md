@@ -8,7 +8,7 @@
 ![terminal](https://img.shields.io/badge/terminal-MetaTrader%205-blue)
 ![status](https://img.shields.io/badge/status-active%20development-blue)
 ![enforcement](https://img.shields.io/badge/enforcement-lock%20and%20flatten-blue)
-![license](https://img.shields.io/badge/license-educational%20use-lightgrey)
+![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 [English](#english) · [עברית](#hebrew)
 
@@ -112,14 +112,76 @@ Three details in that diagram are worth spelling out.
 
 ## Installation
 
-**Requirements:** MetaTrader 5 on Windows. One terminal, one account, one chart. Scope is the entire account, so there is no symbol filter and no magic number filter.
+**Requirements:** Windows, and MetaTrader 5 installed and opened at least once on the same Windows account. One terminal, one account, one chart. Scope is the entire account, so there is no symbol filter and no magic number filter.
 
-1. **Copy the source into the terminal data folder.** In the terminal, `File → Open Data Folder`, then copy `MQL5/Experts/AccountGuardian/` and `MQL5/Include/AccountGuardian/` into the matching folders there, keeping the same paths.
-2. **Compile.** Open `MQL5/Experts/AccountGuardian/AccountGuardian.mq5` in MetaEditor and press F7. The build is expected to report zero errors and zero warnings.
-3. **Restart the terminal** if it was already running when you copied the files. A running terminal does not pick up files added to its data folder after it started.
-4. **Enable algorithmic trading.** The `Algo Trading` button in the terminal toolbar must be green, and `Tools → Options → Expert Advisors` must allow automated trading. While locked the advisor closes positions and deletes pending orders, so this permission is what lets it act; without it the lock still holds, but the sweep waits and journals `sweep blocked` until trading is allowed again.
-5. **Attach it to exactly one chart.** Any symbol, any timeframe. The measurement is account-wide and does not depend on which chart it sits on. Attaching a second instance on the same account is refused: an instance-level mutex, heartbeat-based, detects the live holder and the second copy declines to start.
-6. **Review the inputs in the properties dialog before accepting them.** A malformed core input refuses startup rather than running degraded.
+### Install with the installer
+
+1. **Download.** On the repository's GitHub page choose `Code → Download ZIP`.
+2. **Extract the whole ZIP** into a folder of your choice, for example `Documents\AccountGuardian`. Do not run anything from inside the ZIP viewer.
+3. **Close MetaTrader 5** and MetaEditor. The installer stops if the terminal it installs into is running, and it never closes it for you.
+4. **Double click `installer\install.cmd`.** Windows may ask whether to run a file downloaded from the internet. The installer is plain text, and you can read it first in `installer\install.ps1`. If several MetaTrader 5 terminals are found, the installer lists them with their program folders and you type the number of the one to install into.
+5. **Attach the advisor by hand**, in the order the installer prints at the end and the section below repeats.
+
+MetaTrader 5 must have been **opened at least once** on this Windows account, not only installed. The installer finds terminals through the data folders a terminal creates on its first start, under `%APPDATA%\MetaQuotes\Terminal`. If none is found, it stops with a message saying so and installs nothing.
+
+### What the installer checks, before it installs anything
+
+Nine checks, in this order. A failed check stops the installer with a message in English and in Hebrew, and nothing is installed.
+
+1. Windows, and Windows PowerShell 5.1 or later.
+2. MetaTrader 5 found for this Windows account.
+3. The terminal to install into, chosen by number when there are several.
+4. The terminal's data folder has `MQL5\Experts`, and its program folder still holds `terminal64.exe`. A portable install, which keeps its files inside its program folder, is not supported; the installer's message names the manual steps for it.
+5. The terminal and its MetaEditor are closed.
+6. An existing install. `AccountGuardian.ex5` already in place means an upgrade. Anything else in the `MQL5\Experts\AccountGuardian` folder is something the installer does not know, so it stops and names it, and you decide what to do with it.
+7. Write access to the folders it writes to, and at least 20 MB free.
+8. `metaeditor64.exe` in the terminal's program folder.
+9. Every downloaded file against its md5 checksum in `installer\manifest.txt`.
+
+Then it compiles `MQL5\Experts\AccountGuardian\AccountGuardian.mq5` inside the downloaded folder with the terminal's own MetaEditor, requires `Result: 0 errors` in the compile log and a freshly written `AccountGuardian.ex5`, copies that one file into `<data folder>\MQL5\Experts\AccountGuardian\`, and prints its md5. Every step, with every path and the compile `Result` line, is appended to `installer\install-log.txt` beside the installer. The compile log itself is `installer\compile.log`.
+
+### What the installer never does
+
+* It never deletes, renames or moves a file, on your machine or in the terminal.
+* It writes exactly one file into the terminal's data folder, `MQL5\Experts\AccountGuardian\AccountGuardian.ex5`, creating that folder if it is missing. No source file, no preset, no chart or template file, no terminal setting.
+* It never starts, closes or stops the terminal. The only program it starts is the terminal's own `metaeditor64.exe`, to compile.
+* It never uses the network and never changes a Windows setting.
+* It never attaches the advisor to a chart and never turns algorithmic trading on. Those are your hand.
+* It never touches the advisor's lock and state files.
+
+### Attach the advisor
+
+1. **Open MetaTrader 5**, the terminal you chose, and log in to your trading account.
+2. **Enable algorithmic trading.** The `Algo Trading` button in the terminal toolbar must be green, and `Tools → Options → Expert Advisors` must allow automated trading. While locked the advisor closes positions and deletes pending orders, so this permission is what lets it act; without it the lock still holds, but the sweep waits and journals `sweep blocked` until trading is allowed again.
+3. **Attach it to exactly one chart.** In the `Navigator`, under `Expert Advisors`, open the `AccountGuardian` folder and drag `AccountGuardian` onto a chart. Any symbol, any timeframe. The measurement is account-wide and does not depend on which chart it sits on. Attaching a second instance on the same account is refused: an instance-level mutex, heartbeat-based, detects the live holder and the second copy declines to start.
+4. **Review the inputs in the properties dialog before accepting them.** There is no preset. The defaults are the largest value of each list, `5.50` percent and `200` in account currency. A malformed core input refuses startup rather than running degraded.
+5. **Read two lines in the `Experts` tab**, `init|build=<label>` and then `limits accepted|...`, and read `limits accepted` **before any terminal restart**. A refused start unloads the advisor, and a restart after it comes up with no guardian at all.
+
+> **The first attach on an account already past today's limit locks it.** The advisor measures the whole day from 01:00 server time, trades made before it was attached included. If the account has already lost more than the limit today, or given back realized profit past the peak level, the first attach locks at once, and the sweep closes every position and deletes every pending order on the account, other advisors' and the phone's included.
+
+### Upgrade
+
+Download the new ZIP, extract it into a new folder, close the terminal, and run `installer\install.cmd` again. The installer finds the installed `AccountGuardian.ex5` and replaces it in place. The copy does not change an advisor that is already running: once the terminal is open again, remove AccountGuardian from its chart, attach it again, and read `init|build=<label>` and `limits accepted` in the `Experts` tab before any terminal restart.
+
+Every release is tagged in the repository. The tag, together with the `init|build=<label>` line, names the build you run.
+
+### Uninstall by hand
+
+There is no uninstaller, on purpose: nothing shipped here deletes a file on your machine.
+
+1. Remove AccountGuardian from its chart.
+2. Find the data folder with `File → Open Data Folder`, then close the terminal.
+3. Delete `MQL5\Experts\AccountGuardian\AccountGuardian.ex5`, and the then empty `AccountGuardian` folder if you like.
+
+The advisor's lock and state files in `MQL5\Files\AccountGuardian\` stay. Leave them there: a lock is never cleared by removing or reinstalling the advisor, and the advisor reads them again the next time it is attached.
+
+### The account change setting
+
+`Tools → Options → Expert Advisors` carries a box that disables automated trading when the account changes. When it is checked, logging in to another account turns `Algo Trading` off without a word, while the advisor stays attached. The lock still holds, but nothing can be closed until trading is on again. If you keep that box checked, look at the `Algo Trading` button after every login change.
+
+### Try it on a demo account first
+
+Install and attach it on a demo account first, and run it for at least a full trading day, ideally across a weekend, before any live account.
 
 <!-- screenshot: the input properties dialog with the two limit legs filled in -->
 
@@ -275,7 +337,7 @@ Yes. The measurement is account-wide, taken from broker deal history and the acc
 
 ## License and disclaimer
 
-Released for **educational use**. Use it at your own risk.
+Released under the **MIT License**, see [LICENSE](LICENSE). Use it at your own risk.
 
 This software is provided as is, with no warranty of any kind. Nothing here is financial advice. Trading carries risk of loss, and a risk tool of any kind, this one included, can fail, be misconfigured, or be defeated by conditions its author did not anticipate. You remain responsible for your own account.
 
@@ -387,14 +449,76 @@ flowchart TD
 
 ## התקנה
 
-**דרישות:** מטא טריידר 5 על חלונות. טרמינל אחד, חשבון אחד, גרף אחד. ההיקף הוא החשבון כולו, ולכן אין סינון לפי סימול ואין סינון לפי מספר קסם.
+**דרישות:** חלונות, ומטא טריידר 5 מותקן ונפתח לפחות פעם אחת באותו חשבון חלונות. טרמינל אחד, חשבון אחד, גרף אחד. ההיקף הוא החשבון כולו, ולכן אין סינון לפי סימול ואין סינון לפי מספר קסם.
 
-1. **העתק את המקור לתיקיית הנתונים של הטרמינל.** בטרמינל, `File → Open Data Folder`, ואז העתק את `MQL5/Experts/AccountGuardian/` ואת `MQL5/Include/AccountGuardian/` לתיקיות המקבילות שם, תוך שמירה על אותם נתיבים.
-2. **הדר.** פתח את `MQL5/Experts/AccountGuardian/AccountGuardian.mq5` בעורך `MetaEditor` והקש F7. הבנייה אמורה לדווח על אפס שגיאות ואפס אזהרות.
-3. **הפעל מחדש את הטרמינל** אם הוא כבר רץ בזמן העתקת הקבצים. טרמינל שרץ אינו קולט קבצים שנוספו לתיקיית הנתונים שלו אחרי שעלה.
-4. **אפשר מסחר אלגוריתמי.** הכפתור `Algo Trading` בסרגל הכלים חייב להיות ירוק, והמסלול `Tools → Options → Expert Advisors` חייב להתיר מסחר אוטומטי. בזמן נעילה היועץ סוגר פוזיציות ומוחק פקודות ממתינות, ולכן ההרשאה הזו היא מה שמאפשר לו לפעול; בלעדיה הנעילה עדיין מחזיקה, אך הסריקה ממתינה ורושמת ביומן `sweep blocked` עד שהמסחר מותר שוב.
-5. **חבר אותו לגרף אחד בלבד.** כל סימול, כל מסגרת זמן. המדידה היא ברמת החשבון ואינה תלויה בגרף שעליו הוא יושב. חיבור מופע שני על אותו חשבון נדחה: מנעול מופע מבוסס פעימות לב מזהה את המחזיק החי, והעותק השני מסרב לעלות.
-6. **עבור על הקלטים בחלון המאפיינים לפני אישורם.** קלט ליבה פגום דוחה את העלייה במקום לרוץ במצב מוחלש.
+### התקנה בעזרת תוכנית ההתקנה
+
+1. **הורד.** בעמוד המאגר באתר `GitHub` בחר `Code → Download ZIP`.
+2. **חלץ את כל קובץ ה`ZIP`** לתיקייה לבחירתך, למשל `Documents\AccountGuardian`. אל תפעיל דבר מתוך חלון התצוגה של קובץ ה`ZIP`.
+3. **סגור את מטא טריידר 5** ואת `MetaEditor`. תוכנית ההתקנה נעצרת אם הטרמינל שאליו היא מתקינה פועל, והיא לעולם אינה סוגרת אותו בשבילך.
+4. **לחץ לחיצה כפולה על `installer\install.cmd`.** ייתכן שחלונות ישאל אם להפעיל קובץ שהורד מהאינטרנט. תוכנית ההתקנה היא טקסט פשוט, ואפשר לקרוא אותה קודם בקובץ `installer\install.ps1`. אם נמצאים כמה טרמינלים של מטא טריידר 5, תוכנית ההתקנה מציגה אותם עם תיקיות התוכנה שלהם, ואתה מקליד את המספר של הטרמינל שאליו תתבצע ההתקנה.
+5. **חבר את היועץ ידנית**, בסדר שתוכנית ההתקנה מדפיסה בסיומה והפרק שלהלן חוזר עליו.
+
+מטא טריידר 5 חייב להיות **נפתח לפחות פעם אחת** בחשבון החלונות הזה, ולא רק מותקן. תוכנית ההתקנה מאתרת טרמינלים דרך תיקיות הנתונים שטרמינל יוצר בעלייה הראשונה שלו, בתוך `%APPDATA%\MetaQuotes\Terminal`. אם לא נמצא אף אחד, היא נעצרת עם הודעה על כך ואינה מתקינה דבר.
+
+### מה תוכנית ההתקנה בודקת, לפני שהיא מתקינה משהו
+
+תשע בדיקות, בסדר הזה. בדיקה שנכשלת עוצרת את תוכנית ההתקנה עם הודעה באנגלית ובעברית, ודבר אינו מותקן.
+
+1. חלונות, ו`Windows PowerShell 5.1` ומעלה.
+2. מטא טריידר 5 נמצא בחשבון החלונות הזה.
+3. הטרמינל שאליו תתבצע ההתקנה, נבחר לפי מספר כשיש כמה.
+4. בתיקיית הנתונים של הטרמינל קיימת התיקייה `MQL5\Experts`, ותיקיית התוכנה שלו עדיין מכילה את `terminal64.exe`. התקנה ניידת, השומרת את קבציה בתוך תיקיית התוכנה, אינה נתמכת; ההודעה של תוכנית ההתקנה מפרטת עבורה את הצעדים הידניים.
+5. הטרמינל ועורך ה`MetaEditor` שלו סגורים.
+6. התקנה קיימת. קובץ `AccountGuardian.ex5` שכבר נמצא במקומו פירושו שדרוג. כל דבר אחר בתיקייה `MQL5\Experts\AccountGuardian` הוא משהו שתוכנית ההתקנה אינה מכירה, ולכן היא נעצרת ונוקבת בשמו, ואתה מחליט מה לעשות בו.
+7. הרשאת כתיבה לתיקיות שהיא כותבת אליהן, ולפחות 20 מגה בייט פנויים.
+8. הקובץ `metaeditor64.exe` בתיקיית התוכנה של הטרמינל.
+9. כל קובץ שהורד מול טביעת ה`md5` שלו בקובץ `installer\manifest.txt`.
+
+אחר כך היא מהדרת את `MQL5\Experts\AccountGuardian\AccountGuardian.mq5` בתוך התיקייה שהורדה בעזרת `MetaEditor` של הטרמינל עצמו, דורשת את השורה `Result: 0 errors` ביומן ההידור וקובץ `AccountGuardian.ex5` שנכתב זה עתה, מעתיקה את הקובץ האחד הזה אל `<data folder>\MQL5\Experts\AccountGuardian\`, ומדפיסה את טביעת ה`md5` שלו. כל שלב, עם כל נתיב ועם שורת ה`Result` של ההידור, נוסף לקובץ `installer\install-log.txt` שליד תוכנית ההתקנה. יומן ההידור עצמו הוא `installer\compile.log`.
+
+### מה תוכנית ההתקנה לעולם אינה עושה
+
+* היא לעולם אינה מוחקת, משנה שם או מעבירה קובץ, לא במחשב שלך ולא בטרמינל.
+* היא כותבת קובץ אחד בדיוק לתיקיית הנתונים של הטרמינל, `MQL5\Experts\AccountGuardian\AccountGuardian.ex5`, ויוצרת את התיקייה הזו אם היא חסרה. לא קובץ מקור, לא קובץ הגדרות קלט, לא קובץ גרף או תבנית, ולא הגדרה של הטרמינל.
+* היא לעולם אינה מפעילה, סוגרת או עוצרת את הטרמינל. התוכנית היחידה שהיא מפעילה היא `metaeditor64.exe` של הטרמינל עצמו, לשם ההידור.
+* היא לעולם אינה משתמשת ברשת ואינה משנה הגדרה של חלונות.
+* היא לעולם אינה מחברת את היועץ לגרף ואינה מדליקה מסחר אלגוריתמי. אלה בידיים שלך.
+* היא לעולם אינה נוגעת בקבצי הנעילה והמצב של היועץ.
+
+### חיבור היועץ
+
+1. **פתח את מטא טריידר 5**, הטרמינל שבחרת, והתחבר לחשבון המסחר שלך.
+2. **אפשר מסחר אלגוריתמי.** הכפתור `Algo Trading` בסרגל הכלים חייב להיות ירוק, והמסלול `Tools → Options → Expert Advisors` חייב להתיר מסחר אוטומטי. בזמן נעילה היועץ סוגר פוזיציות ומוחק פקודות ממתינות, ולכן ההרשאה הזו היא מה שמאפשר לו לפעול; בלעדיה הנעילה עדיין מחזיקה, אך הסריקה ממתינה ורושמת ביומן `sweep blocked` עד שהמסחר מותר שוב.
+3. **חבר אותו לגרף אחד בלבד.** בחלון `Navigator`, תחת `Expert Advisors`, פתח את התיקייה `AccountGuardian` וגרור את `AccountGuardian` אל גרף. כל סימול, כל מסגרת זמן. המדידה היא ברמת החשבון ואינה תלויה בגרף שעליו הוא יושב. חיבור מופע שני על אותו חשבון נדחה: מנעול מופע מבוסס פעימות לב מזהה את המחזיק החי, והעותק השני מסרב לעלות.
+4. **עבור על הקלטים בחלון המאפיינים לפני אישורם.** אין קובץ הגדרות מוכן. ברירות המחדל הן הערך הגדול ביותר בכל רשימה, `5.50` אחוז ו`200` במטבע החשבון. קלט ליבה פגום דוחה את העלייה במקום לרוץ במצב מוחלש.
+5. **קרא שתי שורות בלשונית `Experts`**, את `init|build=<label>` ואחריה את `limits accepted|...`, וקרא את `limits accepted` **לפני כל הפעלה מחדש של הטרמינל**. עלייה שנדחתה פורקת את היועץ, והפעלה מחדש אחריה עולה בלי שומר בכלל.
+
+> **החיבור הראשון לחשבון שכבר עבר היום את המגבלה נועל אותו.** היועץ מודד את היום כולו מהשעה 01:00 בשעון השרת, כולל עסקאות שנעשו לפני שחובר. אם החשבון כבר הפסיד היום יותר מהמגבלה, או החזיר רווח ממומש מעבר לרמת השיא, החיבור הראשון נועל מיד, והסריקה סוגרת כל פוזיציה ומוחקת כל פקודה ממתינה בחשבון, כולל של יועצים אחרים ושל הטלפון.
+
+### שדרוג
+
+הורד את קובץ ה`ZIP` החדש, חלץ אותו לתיקייה חדשה, סגור את הטרמינל, והפעל שוב את `installer\install.cmd`. תוכנית ההתקנה מוצאת את `AccountGuardian.ex5` המותקן ומחליפה אותו במקומו. ההעתקה אינה משנה יועץ שכבר רץ: אחרי שהטרמינל נפתח שוב, הסר את `AccountGuardian` מהגרף שלו, חבר אותו מחדש, וקרא את `init|build=<label>` ואת `limits accepted` בלשונית `Experts` לפני כל הפעלה מחדש של הטרמינל.
+
+כל גרסה מתויגת במאגר. התג, יחד עם השורה `init|build=<label>`, נוקב בבנייה שאתה מריץ.
+
+### הסרה ידנית
+
+אין תוכנית הסרה, וזה מכוון: שום דבר שנשלח כאן אינו מוחק קובץ במחשב שלך.
+
+1. הסר את `AccountGuardian` מהגרף שלו.
+2. מצא את תיקיית הנתונים בעזרת `File → Open Data Folder`, ואז סגור את הטרמינל.
+3. מחק את `MQL5\Experts\AccountGuardian\AccountGuardian.ex5`, ואם תרצה גם את התיקייה `AccountGuardian` שהתרוקנה.
+
+קבצי הנעילה והמצב של היועץ בתיקייה `MQL5\Files\AccountGuardian\` נשארים. השאר אותם שם: נעילה לעולם אינה מתבטלת בהסרת היועץ או בהתקנה מחדש, והיועץ קורא אותם שוב בפעם הבאה שהוא מחובר.
+
+### הגדרת החלפת החשבון
+
+במסלול `Tools → Options → Expert Advisors` יש תיבה המשביתה מסחר אוטומטי כשהחשבון מתחלף. כשהיא מסומנת, התחברות לחשבון אחר מכבה את `Algo Trading` בלי שום הודעה, בזמן שהיועץ נשאר מחובר. הנעילה עדיין מחזיקה, אך שום דבר אינו יכול להיסגר עד שהמסחר מודלק שוב. אם אתה משאיר את התיבה מסומנת, הבט בכפתור `Algo Trading` אחרי כל החלפת חשבון.
+
+### נסה קודם על חשבון דמו
+
+התקן וחבר אותו קודם על חשבון דמו, והרץ אותו לפחות יום מסחר מלא, רצוי גם לאורך סוף שבוע, לפני כל חשבון חי.
 
 <!-- screenshot: the input properties dialog with the two limit legs filled in -->
 
@@ -550,6 +674,6 @@ AG|...|INFO|sweep complete|positions=0|pendings=0|attempts=1|elapsed=3
 
 ## רישיון והסרת אחריות
 
-משוחרר **לשימוש לימודי**. השימוש באחריותך בלבד.
+משוחרר ברישיון **`MIT`**, ראה את הקובץ [LICENSE](LICENSE). השימוש באחריותך בלבד.
 
 התוכנה מסופקת כמות שהיא, ללא אחריות מכל סוג. שום דבר כאן אינו ייעוץ פיננסי. במסחר קיים סיכון להפסד, וכלי לניהול סיכון מכל סוג, זה כולל, עלול להיכשל, להיות מוגדר שגוי, או להיות מנוצח בתנאים שהמפתח לא צפה. האחריות על החשבון שלך נשארת שלך.
