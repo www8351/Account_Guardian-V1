@@ -25,7 +25,7 @@
 #define AG_HISTORY_SELECT_TO D'3000.01.01'
 
 //+------------------------------------------------------------------+
-//| Flat epsilon, account-currency units (owner ruling, 2026-07-30). |
+//| Flat epsilon, account-currency units (ruling, 2026-07-30).       |
 //| The live breach comparison errs toward breach: total <= -limit + |
 //| epsilon is acceptable.                                            |
 //+------------------------------------------------------------------+
@@ -114,7 +114,7 @@ double AgDealValue(const ulong ticket)
 //| 2026-08-18 draws, and it is why running_min beside it is a plain |
 //| < and always has been.                                           |
 //|                                                                  |
-//| PK BUILD, THE FOURTH WITNESS (owner rulings PK-1(c), PK-4(c1)    |
+//| PK BUILD, THE FOURTH WITNESS (rulings PK-1(c), PK-4(c1)          |
 //| and PK-10(a) of 2026-09-28, and the build rulings of the same    |
 //| date). This same walk reads DEAL_MAGIC once per deal and reports |
 //| the latest deal carrying AG_SWEEP_MAGIC, its DEAL_TIME in        |
@@ -213,7 +213,7 @@ double AgRealizedRunFold(const datetime anchor, bool &ok, double &running_min,
 //+------------------------------------------------------------------+
 //| The six-output signature, byte identical, now a forwarder that   |
 //| discards the two PK outputs, the shape AgRealizedFold took at    |
-//| version 1 (owner ruling (a) of 2026-09-28 on point 1 of the PK   |
+//| version 1 (ruling (a) of 2026-09-28 on point 1 of the PK         |
 //| build stop). AgRealizedFold below calls it unchanged; every      |
 //| figure it has ever produced is reproduced, the walk underneath   |
 //| being the identical walk with two further out parameters.        |

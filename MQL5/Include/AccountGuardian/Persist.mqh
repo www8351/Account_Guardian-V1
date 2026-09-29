@@ -731,7 +731,7 @@ double AgFloorEffectiveLimit(const double live_limit, const datetime window_anch
 //--- Cadence for the hold and backward-step WARNs, local clock, A1 class.
 datetime g_ag_last_ratchet_warn = 0;
 
-//--- MOVED HERE FROM THE EA, applying the owner ruling of 2026-08-18 that
+//--- MOVED HERE FROM THE EA, applying the ruling of 2026-08-18 that
 //--- put the locked_until bound helpers in Clock.mqh for the same reason:
 //--- a script cannot include an EA, so while this lived there the six
 //--- vectors question SEVEN calls for could not be written at all. The
@@ -813,7 +813,7 @@ double AgRatchetUpdate(const datetime window_anchor, const double live_limit,
      }
 
    //--- SAME DAY. Lower on a decrease, hold on an increase.
-   //--- BOTH TESTS GO THROUGH AG_PNL_EPSILON (owner ruling 2026-08-18, taken
+   //--- BOTH TESTS GO THROUGH AG_PNL_EPSILON (ruling 2026-08-18, taken
    //--- after the live Stage 7 finding). g_ag_floor_currency arrives at this
    //--- line by two different routes: straight out of AgLimitCurrency in the
    //--- session that seeded it, or through AgFloorSerialize's 8-decimal

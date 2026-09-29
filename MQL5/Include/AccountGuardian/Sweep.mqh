@@ -6,8 +6,8 @@
 //| project permitted to reach the trade API. Every other file must  |
 //| grep clean for OrderSend, CTrade, PositionClose, OrderDelete.    |
 //|                                                                  |
-//| ENFORCEMENT PHASE, owner rulings ENF-1 to ENF-29 of 2026-09-16,  |
-//| recorded FINAL in LEDGER DECISIONS, plan                         |
+//| ENFORCEMENT PHASE, rulings ENF-1 to ENF-29 of 2026-09-16,        |
+//| recorded FINAL in the decision log, plan                         |
 //| docs/PLAN_ENFORCEMENT_SWEEP_2026-09-16.md. The Phase 0 clause    |
 //| that kept this file empty of trading calls is retired by that    |
 //| ruling; the static-structure rule above stands and is enforced   |

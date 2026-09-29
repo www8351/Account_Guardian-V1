@@ -46,7 +46,7 @@ datetime AgNextDayAnchor(const datetime t) { return AgDayAnchor(t) + 86400; }
 
 //+------------------------------------------------------------------+
 //| Anchor high-water-mark sanity latch (4.1a, Q8 FINAL 2026-08-08,  |
-//| AMENDED by owner ruling 2026-08-09 to alert-and-advance).        |
+//| AMENDED by ruling 2026-08-09 to alert-and-advance).              |
 //| In-memory only, never persisted (never-loaded-never-written);    |
 //| a restart re-seeds on the first pass, which is always accepted   |
 //| since there is nothing yet to compare it against.                |
@@ -65,7 +65,7 @@ string   g_ag_anchor_jump_note   = "";
 //| Applies the Q8 latch to a freshly computed anchor and returns    |
 //| the anchor this pass's window must use.                          |
 //|                                                                  |
-//| Q8 AMENDMENT, owner ruling 2026-08-09, alert-and-advance: a      |
+//| Q8 AMENDMENT, ruling 2026-08-09, alert-and-advance: a            |
 //| forward jump of more than one day sets the jump note, naming     |
 //| both anchors for the caller to announce loudly, and then         |
 //| ACCEPTS fresh and advances the high mark, so the pass proceeds    |
@@ -113,7 +113,7 @@ datetime AgAnchorSanityCheck(const datetime fresh)
 
 //+------------------------------------------------------------------+
 //| THE locked_until BOUNDS (Phase 2). Moved here from the EA by      |
-//| owner ruling 2026-08-18 so a script can reach them: they are pure |
+//| ruling 2026-08-18 so a script can reach them: they are pure       |
 //| functions of their arguments and the latch above, which is the    |
 //| shape a synthetic vector proves best, and while they sat in the   |
 //| EA no script could include them and the three rulings they encode |

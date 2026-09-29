@@ -70,7 +70,7 @@ double   g_ag_last_pnl             = 0.0;
 //--- Phase 2 Stage 3 (lock semantics). All in-memory, none persisted.
 //--- QUOTE FRESHNESS, ruling THREE 2026-08-18. Measured as a purely local
 //--- delta and never by clock arithmetic, so it cannot inherit the broker
-//--- DST peg this ledger still has open until the October harvest. This is
+//--- DST peg the decision log still has open until the October harvest. This is
 //--- the A1/A3 clock class, a liveness measure and not an anchor decision,
 //--- so TimeLocal is the correct source here exactly as it is for the
 //--- proof-of-life interval.
@@ -121,7 +121,7 @@ bool     g_ag_lock_inputs_captured = false;
 //--- field reads, precisely so the two cannot be confused.
 //--- Readers of g_ag_obs_connected, both loggers: AgObservabilityNote for
 //--- the waiting_on note, and since the D2D4 build AgPnlNumbersString for
-//--- the DEGRADED| prefix on the LOCKED numbers group (owner ruling
+//--- the DEGRADED| prefix on the LOCKED numbers group (ruling
 //--- D2D4-6(a) of 2026-09-09). Neither is a decision path.
 bool     g_ag_obs_connected        = true;    // TERMINAL_CONNECTED, sampled every tick
 bool     g_ag_obs_resync_prev      = false;   // edge detector for the RESYNC lines
@@ -207,7 +207,7 @@ string AgPnlNumbersString()
 //| Chart banner. The last line is state specific: SAFE_HALT names   |
 //| the halt and the resume procedure, ACTIVE carries pnl vs limit,  |
 //| and LOCKED carries the snapshot limit and the balance (defect 4, |
-//| owner ruling D2D4-8(b) of 2026-09-09), so the on chart record    |
+//| ruling D2D4-8(b) of 2026-09-09), so the on chart record          |
 //| matches the journal's LOCKED group. The Phase 1 placeholder now  |
 //| survives for SYNCING only.                                       |
 //+------------------------------------------------------------------+
@@ -268,7 +268,7 @@ bool AgQuoteFrozen()
 //| breach", so it blocks the SYNCING exit for another pass instead  |
 //| of licensing an unlock.                                          |
 //|                                                                  |
-//| Defect 3, shape 1 (owner ruling 2026-08-20): the four out        |
+//| Defect 3, shape 1 (ruling 2026-08-20): the four out              |
 //| parameters after until_out exist so the caller can persist a Q6  |
 //| snapshot when there is no loaded one to preserve. They are the   |
 //| values THIS derivation computed and they leave the function      |
@@ -277,7 +277,7 @@ bool AgQuoteFrozen()
 //| the loss crossed the limit, which the ruling requires be         |
 //| recorded as such rather than implied by the field's name.        |
 //|                                                                  |
-//| PK BUILD (owner rulings PK-1 to PK-15 of 2026-09-28, PK-14       |
+//| PK BUILD (rulings PK-1 to PK-15 of 2026-09-28, PK-14             |
 //| amended, and the build rulings of the same date). Two server     |
 //| side witnesses join the three above, after FILE and GV and       |
 //| beside the derived disjuncts. SWEEP (PK-4(c1)): the guardian's   |
@@ -488,7 +488,7 @@ int AgBootDerivation(ENUM_AG_LOCK_REASON &reason_out, datetime &until_out,
 //+------------------------------------------------------------------+
 //| Declare the lock. Q6 (FINAL): limit and base are snapshotted     |
 //| here and the locked window is judged by that snapshot, never by  |
-//| live inputs. ENFORCEMENT (owner rulings ENF-1 to ENF-29 of       |
+//| live inputs. ENFORCEMENT (rulings ENF-1 to ENF-29 of             |
 //| 2026-09-16, FINAL): the interim posture of 2026-08-18, ruling    |
 //| TWO, is SUPERSEDED in its no-order clause and in that clause    |
 //| only. This function still sends nothing itself: it locks, and    |
@@ -555,7 +555,7 @@ void AgDeclareLock(const datetime breach_time, const double limit, const double 
 //| legitimate under never-loaded-never-written because AgStateLoad  |
 //| ran in OnInit.                                                   |
 //|                                                                  |
-//| DEFECT 3, SHAPE 1 (owner ruling 2026-08-20). This used to pass   |
+//| DEFECT 3, SHAPE 1 (ruling 2026-08-20). This used to pass         |
 //| the EXISTING model values back into AgStateSetBreach, which is   |
 //| right when the FILE witness loaded them and wrong when only the  |
 //| DERIVED witness fired: the model is then default-constructed, so |
@@ -568,7 +568,7 @@ void AgDeclareLock(const datetime breach_time, const double limit, const double 
 //| exactly the case Q6 has nothing to govern. derived_breach_time   |
 //| is the DERIVATION INSTANT, not the instant the loss crossed the  |
 //| limit; the ruling of 2026-08-20 requires that be recorded as     |
-//| such, and it is recorded in LEDGER.md, in the fix plan, and by   |
+//| such; it is recorded in the decision log, the fix plan, and by   |
 //| the journal, where this path is preceded by a "boot witness      |
 //| DERIVED fired" line and the ACTIVE path by "breach arithmetic".  |
 //| The state file carries no marker of its own and gains no field:  |
@@ -781,7 +781,7 @@ string AgObservabilityNote()
 //+------------------------------------------------------------------+
 //| ACTIVE-state evaluation (A6, 4.4), run in this exact order:      |
 //| Q10 connection check, Q10 reconnect-coherence RESYNC gate (2026- |
-//| 08-09 owner ruling), Q8 anchor sanity, the computation itself,   |
+//| 08-09 ruling), Q8 anchor sanity, the computation itself,         |
 //| Q9 coherence deferral, then the Q2 interim breach posture.       |
 //| Sets g_ag_dynamic_waiting_on for the NEXT proof-of-life line     |
 //| (AgProofOfLife runs before this dispatch each tick, so every     |
@@ -1004,7 +1004,7 @@ void AgEvaluateActive()
   }
 
 //+------------------------------------------------------------------+
-//| Visible refusal (Q4, owner ruling 2026-08-03). Sets the refusal  |
+//| Visible refusal (Q4, ruling 2026-08-03). Sets the refusal        |
 //| flag and draws the dated REFUSED banner before every refusal     |
 //| return in OnInit, both paths. OnDeinit skips the banner clear    |
 //| while the flag is set, so the refusal stays on the chart as a    |
@@ -1043,7 +1043,7 @@ int OnInit()
    g_ag_verbosity = LogVerbosity;
    g_ag_login     = AccountInfoInteger(ACCOUNT_LOGIN);
    //--- build label, standing rule 7's identity channel: ENF names the
-   //--- content of this build, the enforcement phase (owner ruling
+   //--- content of this build, the enforcement phase (ruling
    //--- ENF-26(a) of 2026-09-16).
    AgInfo("init|build=PK|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
    //--- sweep state is in memory only and starts empty in every image; the
@@ -1104,7 +1104,7 @@ int OnInit()
              " will weigh it at the SYNCING exit");
 
    //--- GV lock mirror, reported beside the state file (defect 2 witness line,
-   //--- owner ruling D2D4-2(b) of 2026-09-09): what the mirror held at the
+   //--- ruling D2D4-2(b) of 2026-09-09): what the mirror held at the
    //--- moment OnInit read it, lock or no lock, so a zero is on the record as
    //--- a zero. A missing GV reads as 0 and prints as 1970.01.01 00:00:00.
    //--- This is a live read taken at init and it is REPORTED, never acted on:
@@ -1235,7 +1235,7 @@ void OnTimer()
    //--- the authoritative in-memory lock state every tick IN ACTIVE AND IN
    //--- LOCKED, the two states whose memory is authoritative for it, and in
    //--- no other state. THE STATE GATE, defect 2 of the fix order FINAL of
-   //--- 2026-08-19, owner ruling D2D4-1(a) of 2026-09-09, plan
+   //--- 2026-08-19, ruling D2D4-1(a) of 2026-09-09, plan
    //--- docs/FIXPLAN_PHASE3_DEFECTS_2_4_2026-09-08.md section 3.1.
    //--- THE DEFECT THIS CLOSES: a fresh image holds g_ag_locked_until at its
    //--- initialiser, 0, until AgEnterLockFromBoot runs at the SYNCING exit,
@@ -1244,7 +1244,7 @@ void OnTimer()
    //--- two flushed 0 over the persisted value and the GV witness in
    //--- AgBootDerivation then read its own zero. Measured on both cold
    //--- boots of 2026-08-18, where the witness fired only on the one reload
-   //--- that had preserved memory (LEDGER, defect 2 entry).
+   //--- that had preserved memory (decision log, defect 2 entry).
    //--- In SYNCING nothing is written, so the value the previous image left
    //--- is still there when the witness reads it. In SAFE_HALT nothing is
    //--- written, so a persisted lock's mirror outlives a halt. Within ACTIVE
@@ -1430,7 +1430,7 @@ void OnDeinit(const int reason)
    AgInfo("deinit|reason=" + (string)reason + "|session marked clean"
           + "|timer_armed=" + (g_timer_armed ? "1" : "0")
           + "|timer_ticks=" + (string)g_timer_ticks);
-   //--- Visible refusal (owner ruling 2026-08-03): a refused init leaves its
+   //--- Visible refusal (ruling 2026-08-03): a refused init leaves its
    //--- dated REFUSED banner on the chart. The gate keys on the dedicated
    //--- refusal flag, never on a proxy like g_ag_halt_loaded, whose semantic
    //--- is model-loaded, not init-refused. The skip is logged, never silent.

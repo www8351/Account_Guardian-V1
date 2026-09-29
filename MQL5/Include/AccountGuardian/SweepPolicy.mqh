@@ -1,9 +1,9 @@
 //+------------------------------------------------------------------+
 //| AccountGuardian - SweepPolicy.mqh                                |
 //| The sweep engine's POLICY, separated from its trade calls.       |
-//| Owner ruling ENF-24(b) of 2026-09-16, plan                       |
+//| Ruling ENF-24(b) of 2026-09-16, plan                             |
 //| docs/PLAN_ENFORCEMENT_SWEEP_2026-09-16.md section 3 and the      |
-//| ruling sheet ENF-1 to ENF-29 recorded FINAL in LEDGER DECISIONS. |
+//| ruling sheet ENF-1 to ENF-29 recorded FINAL in the decision log. |
 //|                                                                  |
 //| EVERYTHING IN THIS FILE IS A PURE FUNCTION OF ITS ARGUMENTS OR A |
 //| COMPILE-TIME CONSTANT. No platform read, no clock, no global     |
@@ -26,7 +26,7 @@
 #define AG_SWEEP_POLICY_MQH
 
 //+------------------------------------------------------------------+
-//| CONSTANTS, owner ruling ENF-25(a): compile-time constants and    |
+//| CONSTANTS, ruling ENF-25(a): compile-time constants and          |
 //| never inputs, the AG_LIFE_INTERVAL and AG_MUTEX_STALE precedent  |
 //| of 2026-07-29 ("a value able to disable a guarantee is core or   |
 //| nowhere"). Every unit below is TIMER PASSES, never seconds       |
@@ -54,7 +54,7 @@
 //--- and the terminal journal attribute every guardian close. The value
 //--- is the ruling date of the enforcement phase as a decimal, which no
 //--- other advisor on this account is known to use and which a reader of
-//--- DEAL_MAGIC can trace to the LEDGER DECISIONS entry of that date.
+//--- DEAL_MAGIC can trace to the decision log entry of that date.
 #define AG_SWEEP_MAGIC               20260916
 //--- ENF-19(a): the comment on every guardian request.
 #define AG_SWEEP_COMMENT             "AG sweep"
@@ -67,7 +67,7 @@
 #define AG_SWEEP_DEVIATION_POINTS    100
 
 //+------------------------------------------------------------------+
-//| RETCODE CLASSES, plan 2.7.4, owner rulings ENF-9(c), ENF-11(a),  |
+//| RETCODE CLASSES, plan 2.7.4, rulings ENF-9(c), ENF-11(a),        |
 //| ENF-12(a), ENF-13(c). DONE covers a completed request and a      |
 //| position that another route closed first (10036). PARTIAL 10010  |
 //| is RETRY with a flag the caller reads through AgRetcodeIsPartial |
@@ -315,7 +315,7 @@ ENUM_ORDER_TYPE_FILLING AgSweepFillingFor(const long filling_flags)
   }
 
 //+------------------------------------------------------------------+
-//| THE Q3 NAMES, owner ruling Q3/F2 of 2026-07-29 and ENF-15(a).    |
+//| THE Q3 NAMES, ruling Q3/F2 of 2026-07-29 and ENF-15(a).          |
 //| Account wide: the first blocking state in the ruled order, named |
 //| exactly as the journal names it, or "" when nothing blocks.      |
 //| Per symbol: SYMBOL_TRADE_MODE named distinctly, with CLOSEONLY   |

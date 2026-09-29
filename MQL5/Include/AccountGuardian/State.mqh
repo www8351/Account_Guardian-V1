@@ -17,7 +17,7 @@ enum ENUM_AG_STATE
    AG_STATE_SAFE_HALT = 4
   };
 
-//--- AG_LOCK_SWEEP_WITNESS (owner ruling PK-9(a) of 2026-09-28): the reason
+//--- AG_LOCK_SWEEP_WITNESS (ruling PK-9(a) of 2026-09-28): the reason
 //--- a boot derivation names when the guardian's own AG_SWEEP_MAGIC deals in
 //--- today's server history are what re-derive the lock. It travels inside
 //--- the state file's existing int-valued L field, so there is no format

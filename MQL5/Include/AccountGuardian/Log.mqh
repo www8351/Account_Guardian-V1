@@ -88,7 +88,7 @@ void AgProofOfLife(const string state_name, const int seconds_in_state,
 
 //+------------------------------------------------------------------+
 //| LOCKED governing numbers as a LIFE-line field group. Defect 4 of |
-//| the fix order FINAL of 2026-08-19, owner rulings D2D4-3(a),      |
+//| the fix order FINAL of 2026-08-19, rulings D2D4-3(a),            |
 //| D2D4-4(a), D2D4-5(a), D2D4-7(a) and D2D4-9(a) of 2026-09-09,     |
 //| plan docs/FIXPLAN_PHASE3_DEFECTS_2_4_2026-09-08.md section 3.4.  |
 //| A PURE FUNCTION OF ITS ARGUMENTS, placed here rather than in the |
