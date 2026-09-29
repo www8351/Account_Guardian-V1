@@ -1,0 +1,33 @@
+﻿JS	0	01:02:21.582	Trades	'1200252169': deal #479737119 buy 0.1 XAUUSD.ecn at 4117.98 done (based on order #797045724)
+OK	0	01:03:11.576	Trades	'1200252169': deal #479738458 sell 0.1 XAUUSD.ecn at 4118.57 done (based on order #797048025)
+CK	0	03:16:11.275	Network	'1200252169': scanning network for access points
+RM	0	03:16:19.397	Network	'1200252169': scanning network finished
+RE	1	05:47:06.981	Network	'1200252169': connection to JustMarkets-Demo3 lost
+NJ	0	05:47:10.989	Network	'1200252169': authorized on JustMarkets-Demo3 through UK6 (ping: 74.49 ms, build 5800)
+GQ	0	05:47:10.989	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.29 01:32:59
+RN	0	05:47:11.243	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 0 positions, 0 orders, 272 symbols, 0 spreads
+IK	0	05:47:11.243	Network	'1200252169': trading has been enabled, demo account - hedging mode
+MN	0	05:47:11.243	Network	'1200252169': balance management has been disabled - demo account
+NM	0	05:47:11.265	Network	'1200252169': scanning network for access points
+QH	0	05:47:19.143	Network	'1200252169': scanning network finished
+PO	0	11:47:11.408	Network	'1200252169': scanning network for access points
+KI	0	11:47:19.579	Network	'1200252169': scanning network finished
+HP	0	13:11:12.778	Experts	expert AccountGuardian (XAUUSD.ecn,M15) removed
+QE	0	13:11:16.324	Experts	expert AccountGuardian (XAUUSD.ecn,M15) loaded successfully
+DK	0	13:11:56.023	Scripts	script AgPhase2StateVectors (BTCUSD.ecn,M15) loaded successfully
+LS	0	13:11:58.245	Scripts	script AgPhase2StateVectors (BTCUSD.ecn,M15) removed
+QJ	0	13:12:16.635	Experts	expert AccountGuardian (XAUUSD.ecn,M15) removed
+DM	0	13:12:17.914	Terminal	exit with code 0
+GD	0	13:12:17.962	Network	'1200252169': disconnected from JustMarkets-Demo3
+OP	0	13:12:18.042	Terminal	stopped with 0
+FD	0	13:12:18.046	Terminal	shutdown with 0
+DN	0	13:12:30.074	Terminal	MetaTrader 5 x64 build 6230 started for MetaQuotes Ltd.
+NF	0	13:12:30.074	Terminal	Windows 11 build 26200, 10 x 12th Gen Intel Core i5-1235U, AVX2, 5 / 15 Gb memory, 162 / 346 Gb disk, UAC, GMT+2
+JI	0	13:12:30.074	Terminal	C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075
+FK	0	13:12:30.075	MCP	started on 127.0.0.1:22346
+OQ	0	13:12:31.050	Experts	expert AccountGuardian (XAUUSD.ecn,M15) loaded successfully
+DG	0	13:12:31.692	Network	'1200252169': authorized on JustMarkets-Demo3 through UK6 (ping: 74.33 ms, build 5800)
+CE	0	13:12:31.692	Network	'1200252169': previous successful authorization performed from 5.29.15.120 on 2026.09.29 13:01:37
+GK	0	13:12:31.966	Network	'1200252169': terminal synchronized with Just Global Markets Ltd.: 0 positions, 0 orders, 272 symbols, 0 spreads
+PF	0	13:12:31.966	Network	'1200252169': trading has been enabled, demo account - hedging mode
+PJ	0	13:12:31.966	Network	'1200252169': balance management has been disabled - demo account
