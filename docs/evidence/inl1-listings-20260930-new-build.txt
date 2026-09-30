@@ -1,0 +1,40 @@
+﻿--- before 2026-09-30T15:53:46
+DESKTOP-PF23NA8
+True
+False
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\.gitattributes  66
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\.gitignore  103
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\LICENSE  1064
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\README.md  8843
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install-log.txt  2197
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install.cmd  83
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install.ps1  41884
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\manifest.txt  710
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Experts\AccountGuardian\AccountGuardian.mq5  79041
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Clock.mqh  9968
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Log.mqh  7206
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Persist.mqh  59014
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Pnl.mqh  25469
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\State.mqh  4394
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Sweep.mqh  32404
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\SweepPolicy.mqh  20900
+--- after 2026-09-30T15:54:22
+DESKTOP-PF23NA8
+True
+False
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\.gitattributes  66
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\.gitignore  103
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\LICENSE  1064
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\README.md  8843
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install-log.txt  4391
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install.cmd  83
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install.ps1  41884
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\manifest.txt  710
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Experts\AccountGuardian\AccountGuardian.mq5  79041
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Clock.mqh  9968
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Log.mqh  7206
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Persist.mqh  59014
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Pnl.mqh  25469
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\State.mqh  4394
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\Sweep.mqh  32404
+C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\MQL5\Include\AccountGuardian\SweepPolicy.mqh  20900
