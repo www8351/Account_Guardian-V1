@@ -1,0 +1,42 @@
+﻿
+==== AccountGuardian installer run started 2026-09-30 15:50:42 local time ====
+
+AccountGuardian installer. It checks this computer, compiles the advisor with the MetaEditor of your own MetaTrader 5, and copies one file into the terminal you choose.
+תוכנית ההתקנה של `AccountGuardian`. היא בודקת את המחשב הזה, מהדרת את היועץ בעזרת `MetaEditor` של מטא טריידר 5 שלך, ומעתיקה קובץ אחד אל הטרמינל שתבחר.
+
+Every step is written, in English and in Hebrew, to this record file:
+כל שלב נרשם, באנגלית ובעברית, בקובץ הרישום הזה:
+    C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install-log.txt
+    Downloaded folder: C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main
+    Windows user: www83
+
+[ 10%] Check 1 of 9, Windows and PowerShell: passed.
+בדיקה 1 מתוך 9, חלונות ו`PowerShell`: עברה.
+    Windows: Microsoft Windows NT 10.0.26200.0
+    PowerShell: 5.1.26100.9444 Desktop
+
+MetaTrader 5 was not found for this Windows account. The installer finds MetaTrader 5 through the data folders it creates under the folder below, and such a folder exists only after MetaTrader 5 has been opened at least once on this Windows account. Installing MetaTrader 5 is not enough. Open it once, close it, and run this installer again. Nothing was installed, and nothing outside the downloaded folder was changed.
+מטא טריידר 5 לא נמצא בחשבון החלונות הזה. תוכנית ההתקנה מאתרת את מטא טריידר 5 דרך תיקיות הנתונים שהוא יוצר בתוך התיקייה שלהלן, ותיקייה כזו קיימת רק אחרי שמטא טריידר 5 נפתח לפחות פעם אחת בחשבון החלונות הזה. התקנה בלבד אינה מספיקה. פתח אותו פעם אחת, סגור אותו, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן, ושום דבר מחוץ לתיקייה שהורדה לא שונה.
+    C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal
+Stopped at 2026-09-30 15:50:43, exit code 1.
+
+==== AccountGuardian installer run started 2026-09-30 15:53:48 local time ====
+
+AccountGuardian installer. It checks this computer, compiles the advisor with the MetaEditor of your own MetaTrader 5, and copies one file into the terminal you choose.
+תוכנית ההתקנה של `AccountGuardian`. היא בודקת את המחשב הזה, מהדרת את היועץ בעזרת `MetaEditor` של מטא טריידר 5 שלך, ומעתיקה קובץ אחד אל הטרמינל שתבחר.
+
+Every step is written, in English and in Hebrew, to this record file:
+כל שלב נרשם, באנגלית ובעברית, בקובץ הרישום הזה:
+    C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main\installer\install-log.txt
+    Downloaded folder: C:\Users\www83\OneDrive\Desktop\AccountGuardian-Release-main
+    Windows user: www83
+
+[ 10%] Check 1 of 9, Windows and PowerShell: passed.
+בדיקה 1 מתוך 9, חלונות ו`PowerShell`: עברה.
+    Windows: Microsoft Windows NT 10.0.26200.0
+    PowerShell: 5.1.26100.9444 Desktop
+
+MetaTrader 5 was not found for this Windows account. The installer finds MetaTrader 5 through the data folders it creates under the folder below, and such a folder exists only after MetaTrader 5 has been opened at least once on this Windows account. Installing MetaTrader 5 is not enough. Open it once, close it, and run this installer again. Nothing was installed, and nothing outside the downloaded folder was changed.
+מטא טריידר 5 לא נמצא בחשבון החלונות הזה. תוכנית ההתקנה מאתרת את מטא טריידר 5 דרך תיקיות הנתונים שהוא יוצר בתוך התיקייה שלהלן, ותיקייה כזו קיימת רק אחרי שמטא טריידר 5 נפתח לפחות פעם אחת בחשבון החלונות הזה. התקנה בלבד אינה מספיקה. פתח אותו פעם אחת, סגור אותו, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן, ושום דבר מחוץ לתיקייה שהורדה לא שונה.
+    C:\Users\www83\AppData\Roaming\MetaQuotes\Terminal
+Stopped at 2026-09-30 15:53:48, exit code 1.
