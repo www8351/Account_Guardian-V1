@@ -2563,3 +2563,7 @@ Status: FINAL
 Decision: (owner ruling 2026-09-29, the six build departures of `fad86fa`) RATIFIED AS WRITTEN. ONE, `installer/manifest.txt` carries eight MQL5 sources, not ten. TWO, one folder, `MQL5\Experts\AccountGuardian`, may be created in the chosen data folder on a fresh install. THREE, the record file `installer\install-log.txt` is append only across runs. FOUR, `.gitattributes` is exported to the release folder. FIVE, the `LICENSE` copyright name is www8351. SIX, IN-L11 closes on the record's upgrade lines and not on an unchanged md5.
 Reason: Owner's ruling, recorded as given, 2026-09-29, on the executor readings ONE, TWO, NINE and TEN of the installer build ACTIONS entry of the same date, the record file paragraph of that entry, and the IN-L11 clause of the INSTALLER BUILD entry in ISSUES.
 Status: FINAL
+
+Decision: (owner ruling 2026-09-29, README language) README.md is written in Hebrew only, product voice, short, for a reader who is not a developer; supersedes the bilingual README clause of the documentation rulings for this repository only; the secrecy rule and the human-author rule are unchanged.
+Reason: owner's decision, recorded as given.
+Status: FINAL
