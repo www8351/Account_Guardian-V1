@@ -12,7 +12,15 @@
 #   3. Copies the one compiled file, AccountGuardian.ex5, into the terminal's
 #      MQL5\Experts\AccountGuardian folder, creating that folder if it is absent.
 #   4. Prints the steps to attach the advisor to a chart.
-# Every step is appended to installer\install-log.txt beside this script.
+# The window shows English only: one line per stage, prefixed with the stage's
+# percentage, and a progress bar. Every step, every message in English and
+# then in Hebrew, is appended to installer\install-log.txt beside this script.
+#
+# Progress, one fixed percentage per stage:
+#   Check 1 to Check 9    10, 15, 20, 25, 30, 35, 40, 45, 50
+#   Compile               90
+#   Copy                  95
+#   Done                 100
 #
 # What it never does: delete, rename or move any file; change any Windows or
 # terminal setting; start, close or stop the terminal; use the network; attach
@@ -32,6 +40,7 @@ $includeRoot = Join-Path $downloadRoot 'MQL5'
 $compiledFile = Join-Path $downloadRoot 'MQL5\Experts\AccountGuardian\AccountGuardian.ex5'
 $minimumFreeBytes = 20MB
 $compileTimeoutMilliseconds = 300000
+$progressActivity = 'AccountGuardian installer'
 
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
@@ -46,18 +55,37 @@ function Write-InstallerDetail {
     Write-InstallerRecordLine ('    ' + $Text)
 }
 
+function Add-InstallerRecordDetail {
+    param([string]$Text)
+    Write-InstallerRecordLine ('    ' + $Text)
+}
+
 function Write-InstallerMessage {
     param([string]$English, [string]$Hebrew, [string]$Color = 'Gray')
     Write-Host ''
     Write-Host $English -ForegroundColor $Color
-    Write-Host $Hebrew -ForegroundColor $Color
     Write-InstallerRecordLine ''
     Write-InstallerRecordLine $English
     Write-InstallerRecordLine $Hebrew
 }
 
+function Write-InstallerStage {
+    param([int]$Percent, [string]$English, [string]$Hebrew)
+    $stageLine = '[' + $Percent.ToString().PadLeft(3) + '%] ' + $English
+    Write-Progress -Activity $progressActivity -Status $English -PercentComplete $Percent
+    Write-Host $stageLine -ForegroundColor Green
+    Write-InstallerRecordLine ''
+    Write-InstallerRecordLine $stageLine
+    Write-InstallerRecordLine $Hebrew
+}
+
+function Complete-InstallerProgress {
+    Write-Progress -Activity $progressActivity -Completed
+}
+
 function Exit-InstallerWithStop {
     param([string]$English, [string]$Hebrew, [string[]]$Details = @())
+    Complete-InstallerProgress
     Write-InstallerMessage -English $English -Hebrew $Hebrew -Color 'Yellow'
     foreach ($detailLine in $Details) { Write-InstallerDetail $detailLine }
     Write-InstallerRecordLine ('Stopped at ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ', exit code 1.')
@@ -139,9 +167,9 @@ try {
     Write-InstallerRecordLine ''
     Write-InstallerRecordLine ('==== AccountGuardian installer run started ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ' local time ====')
 } catch {
+    Complete-InstallerProgress
     Write-Host ''
     Write-Host 'The installer cannot write its record file in the downloaded folder. Extract the whole ZIP file into a folder you can write to, then run install.cmd again. Nothing was installed.' -ForegroundColor Yellow
-    Write-Host 'תוכנית ההתקנה אינה יכולה לכתוב את קובץ הרישום שלה בתיקייה שהורדה. חלץ את כל קובץ ה`ZIP` לתיקייה שמותר לך לכתוב בה, והפעל שוב את `install.cmd`. דבר לא הותקן.' -ForegroundColor Yellow
     Write-Host ('    ' + $recordPath)
     exit 1
 }
@@ -151,10 +179,10 @@ try {
         -English 'AccountGuardian installer. It checks this computer, compiles the advisor with the MetaEditor of your own MetaTrader 5, and copies one file into the terminal you choose.' `
         -Hebrew 'תוכנית ההתקנה של `AccountGuardian`. היא בודקת את המחשב הזה, מהדרת את היועץ בעזרת `MetaEditor` של מטא טריידר 5 שלך, ומעתיקה קובץ אחד אל הטרמינל שתבחר.' `
         -Color 'Cyan'
-    Write-InstallerMessage -English 'Every step is written to this record file:' -Hebrew 'כל שלב נרשם בקובץ הרישום הזה:'
+    Write-InstallerMessage -English 'Every step is written, in English and in Hebrew, to this record file:' -Hebrew 'כל שלב נרשם, באנגלית ובעברית, בקובץ הרישום הזה:'
     Write-InstallerDetail $recordPath
-    Write-InstallerDetail ('Downloaded folder: ' + $downloadRoot)
-    Write-InstallerDetail ('Windows user: ' + $env:USERNAME)
+    Add-InstallerRecordDetail ('Downloaded folder: ' + $downloadRoot)
+    Add-InstallerRecordDetail ('Windows user: ' + $env:USERNAME)
 
     # Check 1: Windows and PowerShell.
     $operatingSystem = [System.Environment]::OSVersion
@@ -166,9 +194,9 @@ try {
             -Hebrew 'תוכנית ההתקנה פועלת רק על חלונות עם `Windows PowerShell 5.1` ומעלה. דבר לא הותקן.' `
             -Details @(('Windows: ' + $operatingSystem.VersionString), ('PowerShell: ' + $shellVersion.ToString()))
     }
-    Write-InstallerMessage -English 'Check 1 of 9, Windows and PowerShell: passed.' -Hebrew 'בדיקה 1 מתוך 9, חלונות ו`PowerShell`: עברה.' -Color 'Green'
-    Write-InstallerDetail ('Windows: ' + $operatingSystem.VersionString)
-    Write-InstallerDetail ('PowerShell: ' + $shellVersion.ToString() + ' ' + $PSVersionTable.PSEdition)
+    Write-InstallerStage -Percent 10 -English 'Check 1 of 9, Windows and PowerShell: passed.' -Hebrew 'בדיקה 1 מתוך 9, חלונות ו`PowerShell`: עברה.'
+    Add-InstallerRecordDetail ('Windows: ' + $operatingSystem.VersionString)
+    Add-InstallerRecordDetail ('PowerShell: ' + $shellVersion.ToString() + ' ' + $PSVersionTable.PSEdition)
 
     # Check 2: MetaTrader 5 found, through the origin.txt of each data folder.
     $terminalRoot = Join-Path $env:APPDATA 'MetaQuotes\Terminal'
@@ -190,31 +218,37 @@ try {
             -Hebrew 'מטא טריידר 5 לא נמצא בחשבון החלונות הזה. תוכנית ההתקנה מאתרת את מטא טריידר 5 דרך תיקיות הנתונים שהוא יוצר בתוך התיקייה שלהלן, ותיקייה כזו קיימת רק אחרי שמטא טריידר 5 נפתח לפחות פעם אחת בחשבון החלונות הזה. התקנה בלבד אינה מספיקה. פתח אותו פעם אחת, סגור אותו, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן, ושום דבר מחוץ לתיקייה שהורדה לא שונה.' `
             -Details @($terminalRoot)
     }
-    Write-InstallerMessage `
+    Write-InstallerStage -Percent 15 `
         -English ('Check 2 of 9, MetaTrader 5 found. Number of terminals on this Windows account: ' + $terminals.Count + '.') `
-        -Hebrew ('בדיקה 2 מתוך 9, מטא טריידר 5 נמצא. מספר הטרמינלים בחשבון החלונות הזה: ' + $terminals.Count + '.') `
-        -Color 'Green'
+        -Hebrew ('בדיקה 2 מתוך 9, מטא טריידר 5 נמצא. מספר הטרמינלים בחשבון החלונות הזה: ' + $terminals.Count + '.')
     for ($terminalIndex = 0; $terminalIndex -lt $terminals.Count; $terminalIndex++) {
-        Write-InstallerDetail ('[' + ($terminalIndex + 1) + '] program folder: ' + $terminals[$terminalIndex].ProgramFolder)
-        Write-InstallerDetail ('    data folder:    ' + $terminals[$terminalIndex].DataFolder)
+        $programLine = '[' + ($terminalIndex + 1) + '] program folder: ' + $terminals[$terminalIndex].ProgramFolder
+        $dataLine = '    data folder:    ' + $terminals[$terminalIndex].DataFolder
+        if ($terminals.Count -gt 1) {
+            Write-InstallerDetail $programLine
+            Write-InstallerDetail $dataLine
+        } else {
+            Add-InstallerRecordDetail $programLine
+            Add-InstallerRecordDetail $dataLine
+        }
     }
 
     # Check 3: the terminal to install into.
     if ($terminals.Count -eq 1) {
         $chosen = $terminals[0]
-        Write-InstallerMessage -English 'Check 3 of 9, terminal chosen: the only one found.' -Hebrew 'בדיקה 3 מתוך 9, נבחר טרמינל: היחיד שנמצא.' -Color 'Green'
+        Write-InstallerStage -Percent 20 -English 'Check 3 of 9, terminal chosen: the only one found.' -Hebrew 'בדיקה 3 מתוך 9, נבחר טרמינל: היחיד שנמצא.'
     } else {
         Write-InstallerMessage `
             -English 'Several terminals were found. Type the number of the terminal to install into, then press Enter.' `
             -Hebrew 'נמצאו כמה טרמינלים. הקלד את המספר של הטרמינל שאליו תתבצע ההתקנה, ולחץ `Enter`.'
         $chosen = $null
         for ($attempt = 1; ($attempt -le 3) -and ($null -eq $chosen); $attempt++) {
-            $answer = Read-Host -Prompt 'Number / מספר'
+            $answer = Read-Host -Prompt 'Number'
             Write-InstallerRecordLine ('    typed: ' + $answer)
             $number = 0
             if ([int]::TryParse(([string]$answer).Trim(), [ref]$number) -and ($number -ge 1) -and ($number -le $terminals.Count)) {
                 $chosen = $terminals[$number - 1]
-                Write-InstallerMessage -English ('Check 3 of 9, terminal chosen: number ' + $number + '.') -Hebrew ('בדיקה 3 מתוך 9, נבחר טרמינל: מספר ' + $number + '.') -Color 'Green'
+                Write-InstallerStage -Percent 20 -English ('Check 3 of 9, terminal chosen: number ' + $number + '.') -Hebrew ('בדיקה 3 מתוך 9, נבחר טרמינל: מספר ' + $number + '.')
             } else {
                 Write-InstallerMessage -English 'That is not one of the listed numbers.' -Hebrew 'זה אינו אחד מהמספרים שברשימה.'
             }
@@ -243,7 +277,7 @@ try {
             -Hebrew 'תיקיית התוכנה שהקובץ `origin.txt` של הטרמינל הזה נוקב בה אינה מכילה את `terminal64.exe`. ייתכן שהטרמינל הועבר או הוסר. פתח את הטרמינל פעם אחת מהמקום שבו הוא נמצא עכשיו, או בחר טרמינל אחר, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן.' `
             -Details @($terminalProgram)
     }
-    Write-InstallerMessage -English 'Check 4 of 9, data folder and program folder: passed.' -Hebrew 'בדיקה 4 מתוך 9, תיקיית הנתונים ותיקיית התוכנה: עברה.' -Color 'Green'
+    Write-InstallerStage -Percent 25 -English 'Check 4 of 9, data folder and program folder: passed.' -Hebrew 'בדיקה 4 מתוך 9, תיקיית הנתונים ותיקיית התוכנה: עברה.'
 
     # Check 5: the chosen terminal is not running.
     $runningCount = Get-RunningTerminalCount -ProgramFolder $programFolder
@@ -253,7 +287,7 @@ try {
             -Hebrew 'מטא טריידר 5 או עורך ה`MetaEditor` שלו פועלים מתוך תיקיית התוכנה שנבחרה. סגור את הטרמינל ואת `MetaEditor`, והפעל שוב את תוכנית ההתקנה. תוכנית ההתקנה לעולם אינה סוגרת אותם בשבילך. דבר לא הותקן.' `
             -Details @($programFolder)
     }
-    Write-InstallerMessage -English 'Check 5 of 9, terminal closed: passed.' -Hebrew 'בדיקה 5 מתוך 9, הטרמינל סגור: עברה.' -Color 'Green'
+    Write-InstallerStage -Percent 30 -English 'Check 5 of 9, terminal closed: passed.' -Hebrew 'בדיקה 5 מתוך 9, הטרמינל סגור: עברה.'
 
     # Check 6: an existing install, and anything unknown at the target.
     $targetFolder = Join-Path $expertsFolder 'AccountGuardian'
@@ -281,14 +315,13 @@ try {
     if ($isUpgrade) {
         $existingFile = Get-Item -LiteralPath $targetFile
         $existingHash = Get-FileHash -Algorithm MD5 -LiteralPath $targetFile
-        Write-InstallerMessage `
-            -English 'Check 6 of 9, existing install: AccountGuardian.ex5 is already installed and will be replaced by the new build. This is an upgrade.' `
-            -Hebrew 'בדיקה 6 מתוך 9, התקנה קיימת: הקובץ `AccountGuardian.ex5` כבר מותקן ויוחלף בבנייה החדשה. זהו שדרוג.' `
-            -Color 'Green'
-        Write-InstallerDetail ('Installed file: ' + $targetFile)
-        Write-InstallerDetail ('Installed md5: ' + $existingHash.Hash + ', ' + $existingFile.Length + ' bytes, written ' + $existingFile.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
+        Write-InstallerStage -Percent 35 `
+            -English 'Check 6 of 9, existing install: AccountGuardian.ex5 is installed and will be replaced. This is an upgrade.' `
+            -Hebrew 'בדיקה 6 מתוך 9, התקנה קיימת: הקובץ `AccountGuardian.ex5` כבר מותקן ויוחלף בבנייה החדשה. זהו שדרוג.'
+        Add-InstallerRecordDetail ('Installed file: ' + $targetFile)
+        Add-InstallerRecordDetail ('Installed md5: ' + $existingHash.Hash + ', ' + $existingFile.Length + ' bytes, written ' + $existingFile.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
     } else {
-        Write-InstallerMessage -English 'Check 6 of 9, existing install: none. This is a fresh install.' -Hebrew 'בדיקה 6 מתוך 9, התקנה קיימת: אין. זו התקנה חדשה.' -Color 'Green'
+        Write-InstallerStage -Percent 35 -English 'Check 6 of 9, existing install: none. This is a fresh install.' -Hebrew 'בדיקה 6 מתוך 9, התקנה קיימת: אין. זו התקנה חדשה.'
     }
     $earlierTraces = @()
     foreach ($tracePath in @((Join-Path $dataFolder 'MQL5\Include\AccountGuardian'), (Join-Path $dataFolder 'MQL5\Scripts\AccountGuardian'), (Join-Path $expertsFolder 'AccountGuardian.mq5'), (Join-Path $expertsFolder 'AccountGuardian.ex5'))) {
@@ -324,7 +357,7 @@ try {
     foreach ($spacePath in @($dataFolder, $downloadRoot)) {
         $driveRoot = [System.IO.Path]::GetPathRoot($spacePath)
         $driveInfo = New-Object System.IO.DriveInfo($driveRoot)
-        Write-InstallerDetail ('Free space on ' + $driveRoot + ': ' + [math]::Floor($driveInfo.AvailableFreeSpace / 1MB) + ' MB')
+        Add-InstallerRecordDetail ('Free space on ' + $driveRoot + ': ' + [math]::Floor($driveInfo.AvailableFreeSpace / 1MB) + ' MB')
         if ($driveInfo.AvailableFreeSpace -lt $minimumFreeBytes) {
             Exit-InstallerWithStop `
                 -English 'There is not enough free disk space on the drive below. At least 20 MB are needed. Nothing was installed.' `
@@ -332,7 +365,7 @@ try {
                 -Details @($driveRoot)
         }
     }
-    Write-InstallerMessage -English 'Check 7 of 9, write access and free space: passed.' -Hebrew 'בדיקה 7 מתוך 9, הרשאת כתיבה ומקום פנוי: עברה.' -Color 'Green'
+    Write-InstallerStage -Percent 40 -English 'Check 7 of 9, write access and free space: passed.' -Hebrew 'בדיקה 7 מתוך 9, הרשאת כתיבה ומקום פנוי: עברה.'
 
     # Check 8: MetaEditor in the program folder.
     $metaEditor = Join-Path $programFolder 'metaeditor64.exe'
@@ -342,8 +375,8 @@ try {
             -Hebrew 'העורך `MetaEditor`, הקובץ `metaeditor64.exe`, לא נמצא בתיקיית התוכנה של הטרמינל. תוכנית ההתקנה מהדרת את היועץ בעזרת `MetaEditor` של הטרמינל עצמו. תקן או התקן מחדש את מטא טריידר 5, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן.' `
             -Details @($metaEditor)
     }
-    Write-InstallerMessage -English 'Check 8 of 9, MetaEditor found: passed.' -Hebrew 'בדיקה 8 מתוך 9, העורך `MetaEditor` נמצא: עברה.' -Color 'Green'
-    Write-InstallerDetail ('MetaEditor: ' + $metaEditor)
+    Write-InstallerStage -Percent 45 -English 'Check 8 of 9, MetaEditor found: passed.' -Hebrew 'בדיקה 8 מתוך 9, העורך `MetaEditor` נמצא: עברה.'
+    Add-InstallerRecordDetail ('MetaEditor: ' + $metaEditor)
 
     # Check 9: the downloaded files against installer\manifest.txt.
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf) -or -not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
@@ -390,17 +423,17 @@ try {
             -Hebrew 'הקבצים שהורדו אינם תואמים לטביעות הבדיקה שנשלחו איתם. ייתכן שההורדה פגומה או שונתה. הורד שוב את קובץ ה`ZIP`, חלץ את כולו, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן.' `
             -Details $manifestFailures
     }
-    Write-InstallerMessage `
+    Write-InstallerStage -Percent 50 `
         -English ('Check 9 of 9, downloaded files match their checksums: passed, ' + $manifestEntries.Count + ' files.') `
-        -Hebrew ('בדיקה 9 מתוך 9, הקבצים שהורדו תואמים לטביעות הבדיקה שלהם: עברה. מספר הקבצים: ' + $manifestEntries.Count + '.') `
-        -Color 'Green'
+        -Hebrew ('בדיקה 9 מתוך 9, הקבצים שהורדו תואמים לטביעות הבדיקה שלהם: עברה. מספר הקבצים: ' + $manifestEntries.Count + '.')
 
     # Compile in the downloaded folder. The process exit code is recorded and
     # not used: the Result line of the log and a fresh ex5 are what count.
+    Write-Progress -Activity $progressActivity -Status 'Compile: MetaEditor is compiling the advisor' -PercentComplete 50
     Write-InstallerMessage -English 'Compiling the advisor with MetaEditor. This takes a few seconds.' -Hebrew 'מהדר את היועץ בעזרת `MetaEditor`. זה לוקח שניות ספורות.'
     $compileStart = Get-Date
     $compileArguments = '/compile:"' + $sourceFile + '" /include:"' + $includeRoot + '" /log:"' + $compileLogPath + '"'
-    Write-InstallerDetail ('Command: "' + $metaEditor + '" ' + $compileArguments)
+    Add-InstallerRecordDetail ('Command: "' + $metaEditor + '" ' + $compileArguments)
     $compileProcess = Start-Process -FilePath $metaEditor -ArgumentList $compileArguments -PassThru -WindowStyle Hidden
     $processHandle = $compileProcess.Handle
     if (-not $compileProcess.WaitForExit($compileTimeoutMilliseconds)) {
@@ -408,7 +441,7 @@ try {
             -English 'MetaEditor did not finish within five minutes. Close MetaEditor if it is open, then run the installer again. Nothing was copied into the terminal.' `
             -Hebrew 'העורך `MetaEditor` לא סיים בתוך חמש דקות. סגור את `MetaEditor` אם הוא פתוח, והפעל שוב את תוכנית ההתקנה. דבר לא הועתק אל הטרמינל.'
     }
-    Write-InstallerDetail ('MetaEditor exit code, recorded and not used: ' + $compileProcess.ExitCode)
+    Add-InstallerRecordDetail ('MetaEditor exit code, recorded and not used: ' + $compileProcess.ExitCode)
     $compileLogItem = $null
     if (Test-Path -LiteralPath $compileLogPath -PathType Leaf) { $compileLogItem = Get-Item -LiteralPath $compileLogPath }
     if (($null -eq $compileLogItem) -or ($compileLogItem.LastWriteTime -lt $compileStart.AddSeconds(-2))) {
@@ -434,7 +467,7 @@ try {
     $null = $resultLine -match 'Result:\s*(\d+)\s+errors?,\s*(\d+)\s+warnings?'
     $errorCount = [int]$Matches[1]
     $warningCount = [int]$Matches[2]
-    Write-InstallerDetail $resultLine
+    Add-InstallerRecordDetail $resultLine
     if ($errorCount -gt 0) {
         $errorLines = @()
         foreach ($compileLine in $compileLines) {
@@ -460,9 +493,9 @@ try {
             -Details @($compiledFile)
     }
     $builtHash = Get-FileHash -Algorithm MD5 -LiteralPath $compiledFile
-    Write-InstallerMessage -English 'Compile finished with no errors.' -Hebrew 'ההידור הסתיים ללא שגיאות.' -Color 'Green'
-    Write-InstallerDetail ('Compiled file: ' + $compiledFile)
-    Write-InstallerDetail ('Compiled md5: ' + $builtHash.Hash + ', ' + $compiledItem.Length + ' bytes, written ' + $compiledItem.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
+    Write-InstallerStage -Percent 90 -English 'Compile: finished with no errors.' -Hebrew 'הידור: הסתיים ללא שגיאות.'
+    Add-InstallerRecordDetail ('Compiled file: ' + $compiledFile)
+    Add-InstallerRecordDetail ('Compiled md5: ' + $builtHash.Hash + ', ' + $compiledItem.Length + ' bytes, written ' + $compiledItem.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
 
     # The one write into the data folder, after one more running check.
     if ((Get-RunningTerminalCount -ProgramFolder $programFolder) -gt 0) {
@@ -473,7 +506,7 @@ try {
     }
     if (-not (Test-Path -LiteralPath $targetFolder -PathType Container)) {
         $null = New-Item -ItemType Directory -Path $targetFolder
-        Write-InstallerDetail ('Created folder: ' + $targetFolder)
+        Add-InstallerRecordDetail ('Created folder: ' + $targetFolder)
     }
     Copy-Item -LiteralPath $compiledFile -Destination $targetFile -Force
     $landedHash = Get-FileHash -Algorithm MD5 -LiteralPath $targetFile
@@ -484,9 +517,16 @@ try {
             -Hebrew 'הקובץ שהועתק אינו תואם לקובץ שהודר. הפעל שוב את תוכנית ההתקנה.' `
             -Details @(('Landed md5: ' + $landedHash.Hash), ('Compiled md5: ' + $builtHash.Hash))
     }
-    Write-InstallerMessage -English 'Copied the compiled advisor into the terminal. The md5 of the copied file:' -Hebrew 'היועץ המהודר הועתק אל הטרמינל. טביעת ה`md5` של הקובץ שהועתק:' -Color 'Green'
-    Write-InstallerDetail ('Landed file: ' + $targetFile)
-    Write-InstallerDetail ('Landed md5: ' + $landedHash.Hash + ', ' + $landedItem.Length + ' bytes')
+    Write-InstallerStage -Percent 95 `
+        -English 'Copy: the compiled advisor was copied into the terminal, and its md5 matches the compiled file.' `
+        -Hebrew 'העתקה: היועץ המהודר הועתק אל הטרמינל, וטביעת ה`md5` שלו תואמת לזו של הקובץ שהודר.'
+    Add-InstallerRecordDetail ('Landed file: ' + $targetFile)
+    Add-InstallerRecordDetail ('Landed md5: ' + $landedHash.Hash + ', ' + $landedItem.Length + ' bytes')
+    Write-InstallerStage -Percent 100 `
+        -English 'Done: the installer has finished. It changed one file in the terminal''s data folder:' `
+        -Hebrew 'סיום: תוכנית ההתקנה הסתיימה. היא שינתה קובץ אחד בתיקיית הנתונים של הטרמינל:'
+    Write-InstallerDetail $targetFile
+    Complete-InstallerProgress
 
     # The attach is by hand. The steps, in order.
     Write-InstallerMessage -English 'Now attach the advisor by hand, in this order:' -Hebrew 'עכשיו חבר את היועץ ידנית, בסדר הזה:' -Color 'Cyan'
@@ -506,11 +546,10 @@ try {
         -English 'WARNING, THE FIRST ATTACH: the advisor measures the whole day from 01:00 server time, trades made before it was attached included. If the account is already past today''s limit, the advisor locks at once, and every position on the account is closed and every pending order deleted, other advisors'' and the phone''s included. Try it on a demo account first.' `
         -Hebrew 'אזהרה, החיבור הראשון: היועץ מודד את היום כולו מהשעה 01:00 בשעון השרת, כולל עסקאות שנעשו לפני שחובר. אם החשבון כבר עבר היום את המגבלה, היועץ ננעל מיד, וכל פוזיציה בחשבון נסגרת וכל פקודה ממתינה נמחקת, כולל של יועצים אחרים ושל הטלפון. נסה אותו קודם על חשבון דמו.' `
         -Color 'Yellow'
-    Write-InstallerMessage -English 'The installer has finished. It changed one file in the terminal''s data folder:' -Hebrew 'תוכנית ההתקנה הסתיימה. היא שינתה קובץ אחד בתיקיית הנתונים של הטרמינל:' -Color 'Cyan'
-    Write-InstallerDetail $targetFile
     Write-InstallerRecordLine ('Finished at ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + ', exit code 0.')
     exit 0
 } catch {
+    Complete-InstallerProgress
     Write-InstallerMessage `
         -English 'The installer stopped on an unexpected error, shown below. Every step this record lists as done was done; nothing after it was.' `
         -Hebrew 'תוכנית ההתקנה נעצרה בשגיאה לא צפויה, המוצגת להלן. כל שלב שהרישום הזה מציין כבוצע אכן בוצע; דבר אחריו לא בוצע.' `

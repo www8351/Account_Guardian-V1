@@ -126,7 +126,7 @@ MetaTrader 5 must have been **opened at least once** on this Windows account, no
 
 ### What the installer checks, before it installs anything
 
-Nine checks, in this order. A failed check stops the installer with a message in English and in Hebrew, and nothing is installed.
+Nine checks, in this order. A failed check stops the installer with a message that names the problem and what to do, and nothing is installed.
 
 1. Windows, and Windows PowerShell 5.1 or later.
 2. MetaTrader 5 found for this Windows account.
@@ -138,7 +138,7 @@ Nine checks, in this order. A failed check stops the installer with a message in
 8. `metaeditor64.exe` in the terminal's program folder.
 9. Every downloaded file against its md5 checksum in `installer\manifest.txt`.
 
-Then it compiles `MQL5\Experts\AccountGuardian\AccountGuardian.mq5` inside the downloaded folder with the terminal's own MetaEditor, requires `Result: 0 errors` in the compile log and a freshly written `AccountGuardian.ex5`, copies that one file into `<data folder>\MQL5\Experts\AccountGuardian\`, and prints its md5. Every step, with every path and the compile `Result` line, is appended to `installer\install-log.txt` beside the installer. The compile log itself is `installer\compile.log`.
+Then it compiles `MQL5\Experts\AccountGuardian\AccountGuardian.mq5` inside the downloaded folder with the terminal's own MetaEditor, requires `Result: 0 errors` in the compile log and a freshly written `AccountGuardian.ex5`, copies that one file into `<data folder>\MQL5\Experts\AccountGuardian\`, and compares the md5 of the copied file with the compiled one. The installer's window shows English only: one line per stage, each with the stage's percentage, and a progress bar. Every step, with every path, the md5 values and the compile `Result` line, is appended to `installer\install-log.txt` beside the installer, every message in English and then in Hebrew. The compile log itself is `installer\compile.log`.
 
 ### What the installer never does
 
@@ -463,7 +463,7 @@ flowchart TD
 
 ### מה תוכנית ההתקנה בודקת, לפני שהיא מתקינה משהו
 
-תשע בדיקות, בסדר הזה. בדיקה שנכשלת עוצרת את תוכנית ההתקנה עם הודעה באנגלית ובעברית, ודבר אינו מותקן.
+תשע בדיקות, בסדר הזה. בדיקה שנכשלת עוצרת את תוכנית ההתקנה עם הודעה שמציינת את הבעיה ומה לעשות, ודבר אינו מותקן.
 
 1. חלונות, ו`Windows PowerShell 5.1` ומעלה.
 2. מטא טריידר 5 נמצא בחשבון החלונות הזה.
@@ -475,7 +475,7 @@ flowchart TD
 8. הקובץ `metaeditor64.exe` בתיקיית התוכנה של הטרמינל.
 9. כל קובץ שהורד מול טביעת ה`md5` שלו בקובץ `installer\manifest.txt`.
 
-אחר כך היא מהדרת את `MQL5\Experts\AccountGuardian\AccountGuardian.mq5` בתוך התיקייה שהורדה בעזרת `MetaEditor` של הטרמינל עצמו, דורשת את השורה `Result: 0 errors` ביומן ההידור וקובץ `AccountGuardian.ex5` שנכתב זה עתה, מעתיקה את הקובץ האחד הזה אל `<data folder>\MQL5\Experts\AccountGuardian\`, ומדפיסה את טביעת ה`md5` שלו. כל שלב, עם כל נתיב ועם שורת ה`Result` של ההידור, נוסף לקובץ `installer\install-log.txt` שליד תוכנית ההתקנה. יומן ההידור עצמו הוא `installer\compile.log`.
+אחר כך היא מהדרת את `MQL5\Experts\AccountGuardian\AccountGuardian.mq5` בתוך התיקייה שהורדה בעזרת `MetaEditor` של הטרמינל עצמו, דורשת את השורה `Result: 0 errors` ביומן ההידור וקובץ `AccountGuardian.ex5` שנכתב זה עתה, מעתיקה את הקובץ האחד הזה אל `<data folder>\MQL5\Experts\AccountGuardian\`, ומשווה את טביעת ה`md5` של הקובץ שהועתק לזו של הקובץ שהודר. החלון של תוכנית ההתקנה מציג אנגלית בלבד: שורה אחת לכל שלב, עם האחוז של השלב, ופס התקדמות. כל שלב, עם כל נתיב, עם טביעות ה`md5` ועם שורת ה`Result` של ההידור, נוסף לקובץ `installer\install-log.txt` שליד תוכנית ההתקנה, וכל הודעה בו כתובה באנגלית ואחר כך בעברית. יומן ההידור עצמו הוא `installer\compile.log`.
 
 ### מה תוכנית ההתקנה לעולם אינה עושה
 
