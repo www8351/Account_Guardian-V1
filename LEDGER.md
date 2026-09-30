@@ -2582,3 +2582,7 @@ Status: FINAL
 Decision: (owner ruling 2026-09-29, README language) README.md is written in Hebrew only, product voice, short, for a reader who is not a developer; supersedes the bilingual README clause of the documentation rulings for this repository only; the secrecy rule and the human-author rule are unchanged.
 Reason: owner's decision, recorded as given.
 Status: FINAL
+
+Decision: (owner ruling 2026-09-30, export gap) (a): scripts/export-release.ps1 exports docs/media/ with only its *.svg and *.gif files, so the release README shows its images; nothing else under docs/ is ever exported; the fix rides on branch worktree-readme-hebrew-20260930, which carries the installer build, and the installer acceptance runs from this branch's tip; one merge to main after that acceptance.
+Reason: owner's ruling, recorded as given.
+Status: FINAL
