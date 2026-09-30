@@ -5,7 +5,8 @@
 # It carries only these, taken byte for byte from git at the revision:
 #   every file named in installer/manifest.txt (the shipped MQL5 sources,
 #   installer/install.cmd and installer/install.ps1), installer/manifest.txt
-#   itself, README.md, LICENSE and .gitattributes;
+#   itself, README.md, LICENSE and .gitattributes, and the *.svg and *.gif
+#   files of docs/media, if any, so the README shows its images;
 # and it writes a .gitignore for the release repository. Nothing else from
 # this repository is exported.
 #
@@ -108,6 +109,12 @@ $exportPaths += @('installer/manifest.txt', 'README.md', 'LICENSE', '.gitattribu
 foreach ($relativePath in $exportPaths) {
     $blobBytes = Invoke-GitCapture -ArgumentText ('cat-file blob "' + $commitHash + ':' + $relativePath + '"')
     Write-ExportedFile -RelativePath $relativePath -Bytes $blobBytes
+}
+$mediaListBytes = Invoke-GitCapture -ArgumentText ('ls-tree -r --name-only "' + $commitHash + '" -- docs/media')
+foreach ($mediaPath in ([System.Text.Encoding]::UTF8.GetString($mediaListBytes) -split "`r?`n")) {
+    if ($mediaPath -notmatch '^docs/media/[^/]+\.(svg|gif)$') { continue }
+    $mediaBytes = Invoke-GitCapture -ArgumentText ('cat-file blob "' + $commitHash + ':' + $mediaPath + '"')
+    Write-ExportedFile -RelativePath $mediaPath -Bytes $mediaBytes
 }
 $ignoreText = "# Build output and the installer's own run files`n*.ex5`ninstaller/install-log.txt`ninstaller/compile.log`n"
 Write-ExportedFile -RelativePath '.gitignore' -Bytes ([System.Text.Encoding]::ASCII.GetBytes($ignoreText))
