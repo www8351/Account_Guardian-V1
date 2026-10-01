@@ -622,8 +622,10 @@ void AgSweepPass(const string origin)
       g_ag_sweep_tickets[idx].next_open    = next_open;
 
       //--- one journal line per attempt (SPEC 6), attempt is the count
-      //--- including this one for the retry class
-      int attempt_no = g_ag_sweep_tickets[idx].attempts + ((cls == AG_RC_RETRY && !partial) ? 1 : 0);
+      //--- including this one for the retry and placed classes, the same
+      //--- count the hard stop reads after the increment below
+      int attempt_no = g_ag_sweep_tickets[idx].attempts
+                       + (((cls == AG_RC_RETRY || cls == AG_RC_PLACED) && !partial) ? 1 : 0);
       if(attempt_no == 0)
          attempt_no = 1;
       if(is_order)
