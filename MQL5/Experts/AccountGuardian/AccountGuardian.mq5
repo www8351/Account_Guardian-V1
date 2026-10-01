@@ -795,6 +795,10 @@ void AgEvaluateActive()
      {
       g_ag_degraded          = true;
       g_ag_resyncing         = true;   // Q10 NEW RULING 2026-08-09: reconnect must resync
+      //--- the RESYNC gate counts fresh polls from the reconnect, the same
+      //--- reset the lock expiry path makes before it enters SYNCING
+      g_ag_stable_polls       = 0;
+      g_ag_last_history_total = -1;
       g_ag_dynamic_waiting_on = "DEGRADED: disconnected, no breach decisions";
       return;
      }
