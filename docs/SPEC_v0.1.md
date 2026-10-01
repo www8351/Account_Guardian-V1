@@ -39,7 +39,7 @@ Time rule (Q7, FINAL): every expiry and anchor decision uses TimeCurrent exclusi
 ## 2. State machine
 
 States: SYNCING, ACTIVE, LOCKED, SAFE_HALT.
-lock_reason in {DAILY_BREACH, CORRUPT_STATE}. Sweeping is a behavior of LOCKED, not a state. CANNOT_TRADE is a tracked and logged sub-condition inside LOCKED (section 4.4), not a state.
+lock_reason in {DAILY_BREACH, CORRUPT_STATE, SWEEP_WITNESS}. Sweeping is a behavior of LOCKED, not a state. CANNOT_TRADE is a tracked and logged sub-condition inside LOCKED (section 4.4), not a state.
 
 Transitions, every one logged (section 6):
 
