@@ -18,10 +18,9 @@ $AgFiles  = "$DataDir\MQL5\Files\AccountGuardian"
 $Tmp      = "$env:USERPROFILE\.claude\jobs\4afd0c2a\tmp"
 
 function Stop-Terminal {
-    param([switch]$Hard)
     $p = Get-Process terminal64 -ErrorAction SilentlyContinue
     if ($p) {
-        if ($Hard) { $p | Stop-Process -Force } else { $p | Stop-Process -Force }
+        $p | Stop-Process -Force
         Start-Sleep -Seconds 2
     }
 }
