@@ -2,7 +2,7 @@
 
 Date of the request: 2026-10-19. Written: 2026-10-20. Plan only. This document authorizes no code, no build, no deploy and no change under any MetaTrader terminal data folder. Every TG item is OPEN except TG-6, which carries the owner's answer given in chat on 2026-10-20 and recorded as the owner's statement, not as a ruling.
 
-Branch `plan/telegram-alerts`, cut from main at `31ac695` ("ledger: review fix build accepted by owner attestation"). LEDGER.md was read in full before any other step, 2824 lines, md5 `9A04F39AD5DA11FC4FF2934E250D7E56`, equal in the main checkout and in this branch's worktree.
+Branch `plan/telegram-alerts`, cut from main at `31ac695` ("ledger: review fix build accepted by owner attestation"). LEDGER.md was read in full before any other step, 2824 lines, md5 `9A04F39AD5DA11FC4FF2934E250D7E56`, equal in the main checkout and in this branch's worktree. Every `LEDGER.md:<n>` citation in this document is a line number as at `31ac695`.
 
 ## 1. The request and the owner's statements
 
