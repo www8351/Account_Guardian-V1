@@ -62,7 +62,10 @@ def main():
     check("no Hebrew outside string literals", heb(outside) == 0, "count %d" % heb(outside))
     src = src.replace("\r\n", "\n")
 
-    # ---- the drafts of item 13 and the command of item 5
+    # ---- the drafts of item 13 and the command of item 5. A draft runs from
+    # ---- its label to the next one, the blank lines before the next label not
+    # ---- part of it: a message of the format F1 to F11 carries blank lines
+    # ---- between its groups (format pass B3).
     a = mq.read_text(ADD).split("\n")
     s = a.index("```text", a.index("## 13. Hebrew drafts"))
     e = a.index("```", s + 1)
@@ -72,10 +75,11 @@ def main():
             cur = line[4:-4]
             drafts[cur] = []
             order.append(cur)
-        elif line == "":
-            cur = None
         elif cur is not None:
             drafts[cur].append(line)
+    for label in order:
+        while drafts[label] and drafts[label][-1] == "":
+            drafts[label].pop()
     c0 = a.index("```text", a.index("## 5. The command"))
     command = "\n".join(a[c0 + 1:a.index("```", c0 + 1)])
 
@@ -98,6 +102,8 @@ def main():
         by_md5.setdefault(h, (label, None))
         all_md5.setdefault(h, []).append((label, None))
         for n, line in enumerate(drafts[label]):
+            if line == "":
+                continue
             h = hashlib.md5(line.encode("utf-8")).hexdigest().upper()
             by_md5.setdefault(h, (label, n))
             all_md5.setdefault(h, []).append((label, n))
@@ -161,7 +167,7 @@ def main():
         if "all" in got:
             continue
         got = got | {n for n, line in enumerate(drafts[label]) if line in rendered_lines}
-        for n in [n for n in range(len(drafts[label])) if n not in got]:
+        for n in [n for n in range(len(drafts[label])) if n not in got and drafts[label][n] != ""]:
             out.append("     %s [line %d] %d Hebrew characters" % (label, n, heb(drafts[label][n])))
     never = [f for f in text_functions if f not in ev.called]
     out.append("functions of AlertText.mqh no case calls: %s" % (never if never else "none"))
