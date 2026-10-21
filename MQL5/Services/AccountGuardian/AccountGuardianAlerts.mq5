@@ -264,6 +264,8 @@ void AgSvcAdvance(const long seq)
 void AgSvcEnqueue(const string text, const string cls, const long seq, const long ack,
                   const long event_local, const long not_kept, const long held_back)
   {
+   if(!g_svc_tg_on)
+      return;   // Telegram off: nothing waits, nothing piles up in memory
    ArrayResize(g_out_text, g_out_count + 1);
    ArrayResize(g_out_cls, g_out_count + 1);
    ArrayResize(g_out_seq, g_out_count + 1);
@@ -992,8 +994,14 @@ void AgSvcLoop()
    double hb = 0.0, id = 0.0;
    int live = AgSvcReadLive(hb, id, now);   // the mutex heartbeat first, then the queue
    AgSvcReadQueue();
-   AgSvcReadRefusal();
-   AgSvcConvert(now);
+   //--- with Telegram off nothing is converted, reported or acknowledged, so
+   //--- the guardian's queue keeps its own bound and a later start with
+   //--- Telegram on still finds what it holds
+   if(g_svc_tg_on)
+     {
+      AgSvcReadRefusal();
+      AgSvcConvert(now);
+     }
    AgSvcLiveness(live, hb, id, now);
    AgSvcReportRefusal();
    AgSvcStatusSlot(now);
