@@ -9,14 +9,14 @@
 //| script, which renders each draft with its example values and     |
 //| compares the UTF-8 bytes (TG-S8). No trade calls (SPEC 1).       |
 //|                                                                  |
-//| THE FORMAT (the owner's ruling F1 to F11 of 2026-10-21): line 1  |
-//| the headline; then, one blank line between the groups, the       |
-//| account and the time; the money; the limit and the day result;  |
-//| the state and the event lines; the closing lines; the build line |
-//| last, in the messages F9 names. Every field line starts with its |
-//| emoji, one emoji per field everywhere. Lines end "\n". The       |
-//| renderers return plain text: the bold headline of F10 is applied |
-//| by the service at send time, through AgTgHtmlBold.               |
+//| THE FORMAT (F1 to F11 of 2026-10-21): line 1 the headline; then, |
+//| one blank line between the groups, the account and the time; the |
+//| money; the limit and the day result; the state and the event     |
+//| lines; the closing lines; the build line last, in the messages   |
+//| F9 names. Every field line starts with its emoji, one emoji per  |
+//| field everywhere. Lines end "\n". The renderers return plain     |
+//| text: the bold headline of F10 is applied by the service at send |
+//| time, through AgTgHtmlBold.                                      |
 //|                                                                  |
 //| THE HEBREW SINGULAR (build requirement of 2026-10-21): a count   |
 //| written with its noun reads "<n> <plural>" and, at 1, the        |
