@@ -165,7 +165,9 @@ string AgSvcBuildLineOf(const string cls) { return AgTgCarriesBuild(cls) ? AgSvc
 //--- F4: the sign of the account currency, read when a message is rendered
 string AgSvcCurrency() { return AgTgCurrencySign(AccountInfoString(ACCOUNT_CURRENCY)); }
 
-//--- the common lines of an event, from the event's own figures
+//--- the common lines of an event, from the event's own figures; the open
+//--- positions (R4) and the currency sign (R3) are the service's own reads,
+//--- taken as the message is rendered
 void AgSvcCommonFromEvent(const AgTgEvent &e, AgTgCommon &c)
   {
    c.login    = g_svc_login;
@@ -176,14 +178,19 @@ void AgSvcCommonFromEvent(const AgTgEvent &e, AgTgCommon &c)
    c.limit    = e.limit;
    c.pnl_mode = e.pnl_mode;
    c.state    = e.state;
+   c.open_pos = PositionsTotal();   // positions only, pending orders not counted
+   c.cur      = AgSvcCurrency();
   }
 
 //--- the common lines of a service message: the guardian's last figures when
-//--- it runs, else the service's own read, the day's result not computed
+//--- it runs, else the service's own read, the day's result not computed; the
+//--- open positions and the currency sign always the service's own reads
 void AgSvcCommonNow(AgTgCommon &c, const bool guardian_runs)
   {
    c.login    = g_svc_login;
    c.server_t = TimeCurrent();
+   c.open_pos = PositionsTotal();   // positions only, pending orders not counted
+   c.cur      = AgSvcCurrency();
    if(guardian_runs && g_svc_have_snap)
      {
       c.balance  = g_svc_snap.balance;
