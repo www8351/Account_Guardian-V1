@@ -478,7 +478,7 @@ long AgTgStatusSlot(const long local_t)
 
 //+------------------------------------------------------------------+
 //| UTF-8, plan 6.5.1: StringToCharArray with CP_UTF8, the trailing  |
-//| zero dropped, into the char array WebRequest takes; and back.    |
+//| zero dropped, into the char array a request body takes; and back.|
 //+------------------------------------------------------------------+
 int AgTgUtf8Bytes(const string s, char &out[])
   {
