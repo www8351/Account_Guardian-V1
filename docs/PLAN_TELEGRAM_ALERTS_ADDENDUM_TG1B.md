@@ -2,6 +2,8 @@
 
 Written 2026-10-21 on branch `build/telegram-alerts`, cut from `plan/telegram-alerts` at `00c7237`. It is the design for the architecture the owner ruled on 2026-10-20, and it sits beside `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md`, changing that plan only where it says so.
 
+RULED 2026-10-21, after this document was written: TG-14 (A), TG-15 (A), TG-16 (A), the SPEC changes including item 8.1, and a trade disallowed state in SYNCING or SAFE_HALT (A); the build of that date changed item 13 as item 13 states.
+
 UNRULED 2026-10-21. Everything below is design content written for the owner's review, except where it quotes an owner ruling, and it is authority for nothing until the owner rules on it. Three ruling items are OPEN: TG-14 (item 5), TG-15 (item 6) and TG-16 (item 11). This document authorizes no code, no compile, no build and no deploy. Part B starts only on the owner's line "PART B AUTHORIZED".
 
 Citations. `LEDGER.md:<n> as at <commit>` is the line at that commit: FINAL entries that predate this work as at `31ac695`, the plan's own convention, and the rulings of 2026-10-20 as at `ba8ddee`, the commit that recorded them. `EA:<n>`, `Persist.mqh:<n>`, `Sweep.mqh:<n>`, `Pnl.mqh:<n>` and `SPEC:<n>` are lines of `MQL5/Experts/AccountGuardian/AccountGuardian.mq5`, of the includes and of `docs/SPEC_v0.1.md` as at `00c7237`, where every file under `MQL5/` and the SPEC equal `31ac695`. "Plan <n>" is a section of the plan.
@@ -422,7 +424,7 @@ Plan rows under TG-1 (B): TG-S1 becomes four compiles; TG-S2 and TG-S3 stand; TG
 
 ## 13. Hebrew drafts
 
-The block below carries every draft of plan 5 unchanged, then the new ones. The format, the example values and the field map are plan 5's. Its `===` lines are English labels for the owner and are never sent.
+The block below carries every draft of plan 5, then the new ones, then, under labels that begin `BUILD:`, the drafts the build of 2026-10-21 adds. The format, the example values and the field map are plan 5's. Its `===` lines are English labels for the owner and are never sent. The build changed the carried and the new drafts in four ways, and each rendered message equals its draft here byte for byte (TG-S8): a count of 1 takes the Hebrew singular with the word for one, and a count shown as a field value stands under a label of the form "number of the ...", the form the S11 draft already used; a day result that prints 0.00 reads as a loss of 0.00, so S1, S1 restarted and the ACTIVE status read so; and S8 locked again and S17 carry the locked wording, the guardian being LOCKED and the figures the lock's.
 
 ```text
 === S1 start ===
@@ -431,7 +433,7 @@ The block below carries every draft of plan 5 unchanged, then the new ones. The 
 שעת שרת: 2026.10.19 09:00:03
 יתרה: 2172.06
 הון: 2172.06
-רווח היום: 0.00 מול מגבלת הפסד של 126.21
+הפסד היום: 0.00 מול מגבלה של 126.21
 מצב השומר: פעיל
 מגבלה באחוזים: 5.50 אחוז מהיתרה בתחילת היום
 מגבלה בסכום קבוע: 200
@@ -445,7 +447,7 @@ build=TG
 שעת שרת: 2026.10.19 11:42:10
 יתרה: 2172.06
 הון: 2172.06
-רווח היום: 0.00 מול מגבלת הפסד של 126.21
+הפסד היום: 0.00 מול מגבלה של 126.21
 מצב השומר: פעיל
 סיבת ההפעלה מחדש: הגדרות השומר שונו
 המגבלה שבתוקף כעת: 126.21
@@ -584,8 +586,8 @@ build=TG
 מצב השומר: נעול
 נסגרו: 3 פוזיציות
 נמחקו: 2 פקודות ממתינות
-ניסיונות שליחה: 5
-כשלים: 0
+מספר ניסיונות השליחה: 5
+מספר הכשלים: 0
 משך: 7 שניות
 build=TG
 
@@ -658,7 +660,7 @@ build=TG
 שעת שרת: 2026.08.26 01:00:10
 יתרה: 2027.98
 הון: 1919.14
-הפסד היום: 108.84 מול מגבלה של 101.40
+הפסד היום: 108.84 מול מגבלה נעולה של 101.40
 מצב השומר: נעול
 ההפסד הפתוח עדיין חוצה את המגבלה של היום החדש
 נעול עד: 2026.08.27 01:00:00
@@ -748,7 +750,7 @@ build=TG
 יום המסחר שהסתיים: 2026.10.19
 התוצאה הסגורה של היום שהסתיים: הפסד 31.56
 שיא הרווח הסגור של היום שהסתיים: 12.40
-נעילות ביום שהסתיים: 0
+מספר הנעילות ביום שהסתיים: 0
 המגבלה ליום החדש: 117.73
 build=TG
 
@@ -773,7 +775,7 @@ build=TG
 מצב השומר: נעול
 נעול עד: 2026.09.24 01:00:00
 מקור הנעילה: קובץ מצב הנעילה ומשתנה הגיבוי בטרמינל
-השומר סוגר עכשיו 1 פוזיציות ומוחק 0 פקודות ממתינות
+השומר סוגר עכשיו פוזיציה אחת ומוחק 0 פקודות ממתינות
 build=TG
 
 === S16 lock source wordings ===
@@ -790,7 +792,7 @@ build=TG
 שעת שרת: 2026.10.19 14:05:12
 יתרה: 2172.06
 הון: 2172.06
-הפסד היום: 0.00 מול מגבלה של 126.21
+הפסד היום: 0.00 מול מגבלה נעולה של 126.21
 מצב השומר: נעול
 הקובץ: קובץ מצב הנעילה
 הנעילה נשמרת בזיכרון בלבד עד ההפעלה הבאה
@@ -888,9 +890,9 @@ build=TG
 שעת שרת: 2026.10.21 12:00:01
 יתרה: 2172.06
 הון: 2172.06
-רווח היום: 0.00 מול מגבלת הפסד של 126.21
+הפסד היום: 0.00 מול מגבלה של 126.21
 מצב השומר: פעיל
-בדיקה תקופתית: השומר עדכן את סימן החיים שלו לפני 1 שניות
+בדיקה תקופתית: השומר עדכן את סימן החיים שלו לפני שנייה אחת
 נעילה: אין
 המגבלה שבתוקף כעת: 126.21
 build=TG
@@ -903,7 +905,7 @@ build=TG
 הון: 2880.70
 הפסד היום: 0.00 מול מגבלה נעולה של 147.54
 מצב השומר: נעול
-בדיקה תקופתית: השומר עדכן את סימן החיים שלו לפני 1 שניות
+בדיקה תקופתית: השומר עדכן את סימן החיים שלו לפני שנייה אחת
 נעול עד: 2026.09.24 01:00:00
 build=TG
 
@@ -967,10 +969,191 @@ build=TG
 build=TG
 
 === NEW: line added after the queue overflowed ===
-התראות שלא נשמרו בגלל עומס: 12
+מספר ההתראות שלא נשמרו בגלל עומס: 12
 
 === NEW: line added when similar events were held back ===
-אירועים דומים שלא נשלחו מאז ההודעה הקודמת: 3
+מספר האירועים הדומים שלא נשלחו מאז ההודעה הקודמת: 3
+
+=== BUILD: S6 a pending order held, trade session closed, next open unknown ===
+⚠️ פקודה ממתינה לא נמחקה: המסחר בסמל סגור כעת
+חשבון: 1200252169
+שעת שרת: 2026.09.26 16:35:38
+יתרה: 3138.34
+הון: 3138.30
+הפסד היום: 0.00 מול מגבלה נעולה של 158.69
+מצב השומר: נעול
+מספר הפקודה: 781624901
+XAUUSD.ecn
+ניסיון חוזר כשהמסחר בסמל ייפתח
+build=TG
+
+=== BUILD: S6 position held, the server did not carry out the close ===
+⚠️ פוזיציה לא נסגרה: השרת לא ביצע את הסגירה
+חשבון: 1200252169
+שעת שרת: 2026.09.23 15:30:00
+יתרה: 2880.70
+הון: 2850.10
+הפסד היום: 30.60 מול מגבלה נעולה של 147.54
+מצב השומר: נעול
+מספר הפוזיציה: 753031555
+XAUUSD.ecn
+השומר ינסה שוב כל 60 שניות
+build=TG
+
+=== BUILD: S6 pending order held, the server did not carry out the deletion ===
+⚠️ פקודה ממתינה לא נמחקה: השרת לא ביצע את המחיקה
+חשבון: 1200252169
+שעת שרת: 2026.09.23 15:30:00
+יתרה: 2880.70
+הון: 2850.10
+הפסד היום: 30.60 מול מגבלה נעולה של 147.54
+מצב השומר: נעול
+מספר הפקודה: 753031560
+XAUUSD.ecn
+השומר ינסה שוב כל 60 שניות
+build=TG
+
+=== BUILD: S6 position held, trading in the symbol disabled ===
+⚠️ פוזיציה לא נסגרה: המסחר בסמל חסום כעת
+חשבון: 1200252169
+שעת שרת: 2026.09.26 16:35:38
+יתרה: 3138.34
+הון: 3138.30
+הפסד היום: 0.00 מול מגבלה נעולה של 158.69
+מצב השומר: נעול
+מספר הפוזיציה: 781624897
+XAUUSD.ecn
+ניסיון חוזר כשהמסחר בסמל יתאפשר
+build=TG
+
+=== BUILD: S6 pending order held, hard stop ===
+⚠️ פקודה ממתינה לא נמחקה אחרי 10 ניסיונות
+חשבון: 1200252169
+שעת שרת: 2026.09.23 15:30:00
+יתרה: 2880.70
+הון: 2850.10
+הפסד היום: 30.60 מול מגבלה נעולה של 147.54
+מצב השומר: נעול
+מספר הפקודה: 753031560
+XAUUSD.ecn
+השומר ינסה שוב כל 60 שניות
+build=TG
+
+=== BUILD: S6 held pending order finally deleted ===
+🧹 פקודה ממתינה שלא נמחקה קודם נמחקה עכשיו
+חשבון: 1200252169
+שעת שרת: 2026.09.28 01:01:05
+יתרה: 2998.80
+הון: 2998.80
+הפסד היום: 0.00 מול מגבלה נעולה של 158.69
+מצב השומר: נעול
+מספר הפקודה: 781624901
+XAUUSD.ecn
+build=TG
+
+=== BUILD: S6 enforcement result, one position and one pending order ===
+🧹 סגירת הפוזיציות הושלמה
+חשבון: 1200252169
+שעת שרת: 2026.09.23 15:28:24
+יתרה: 2880.70
+הון: 2880.70
+הפסד היום: 0.00 מול מגבלה נעולה של 147.54
+מצב השומר: נעול
+נסגרה: פוזיציה אחת
+נמחקה: פקודה ממתינה אחת
+מספר ניסיונות השליחה: 2
+מספר הכשלים: 0
+משך: 3 שניות
+build=TG
+
+=== BUILD: S7 closed on a later attempt ===
+🧹 עסקה שנפתחה בזמן הנעילה נסגרה
+חשבון: 1200252169
+שעת שרת: 2026.09.23 15:56:12
+יתרה: 2880.62
+הון: 2880.62
+הפסד היום: 0.08 מול מגבלה נעולה של 147.54
+מצב השומר: נעול
+מספר הפוזיציה: 753338779
+XAUUSD.ecn
+נסגרה בניסיון מספר 2
+build=TG
+
+=== BUILD: S17 a file found corrupt at the start ===
+⚠️ השומר מצא קובץ פגום
+חשבון: 1200252169
+שעת שרת: 2026.10.21 09:00:05
+יתרה: 2172.06
+הון: 2172.06
+הפסד היום: עדיין לא חושב
+מצב השומר: בסנכרון
+הקובץ: קובץ שיא הרווח הסגור
+הקובץ הועבר להסגר ונוצר קובץ חדש
+build=TG
+
+=== BUILD: S17 file names, in order: halt, floor, queue, unknown ===
+הקובץ: קובץ העצירה
+הקובץ: קובץ המגבלה שנשמרה מול הגדלה
+הקובץ: קובץ תור ההתראות
+הקובץ: קובץ של השומר
+
+=== BUILD: S19 the currency limit entered while locked ===
+המגבלה שהוזנה: 150
+
+=== BUILD: S12 blocked while SYNCING or SAFE_HALT ===
+⛔ המסחר האלגוריתמי חסום, השומר לא יכול לסגור פוזיציות
+חשבון: 1200252169
+שעת שרת: 2026.10.21 09:00:20
+יתרה: 2172.06
+הון: 2172.06
+הפסד היום: עדיין לא חושב
+מצב השומר: בסנכרון
+החסימה: המסחר האלגוריתמי כבוי בהגדרות השומר
+build=TG
+
+=== BUILD: the day's result while LOCKED and in profit ===
+רווח היום: 5.00 מול מגבלה נעולה של 147.54
+
+=== BUILD: S16 restarted in place ===
+🔒 הנעילה שוחזרה בהפעלת השומר
+חשבון: 1200252169
+שעת שרת: 2026.09.23 16:57:35
+יתרה: 2880.70
+הון: 2880.70
+הפסד היום: 0.00 מול מגבלה נעולה של 147.54
+מצב השומר: נעול
+סיבת ההפעלה מחדש: הגדרות השומר שונו
+נעול עד: 2026.09.24 01:00:00
+מקור הנעילה: קובץ מצב הנעילה ומשתנה הגיבוי בטרמינל
+השומר סוגר עכשיו 0 פוזיציות ומוחק 0 פקודות ממתינות
+build=TG
+
+=== BUILD: periodic status while SYNCING ===
+⚠️ השומר פועל אבל עדיין לא מגן על החשבון
+חשבון: 1200252169
+שעת שרת: 2026.10.21 08:00:01
+יתרה: 2172.06
+הון: 2172.06
+הפסד היום: עדיין לא חושב
+מצב השומר: בסנכרון
+בדיקה תקופתית: השומר עדכן את סימן החיים שלו לפני 0 שניות
+build=TG
+
+=== BUILD: periodic status, the guardian not running, its mutex heartbeat stale ===
+🔴 השומר אינו פועל ואינו מגן על החשבון
+חשבון: 1200252169
+שעת שרת: 2026.10.21 16:00:01
+יתרה: 2172.06
+הון: 2172.06
+הפסד היום: עדיין לא חושב
+מצב השומר: לא פועל
+השומר לא עדכן את סימן החיים שלו כבר 75 שניות
+build=TG
+
+=== BUILD: the singular forms, in order: the delay line, the crash loop line, a hard stop of one attempt ===
+נשלחה באיחור של שנייה אחת
+הפעלה אחת ברצף הסתיימה בלי עצירה תקינה, בהפרש של עד 300 שניות זו מזו
+⚠️ פוזיציה לא נסגרה אחרי ניסיון אחד
 ```
 
 Field map, the new lines:
