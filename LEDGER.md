@@ -2962,3 +2962,15 @@ Status: FINAL
 Decision: (owner ruling 2026-10-21, a trade disallowed state in SYNCING or SAFE_HALT) (A), as given: "the journal line and the Telegram event only, as the addendum designs it. If the block still holds when the guardian enters ACTIVE, the ACTIVE entry raises the local Alert and the banner."
 Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given. Executor reading of the reference, not a ruling: the item is the one `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` item 8 marks RAISED, NOT RULED, which reads: "SYNCING and SAFE_HALT: the journal lines and the Telegram event only. No local Alert and no banner text there, those two states not being ruled. RAISED, NOT RULED."
 Status: FINAL
+
+Decision: (owner ruling 2026-10-21, TG-S10 and TG-S7) As given: "TG-S10 and TG-S7: fixed before the deploy, in this pass."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given. Executor reading of the reference, not a ruling: TG-S10 and TG-S7 are the static rows of that name in `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md`, items 12 and 10, which the ACTIONS entry of 2026-10-21 on Part B records as not holding as written.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-21, TG-S11) As given: "the row reads as measured: zero file, GV or trade writes in the service's own source and its three own includes; GlobalVariableSet only on AG_TGACK_<login> and AG_TGREFSEEN_<login>; and zero calls from those files into any writer of the shared includes the service compiles."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given. Executor reading of the reference, not a ruling: the row is TG-S11 of `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` item 12, whose text reads "its source and its includes"; this ruling sets how the row reads.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-21, TG-S16) As given: "the row's list of allowed reference sites gains AgTgInitReset, which sets starting values in OnInit and decides nothing."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given. Executor reading of the reference, not a ruling: the row is TG-S16 of `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` item 12.
+Status: FINAL
