@@ -2836,3 +2836,75 @@ Status: FINAL
 Decision: (owner ruling 2026-10-02, review fix build acceptance) IN-D and RC-1 on the review fix build are PASS by the owner's attestation, under the attestation ruling of 2026-09-30. Both ran on the new computer, as the REVIEW FIX BUILD entry drafts them.
 Reason: Owner's ruling, recorded as given, 2026-10-02. Executor reading of the reference, not a ruling: the attestation ruling of 2026-09-30 is the entry "(owner ruling 2026-09-30, installer acceptance rows)" above, and the REVIEW FIX BUILD entry is the entry of that name in ISSUES.
 Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-1, where the sending lives) (B), as given: "A separate MQL5 Service fed by the EA through a queue file. The EA makes no network call." Option (B) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "A separate MQL5 Service program fed by the EA through a queue file under `MQL5\Files\AccountGuardian`. The EA never waits on the network. The owner adds and starts the service once in the Navigator. A second program has its own failure modes and needs its own acceptance rows. The file is shared between two programs. The installer, manifest and export carry a second ex5. The service can also watch the `AG_HB_<login>` mutex heartbeat and report an EA that stopped while the terminal still runs."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-2.1, provisioning of the S13 hosted dead man check) (A), as given. Option (A) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "The owner's own healthchecks.io account. One check on a simple schedule (period and grace). The service's Telegram integration delivers to the owner's chat. The ping URL is entered as an EA input field, as TG-6 places the token. S13 then needs no EA code beyond the ping."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. Executor reading of the reference, not a ruling: the clause "The ping URL is entered as an EA input field, as TG-6 places the token" is amended by the TG-6 entry below, which places the ping URL in an input field of the service.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-2.2, network heartbeat interval) As given: "network heartbeat every 60 s".
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. Executor reading of the reference, not a ruling: 60 s is the value of option (A) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, which reads: "60 s. 1440 pings a day. The shortest period the service offers, recalled as 1 minute and to be confirmed at provisioning."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-2.3, silence threshold) (A), as given: "60 s period plus 240 s grace". Option (A) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "60 s period plus 240 s grace: the alert about 5 minutes after the last ping. A routine stop and start stays below it: a LiveUpdate restart measured at about 14 s (`LEDGER.md:458`) and a terminal close and reopen measured at 3 min 19 s (`LEDGER.md:449`)."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-3, S9 approach levels) (B), as given. Option (B) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "Two levels, 50 and 80 percent, each once per day. Re-armed if the share falls back 10 points below the level. An early and a late warning."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-4, S14 end of day summary) (B), as given. Option (B) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "Yes, at the day rollover, 01:00 server. Triggered by the existing `day rollover` line (EA:864) or, on a locked day, by the expiry (EA:689). It uses the one day boundary already FINAL and defines no second one."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-5, the unsent queue across terminal restarts) (B), as given. Option (B) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "A persisted queue file `MQL5\Files\AccountGuardian\tgqueue_<login>.dat`. Atomic write through `AgAtomicWrite`, event codes and numbers only (6.5), never loaded never written applied by choice. Clean restarts lose nothing. A hard kill loses only events after the last write."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-6, where the token, the chat id and the ping URL are entered, amended by TG-1 (B)) As given: "the token, the chat id and the ping URL are input fields of the service, entered by the owner when the service is added. Optional. An empty field turns that channel off and leaves the guardian unaffected. Chat stated this consequence to the owner before he ruled TG-1."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. Executor reading of the reference, not a ruling: it amends the owner's answer of 2026-10-20 that the ruling sheet carries at TG-6, quoted there as given: "EA input fields, entered by the owner in the attach dialog."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-7, the prior project's bot) Void, as given: "The owner states that the bot and token in use are the ones he set up early in the guardian's development. No revocation."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. No option letter of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, is ruled for this item.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-8, inbound commands) (B), in this build, as given: one read only command, the exact text given in Hebrew, two words meaning "check me", Unicode code points U+05D1 U+05D3 U+05D5 U+05E7, U+0020, U+05D0 U+05D5 U+05EA U+05D9, "answered only to the configured chat id with the periodic status message below. No command may unlock, widen a limit, or disable the guardian." Option (B) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "One read only command, a status reply, polled from `getUpdates` at most every 60 s and answered only to the configured chat id. It changes no input and no state, so it stays within D1f and Q6. It costs one more request on the polling ticks and keeps an offset in memory. Anyone holding the token can read the status."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. LEDGER.md carries no Hebrew under the documentation rule, so the command text is recorded here by its code points; the Hebrew text itself stands in the design addendum `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md`, item 5. The periodic status message is the entry of that name below.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-9, the feature in the customer release repository) (A), in the corrected wording of the owner's instruction of 2026-10-21, as given: "A. The README gains Hebrew setup steps." This follows the README Hebrew only FINAL at LEDGER.md:2730 as at 31ac695. Option (A) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "Yes, in the release after its acceptance closes. Customers enter their own token, chat id and ping URL, and the feature stays off while they are empty. The README gains Hebrew setup steps. The installer's manifest and the export carry the new file. IN-22 (b) secrecy runs over it."
+Reason: Owner's ruling, given in chat on 2026-10-20 and corrected by the owner on 2026-10-21, recorded as given. The first wording, "The README setup steps are in English first, then Hebrew, per the global README rule", ran against that FINAL; the session stopped before any write and quoted it, and the owner withdrew the clause "English first, then Hebrew", which came from chat.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-10, acceptance venue) (A), as given. Option (A) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "A demo terminal first, then the live account. For example the development terminal on this computer, logged into a demo account, receiving the build by a deploy script under the 2026-09-06 hand. The lock rows (S4, S6, S7, S8, S16) need a real lock, which on a demo costs nothing. Then the live account's computer by the installer, for rows that need no lock."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-11, base branch for the build) (A), as given. Option (A) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "Cut from main as it stands at the build. No wait. The two ISSUES heads meet at a later merge and need a union, which is routine."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. Executor reading of the reference, not a ruling: the owner's instruction reads (A) as main as it stands plus the plan commits, with no dependency on `worktree-ledger-poll-counter-issue`; branch `build/telegram-alerts` is cut so, from `plan/telegram-alerts` at `00c7237`.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-12, where the alerts work sits beside the branch plan FINAL of 2026-09-23) (A), as given. Option (A) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "Now, on its own branch, in parallel with Phase 4 planning, under the merge gate."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, TG-13, sends at a stop and at a refused start, S2 and S3) (B), as given. Option (B) of ruling sheet TG, `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md` section 7, reads: "For reasons 1, 4 and 9, one send attempt inside OnDeinit with a 1500 ms timeout, after the halt clean mark, the mutex release and the queue write. Queue only for every other reason. A refused start queues. Fast news of a removal or a close, if acceptance shows WebRequest works there (3.2). The S2 entry stays queued if the attempt fails."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. Executor reading of the reference, not a ruling: under TG-1 (B) the EA makes no network call, so what (B) means under TG-1 (B) is set out, UNRULED, in item 7 of the design addendum `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md`.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, periodic status message) As given: "a visible Telegram status message every 4 hours, stating that the guardian is alive, with the account state fields of plan section 5. The same message answers" the TG-8 command.
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given. The command, given in Hebrew, is the one of the TG-8 entry above, recorded there by its code points. Executor reading, not a ruling: the schedule anchor of the 4 hours is ruling item TG-15 of the design addendum, OPEN.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, S12 in ACTIVE) As given: "the trade permission flags are read continuously in every state, not only inside a LOCKED sweep pass. A disallowed state raises an immediate alert. Enforcement is unchanged."
+Reason: Owner's ruling, given in chat on 2026-10-20, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-20, S12 in ACTIVE, local alerting) As given: "a trade disallowed state in ACTIVE raises the local Alert and the chart banner, in addition to the journal line and the Telegram alert, at the cadence set by the FINAL at LEDGER.md:2387 as at 31ac695. This is alerting only: no new guardian state, and no change to the state machine or to enforcement."
+Reason: Owner's ruling, given in chat on 2026-10-20 and recorded as given at the owner's instruction of 2026-10-21. Executor reading of the reference, not a ruling: the FINAL at LEDGER.md:2387 as at 31ac695 is the Q3/F2 entry on trade disallowed states, whose cadence `docs/SPEC_v0.1.md:99` reads under ENF-14(b). The SPEC amendment this ruling needs is drafted for the owner in the design addendum and is not applied.
+Status: FINAL
