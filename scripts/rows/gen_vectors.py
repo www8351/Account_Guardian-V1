@@ -7,6 +7,11 @@
 # touched. The md5 of each draft's UTF-8 bytes is computed here, independently,
 # from item 13's own text; a helper's expected value is stated here.
 #
+# Pass B5 of 2026-10-21, R3 and R4: each draft's common lines carry its open
+# positions, the last argument of AgVecC, as item 13 shows them; the line
+# indexes count the open trades line, which S4 and S16 leave out; and the
+# helpers gain the PNL line and the open trades line.
+#
 # A draft of item 13 runs from its "=== ... ===" label to the next label, the
 # blank lines before the next label not part of it, since a message of the
 # format F1 to F11 carries blank lines between its groups.
@@ -48,16 +53,17 @@ A, L, N = "AG_TG_PNL_ACTIVE", "AG_TG_PNL_LOCKED", "AG_TG_PNL_NONE"
 SA, SL, SS, SH, SN = "AG_STATE_ACTIVE", "AG_STATE_LOCKED", "AG_STATE_SYNCING", "AG_STATE_SAFE_HALT", "AG_TG_STATE_NOT_RUNNING"
 
 
-def C(t_, bal, eq, pnl, mode, lim, st):
-    return "AgVecC(c, D'%s', %s, %s, %s, %s, %s, %s);" % (t_, bal, eq, pnl, mode, lim, st)
+def C(t_, bal, eq, pnl, mode, lim, st, n=0):
+    return "AgVecC(c, D'%s', %s, %s, %s, %s, %s, %s, %d);" % (t_, bal, eq, pnl, mode, lim, st, n)
 
 
 # F9: the messages that carry the build line, and those that do not
 FIN = 'AgTgFinish(%s, 0, 0, 0, "build=TG")'
 NOB = 'AgTgFinish(%s, 0, 0, 0, "")'
-# the line indexes of a message (F1): with a limit, the events start at line
-# 12; with the day's result not computed, at line 11
-EV, EVN = 12, 11
+# the line indexes of a message (F1, R4): with a limit, the events start at
+# line 13; with the day's result not computed, at line 12; in S4 and S16,
+# which leave the open trades line out, at line 12
+EV, EVN, EVL = 13, 12, 12
 
 # (name, label, line or None, common, expression)
 cases = [
@@ -69,23 +75,23 @@ cases = [
  ("s3_second", "S3 second instance refused", None, C("2026.08.03 01:48:42", "2133.00", "2133.00", "0.0", N, "0.0", SA), NOB % "AgTgTextS3Second(c)"),
  ("s3_crash", "S3 SAFE_HALT after repeated crashes", None, C("2026.08.04 16:37:04", "2133.00", "2133.00", "0.0", N, "0.0", SH), NOB % "AgTgTextS3Crash(c, 4, 300)"),
  ("s3_persisted", "S3 SAFE_HALT persists after a restart", None, C("2026.08.04 16:37:54", "2133.00", "2133.00", "0.0", N, "0.0", SH), NOB % "AgTgTextS3Persisted(c, D'2026.08.04 16:37:04')"),
- ("s4_daily", "S4 lock, the daily limit", None, C("2026.09.15 18:36:17", "2300.16", "2164.56", "-130.20", A, "126.21", SL), NOB % "AgTgTextS4(c, 1, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0, \"$\")"),
- ("s4_peak", "S4 lock, give back from the daily peak", None, C("2026.09.26 16:35:35", "3138.34", "2976.30", "90.96", A, "158.69", SL), NOB % "AgTgTextS4Peak(c, D'2026.09.27 01:00:00', 253.00, 253.00 - 158.69, 90.96, 3, 0, \"$\")"),
+ ("s4_daily", "S4 lock, the daily limit", None, C("2026.09.15 18:36:17", "2300.16", "2164.56", "-130.20", A, "126.21", SL, 3),NOB % "AgTgTextS4(c, 1, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0, \"$\")"),
+ ("s4_peak", "S4 lock, give back from the daily peak", None, C("2026.09.26 16:35:35", "3138.34", "2976.30", "90.96", A, "158.69", SL, 3),NOB % "AgTgTextS4Peak(c, D'2026.09.27 01:00:00', 253.00, 253.00 - 158.69, 90.96, 3, 0, \"$\")"),
  ("s6_complete", "S6 enforcement result", None, C("2026.09.23 15:28:24", "2880.70", "2880.70", "0.0", L, "147.54", SL), NOB % "AgTgTextS6C(c, 3, 2, 5, 0, 7)"),
- ("s6_session", "S6 position held, trade session closed", None, C("2026.09.26 16:35:38", "3138.34", "3138.30", "0.0", L, "158.69", SL), NOB % "AgTgTextS6H(c, 781624897, false, 1, \"XAUUSD.ecn\", D'2026.09.28 01:01:00', 10, 60)"),
- ("s6_hard_stop", "S6 position held, hard stop", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL), NOB % "AgTgTextS6H(c, 753031555, false, 2, \"XAUUSD.ecn\", 0, 10, 60)"),
+ ("s6_session", "S6 position held, trade session closed", None, C("2026.09.26 16:35:38", "3138.34", "3138.30", "0.0", L, "158.69", SL, 1),NOB % "AgTgTextS6H(c, 781624897, false, 1, \"XAUUSD.ecn\", D'2026.09.28 01:01:00', 10, 60)"),
+ ("s6_hard_stop", "S6 position held, hard stop", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL, 1),NOB % "AgTgTextS6H(c, 753031555, false, 2, \"XAUUSD.ecn\", 0, 10, 60)"),
  ("s6_flattened", "S6 held position finally closed", None, C("2026.09.28 01:01:05", "2998.80", "2998.80", "0.0", L, "158.69", SL), NOB % "AgTgTextS6F(c, 781624897, false, \"XAUUSD.ecn\")"),
  ("s7", "S7 trade opened while locked", None, C("2026.09.23 15:56:12", "2880.62", "2880.62", "-0.08", L, "147.54", SL), NOB % "AgTgTextS7(c, 753338779, \"XAUUSD.ecn\", 1)"),
- ("s8_released", "S8 lock released", None, C("2026.09.27 01:00:03", "2998.84", "2998.80", "-0.04", A, "164.94", SA), NOB % "AgTgTextS8Released(c, D'2026.09.27 01:00:00', 164.94)"),
- ("s8_again", "S8 locked again at the new day", None, C("2026.08.26 01:00:10", "2027.98", "1919.14", "-108.84", L, "101.40", SL), NOB % "AgTgTextS8Again(c, D'2026.08.27 01:00:00')"),
- ("s9", "S9 approaching the limit", None, C("2026.10.19 14:05:12", "2172.06", "2071.09", "-100.97", A, "126.21", SA), NOB % "AgTgTextS9(c, 80, 25.24)"),
+ ("s8_released", "S8 lock released", None, C("2026.09.27 01:00:03", "2998.84", "2998.80", "-0.04", A, "164.94", SA, 1),NOB % "AgTgTextS8Released(c, D'2026.09.27 01:00:00', 164.94)"),
+ ("s8_again", "S8 locked again at the new day", None, C("2026.08.26 01:00:10", "2027.98", "1919.14", "-108.84", L, "101.40", SL, 2),NOB % "AgTgTextS8Again(c, D'2026.08.27 01:00:00')"),
+ ("s9", "S9 approaching the limit", None, C("2026.10.19 14:05:12", "2172.06", "2071.09", "-100.97", A, "126.21", SA, 3),NOB % "AgTgTextS9(c, 80, 25.24)"),
  ("s10", "S10 broker connection restored", None, C("2026.08.18 12:13:43", "2133.13", "2133.13", "0.0", A, "106.66", SA), NOB % "AgTgTextS10(c, D'2026.08.18 12:08:42', D'2026.08.18 12:13:43', 301)"),
  ("s11", "S11 Telegram reachable again", None, C("2026.10.19 12:20:40", "2172.06", "2172.06", "0.0", A, "126.21", SA), NOB % "AgTgTextS11(c, D'2026.10.19 12:00:05', D'2026.10.19 12:20:40', 4)"),
  ("s12_blocked_locked", "S12 algorithmic trading blocked", None, C("2026.09.28 10:44:02", "2805.35", "2805.35", "-193.49", L, "164.94", SL), NOB % "AgTgTextS12Blocked(c, 1)"),
- ("s12_restored", "S12 trading restored", None, C("2026.09.28 10:47:03", "2805.35", "2805.36", "-193.48", L, "164.94", SL), NOB % "AgTgTextS12Restored(c)"),
+ ("s12_restored", "S12 trading restored", None, C("2026.09.28 10:47:03", "2805.35", "2805.36", "-193.48", L, "164.94", SL, 1),NOB % "AgTgTextS12Restored(c)"),
  ("s14", "S14 end of day summary", None, C("2026.10.20 01:00:04", "2140.50", "2140.50", "0.0", A, "117.73", SA), FIN % "AgTgTextS14(c, D'2026.10.19 01:00:00', -31.56, 12.40, 0, 117.73)"),
  ("s15", "S15 resumed after SAFE_HALT", None, C("2026.08.04 16:39:54", "2133.00", "2133.00", "0.0", N, "0.0", SS), NOB % "AgTgTextS15(c)"),
- ("s16", "S16 lock restored at start", None, C("2026.09.23 16:57:35", "2880.70", "2879.58", "-1.12", L, "147.54", SL), NOB % "AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 3, 1, 0, -1)"),
+ ("s16", "S16 lock restored at start", None, C("2026.09.23 16:57:35", "2880.70", "2879.58", "-1.12", L, "147.54", SL, 1),NOB % "AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 3, 1, 0, -1)"),
  ("s17", "S17 file write failure", None, C("2026.10.19 14:05:12", "2172.06", "2172.06", "0.0", L, "126.21", SL), NOB % "AgTgTextS17(c, 1, 1)"),
  ("s18", "S18 previous session cut off", None, C("2026.09.15 22:35:38", "2172.06", "2172.06", "0.0", N, "0.0", SS), NOB % "AgTgTextS18(c, 28)"),
  ("s19_locked", "S19 limit change refused while locked", None, C("2026.08.18 15:36:30", "239.63", "239.63", "-1893.50", L, "106.66", SL), NOB % "AgTgTextS19Locked(c, 1, 10.00, 200, 106.66, \"$\")"),
@@ -96,15 +102,15 @@ cases = [
  ("s24", "S24 another instance took over", None, C("2026.10.19 14:05:12", "2172.06", "2172.06", "0.0", A, "126.21", SA), NOB % "AgTgTextS24(c)"),
  ("status_active", "NEW: periodic status, at each slot and as the reply to the check command, while ACTIVE", None, C("2026.10.21 15:34:00", "2544.33", "2544.33", "0.0", A, "139.94", SA), FIN % "AgTgTextStatus(c, 1, -1, 0)"),
  ("status_locked", "NEW: periodic status, while LOCKED", None, C("2026.09.23 16:00:01", "2880.70", "2880.70", "0.0", L, "147.54", SL), FIN % "AgTgTextStatus(c, 1, -1, D'2026.09.24 01:00:00')"),
- ("not_responding", "NEW: guardian not responding while the terminal runs", None, C("2026.10.21 14:05:12", "2172.06", "2150.10", "0.0", N, "0.0", SN), NOB % "AgTgTextNotResponding(c, 15, false, true)"),
+ ("not_responding", "NEW: guardian not responding while the terminal runs", None, C("2026.10.21 14:05:12", "2172.06", "2150.10", "0.0", N, "0.0", SN, 1),NOB % "AgTgTextNotResponding(c, 15, false, true)"),
  ("not_running", "NEW: guardian not running when the alerts service starts", None, C("2026.10.21 09:01:00", "2172.06", "2172.06", "0.0", N, "0.0", SN), NOB % "AgTgTextNotRunning(c, 60)"),
- ("responds_again", "NEW: guardian responds again, no restart", None, C("2026.10.21 14:05:54", "2172.06", "2150.10", "-21.96", A, "126.21", SA), NOB % "AgTgTextRespondsAgain(c, 42)"),
+ ("responds_again", "NEW: guardian responds again, no restart", None, C("2026.10.21 14:05:54", "2172.06", "2150.10", "-21.96", A, "126.21", SA, 1),NOB % "AgTgTextRespondsAgain(c, 42)"),
  ("s12_active", "NEW: S12 algorithmic trading blocked while ACTIVE", None, C("2026.10.21 10:44:02", "2805.35", "2805.35", "12.40", A, "164.94", SA), NOB % "AgTgTextS12Blocked(c, 1)"),
- ("b_s6_order_session", "BUILD: S6 a pending order held, trade session closed, next open unknown", None, C("2026.09.26 16:35:38", "3138.34", "3138.30", "0.0", L, "158.69", SL), NOB % "AgTgTextS6H(c, 781624901, true, 1, \"XAUUSD.ecn\", 0, 10, 60)"),
- ("b_s6_refuse", "BUILD: S6 position held, the server did not carry out the close", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL), NOB % "AgTgTextS6H(c, 753031555, false, 3, \"XAUUSD.ecn\", 0, 10, 60)"),
- ("b_s6_order_hold", "BUILD: S6 pending order held, the server did not carry out the deletion", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL), NOB % "AgTgTextS6H(c, 753031560, true, 5, \"XAUUSD.ecn\", 0, 10, 60)"),
- ("b_s6_mode", "BUILD: S6 position held, trading in the symbol disabled", None, C("2026.09.26 16:35:38", "3138.34", "3138.30", "0.0", L, "158.69", SL), NOB % "AgTgTextS6H(c, 781624897, false, 4, \"XAUUSD.ecn\", 0, 10, 60)"),
- ("b_s6_order_hard_stop", "BUILD: S6 pending order held, hard stop", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL), NOB % "AgTgTextS6H(c, 753031560, true, 2, \"XAUUSD.ecn\", 0, 10, 60)"),
+ ("b_s6_order_session", "BUILD: S6 a pending order held, trade session closed, next open unknown", None, C("2026.09.26 16:35:38", "3138.34", "3138.30", "0.0", L, "158.69", SL, 1),NOB % "AgTgTextS6H(c, 781624901, true, 1, \"XAUUSD.ecn\", 0, 10, 60)"),
+ ("b_s6_refuse", "BUILD: S6 position held, the server did not carry out the close", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL, 1),NOB % "AgTgTextS6H(c, 753031555, false, 3, \"XAUUSD.ecn\", 0, 10, 60)"),
+ ("b_s6_order_hold", "BUILD: S6 pending order held, the server did not carry out the deletion", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL, 1),NOB % "AgTgTextS6H(c, 753031560, true, 5, \"XAUUSD.ecn\", 0, 10, 60)"),
+ ("b_s6_mode", "BUILD: S6 position held, trading in the symbol disabled", None, C("2026.09.26 16:35:38", "3138.34", "3138.30", "0.0", L, "158.69", SL, 1),NOB % "AgTgTextS6H(c, 781624897, false, 4, \"XAUUSD.ecn\", 0, 10, 60)"),
+ ("b_s6_order_hard_stop", "BUILD: S6 pending order held, hard stop", None, C("2026.09.23 15:30:00", "2880.70", "2850.10", "-30.60", L, "147.54", SL, 1),NOB % "AgTgTextS6H(c, 753031560, true, 2, \"XAUUSD.ecn\", 0, 10, 60)"),
  ("b_s6_order_flattened", "BUILD: S6 held pending order finally deleted", None, C("2026.09.28 01:01:05", "2998.80", "2998.80", "0.0", L, "158.69", SL), NOB % "AgTgTextS6F(c, 781624901, true, \"XAUUSD.ecn\")"),
  ("b_s6_complete_singular", "BUILD: S6 enforcement result, one position and one pending order", None, C("2026.09.23 15:28:24", "2880.70", "2880.70", "0.0", L, "147.54", SL), NOB % "AgTgTextS6C(c, 1, 1, 2, 0, 3)"),
  ("b_s7_later", "BUILD: S7 closed on a later attempt", None, C("2026.09.23 15:56:12", "2880.62", "2880.62", "-0.08", L, "147.54", SL), NOB % "AgTgTextS7(c, 753338779, \"XAUUSD.ecn\", 2)"),
@@ -121,9 +127,9 @@ for i in range(10):
 cases.append(("delay_line", "delay line, for any message sent late", 0, None, 'AgVecLine(AgTgFinish("x", 0, 0, 125, "b"), 2)'))
 for i, st in enumerate([SA, SL, SS, SH, SN]):
     cases.append(("state_word_%d" % i, "guardian state wordings", i,
-                  C("2026.10.19 14:05:12", "2172.06", "2172.06", "0.0", N, "0.0", st), "AgVecLine(AgTgCommonLines(c), 8)"))
-cases.append(("not_computed", "result not computed yet", 0, None, "AgTgPnlLine(AG_TG_PNL_NONE, 0.0, 0.0)"))
-s4c = C("2026.09.15 18:36:17", "2300.16", "2164.56", "-130.20", A, "126.21", SL)
+                  C("2026.10.19 14:05:12", "2172.06", "2172.06", "0.0", N, "0.0", st), "AgVecLine(AgTgCommonLines(c), 9)"))
+cases.append(("not_computed", "result not computed yet", 0, None, 'AgTgPnlLine(AG_TG_PNL_NONE, 0.0, 0.0, "$")'))
+s4c = C("2026.09.15 18:36:17", "2300.16", "2164.56", "-130.20", A, "126.21", SL, 3)
 for i, kind in enumerate([1, 2, 3]):
     cases.append(("s4_crossed_%d" % kind, "S4 crossed limit wordings, in order: percent leg, currency leg, held floor, daily peak", i,
                   s4c, "AgVecLine(AgTgTextS4(c, %d, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0, \"$\"), 9)" % kind))
@@ -132,13 +138,13 @@ for i in range(4):
                   C("2026.09.28 10:44:02", "2805.35", "2805.35", "-193.49", L, "164.94", SL), "AgVecLine(AgTgTextS12Blocked(c, %d), %d)" % (i + 1, EV)))
 cases.append(("s12_block_active_line", "S12 block wordings, in order: terminal button, EA setting, account, broker, while ACTIVE", 4,
               C("2026.10.21 10:44:02", "2805.35", "2805.35", "12.40", A, "164.94", SA), "AgVecLine(AgTgTextS12Blocked(c, 1), %d)" % (EV + 1)))
-s16c = C("2026.09.23 16:57:35", "2880.70", "2879.58", "-1.12", L, "147.54", SL)
+s16c = C("2026.09.23 16:57:35", "2880.70", "2879.58", "-1.12", L, "147.54", SL, 1)
 for i, pair in enumerate([(1, 1), (1, 2), (1, 4), (3, 4), None, (2, 0)]):
     if pair is None:
         continue   # the daily peak source: no code path names it, the peak witness fires as DAILY_BREACH
     reason, mask = pair
     cases.append(("s16_source_%d" % i, "S16 lock source wordings", i, s16c,
-                  "AgVecLine(AgTgTextS16(c, D'2026.09.24 01:00:00', %d, %d, 1, 0, -1), %d)" % (reason, mask, EV + 1)))
+                  "AgVecLine(AgTgTextS16(c, D'2026.09.24 01:00:00', %d, %d, 1, 0, -1), %d)" % (reason, mask, EVL + 1)))
 cases.append(("s22_reason_2", "S22 second reason wording", 0,
               C("2026.10.19 09:05:03", "2172.06", "2172.06", "0.0", N, "0.0", SS), "AgVecLine(AgTgTextS22(c, 300, 2), %d)" % (EVN + 1)))
 for i, st in enumerate([SS, SH, SN]):
@@ -157,7 +163,7 @@ for i, kind in enumerate([2, 3, 5, 0]):
 cases.append(("s19_currency_line", "BUILD: S19 the currency limit entered while locked", 0,
               C("2026.08.18 15:36:30", "239.63", "239.63", "-1893.50", L, "106.66", SL),
               "AgVecLine(AgTgTextS19Locked(c, 2, 10.00, 150, 106.66, \"$\"), %d)" % EV))
-cases.append(("locked_profit_line", "BUILD: the day's result while LOCKED and in profit", None, None, "AgTgPnlLine(AG_TG_PNL_LOCKED, 5.00, 147.54)"))
+cases.append(("locked_profit_line", "BUILD: the day's result while LOCKED and in profit", None, None, 'AgTgPnlLine(AG_TG_PNL_LOCKED, 5.00, 147.54, "$")'))
 cases.append(("singular_delay", "BUILD: the singular forms, in order: the delay line, the crash loop line, a hard stop of one attempt", 0, None,
               'AgVecLine(AgTgFinish("x", 0, 0, 1, "b"), 2)'))
 cases.append(("singular_crash", "BUILD: the singular forms, in order: the delay line, the crash loop line, a hard stop of one attempt", 1,
@@ -244,6 +250,29 @@ helpers = [
   "AgTgFinish(\"x\", 0, 0, 0, \"\") == \"x\" && AgTgFinish(\"x\", 0, 0, 0, \"b\") == \"x\\nb\"", None),
 ]
 
+# the helpers of pass B5 (R3, R4): the PNL line by the sign of the result and
+# not computed, and the open trades line by its count; kind "truec" sets the
+# common lines given, here with 3 open positions, then asserts
+helpers_b5 = [
+ ("tg_fmt_pnl_line_above_zero", "md5", "AgTgResultLine(AG_TG_PNL_ACTIVE, 12.40, \"$\")", "📈 סה״כ PNL: +12.40$"),
+ ("tg_fmt_pnl_line_zero", "md5", "AgTgResultLine(AG_TG_PNL_ACTIVE, 0.0, \"$\")", "📉 סה״כ PNL: 0.00$"),
+ ("tg_fmt_pnl_line_a_figure_that_prints_zero", "true",
+  "AgTgResultLine(AG_TG_PNL_ACTIVE, 0.004, \"$\") == AgTgResultLine(AG_TG_PNL_ACTIVE, 0.0, \"$\")"
+  " && AgTgResultLine(AG_TG_PNL_LOCKED, -0.004, \"$\") == AgTgResultLine(AG_TG_PNL_ACTIVE, 0.0, \"$\")", None),
+ ("tg_fmt_pnl_line_below_zero", "md5", "AgTgResultLine(AG_TG_PNL_ACTIVE, -130.20, \"$\")", "📉 סה״כ PNL: -130.20$"),
+ ("tg_fmt_pnl_line_below_zero_with_a_code", "md5", "AgTgResultLine(AG_TG_PNL_LOCKED, -1893.50, \"ILS\")",
+  "📉 סה״כ PNL: -1,893.50 ILS"),
+ ("tg_fmt_pnl_line_not_computed", "md5", "AgTgResultLine(AG_TG_PNL_NONE, -50.00, \"$\")", "📉 סה״כ PNL: עדיין לא חושב"),
+ ("tg_fmt_open_line_zero", "md5", "AgTgOpenLine(0)", "📂 עסקאות פתוחות: אין"),
+ ("tg_fmt_open_line_one", "md5", "AgTgOpenLine(1)", "📂 עסקאות פתוחות: 1"),
+ ("tg_fmt_open_line_several", "md5", "AgTgOpenLine(12)", "📂 עסקאות פתוחות: 12"),
+ ("tg_fmt_open_line_left_out_where_the_sweep_line_counts", "truec",
+  "StringFind(AgTgTextS2(c, 1), AgTgOpenLine(3)) > 0"
+  " && StringFind(AgTgTextS4(c, 1, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0, \"$\"), AgTgOpenLine(3)) < 0"
+  " && StringFind(AgTgTextS4Peak(c, D'2026.09.27 01:00:00', 253.00, 94.31, 90.96, 3, 0, \"$\"), AgTgOpenLine(3)) < 0"
+  " && StringFind(AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 3, 3, 0, -1), AgTgOpenLine(3)) < 0", s4c),
+]
+
 
 def mql_str(s):
     assert all(ord(ch) < 128 for ch in s), "a non ASCII literal: " + repr(s)
@@ -259,20 +288,32 @@ for name, label, line, common, expr in cases:
     if common:
         code.append("   " + common)
     code.append('   AgVecMd5("tg_text_%s", %s, "%s");' % (name, expr, md5(want)))
+def emit(helper_list):
+    for name, kind, expr, want in helper_list:
+        if kind == "eq":
+            code.append('   AgVecCheck("%s", %s == %s, %s);' % (name, expr, mql_str(want), expr))
+        elif kind == "md5":
+            code.append('   AgVecMd5("%s", %s, "%s");' % (name, expr, md5(want)))
+        elif kind == "md5s4":
+            code.append("   " + s4c)
+            code.append('   AgVecMd5("%s", %s, "%s");' % (name, expr, md5(want)))
+        elif kind == "truec":
+            code.append("   " + want)
+            code.append('   AgVecCheck("%s", %s, "");' % (name, expr))
+        else:
+            code.append('   AgVecCheck("%s", %s, "");' % (name, expr))
+
+
 code.append("")
 code.append("   //--- the display formatters and the F10 helpers, format pass B3: the")
 code.append("   //--- time, the money and the currency, the durations, the zero counts,")
 code.append("   //--- the build line by class, the HTML escape and the plain text decision")
-for name, kind, expr, want in helpers:
-    if kind == "eq":
-        code.append('   AgVecCheck("%s", %s == %s, %s);' % (name, expr, mql_str(want), expr))
-    elif kind == "md5":
-        code.append('   AgVecMd5("%s", %s, "%s");' % (name, expr, md5(want)))
-    elif kind == "md5s4":
-        code.append("   " + s4c)
-        code.append('   AgVecMd5("%s", %s, "%s");' % (name, expr, md5(want)))
-    else:
-        code.append('   AgVecCheck("%s", %s, "");' % (name, expr))
+emit(helpers)
+code.append("")
+code.append("   //--- pass B5, R3 and R4: the PNL line above zero, at zero, below zero")
+code.append("   //--- and not computed; the open trades line at none, one and several,")
+code.append("   //--- and left out of the lock messages whose sweep line gives the count")
+emit(helpers_b5)
 for l in code:
     assert all(ord(ch) < 128 for ch in l), "a non ASCII vector line: " + l
 unused = [l for l in drafts if l not in used]
@@ -288,5 +329,5 @@ i = v.index(head) + len(head)
 j = v.index(anchor)
 v = v[:i] + "\n".join(code) + "\n\n" + v[j:]
 open(VEC, "wb").write(v.replace("\n", "\r\n").encode("utf-8"))
-sys.stdout.buffer.write(("render vectors %d, helper vectors %d, drafts not rendered by any vector: %s\n"
-                         % (len(cases), len(helpers), unused)).encode("utf-8"))
+sys.stdout.buffer.write(("render vectors %d, helper vectors %d, of which pass B5 %d, drafts not rendered by any vector: %s\n"
+                         % (len(cases), len(helpers) + len(helpers_b5), len(helpers_b5), unused)).encode("utf-8"))
