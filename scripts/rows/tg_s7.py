@@ -79,6 +79,18 @@ def main():
     c0 = a.index("```text", a.index("## 5. The command"))
     command = "\n".join(a[c0 + 1:a.index("```", c0 + 1)])
 
+    # ---- every Hebrew literal fragment of the include, rendered or not, in item 13 or item 5
+    corpus = "\n".join("\n".join(drafts[k]) for k in order) + "\n" + command
+    fragments = []
+    for m in re.finditer(r'"((?:[^"\\]|\\.)*)"', src):
+        for f in m.group(1).split("\\n"):
+            f = f.replace('\\"', '"').replace("\\\\", "\\")
+            if heb(f):
+                fragments.append(f)
+    missing = [f for f in fragments if f not in corpus]
+    check("every Hebrew literal fragment found verbatim in item 13 or item 5", not missing,
+          "%d fragments, %d missing" % (len(fragments), len(missing)))
+
     by_md5, all_md5 = {}, {}
     for label in order:
         whole = "\n".join(drafts[label])
