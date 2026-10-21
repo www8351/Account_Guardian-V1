@@ -14,6 +14,7 @@
 #include <AccountGuardian/Persist.mqh>
 #include <AccountGuardian/Pnl.mqh>
 #include <AccountGuardian/Sweep.mqh>
+#include <AccountGuardian/AlertQueue.mqh>
 
 //--- core config class: malformed means the EA refuses to run (Q4). R10,
 //--- D1f (FINAL 2026-09-03): both limits are mandatory list inputs, the
@@ -126,6 +127,68 @@ bool     g_ag_lock_inputs_captured = false;
 bool     g_ag_obs_connected        = true;    // TERMINAL_CONNECTED, sampled every tick
 bool     g_ag_obs_resync_prev      = false;   // edge detector for the RESYNC lines
 
+//--- TELEGRAM ALERTS, TG-1 (B) of 2026-10-20, design addendum
+//--- docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md. THE EA MAKES NO NETWORK
+//--- CALL: it writes one file, the alert queue, and the alerts service reads
+//--- it and sends. EVERY GLOBAL BELOW IS WRITTEN BY THE PERMISSION READ, THE
+//--- ALERT PRODUCER OR THE QUEUE CODE AND READ BY THE BANNER, THE LIFE LINE
+//--- BUILDER, THEIR OWN JOURNAL LINES AND ALERTS, AND THE PRODUCER ONLY. No
+//--- state, transition, breach test, sweep branch or expiry reads any of
+//--- them, which static row TG-S16 checks by grep, the Stage 6 discipline.
+#define AG_BUILD_LABEL "TG"
+//--- the account wide trade permission, read once per tick in every state
+//--- (S12 in ACTIVE, rulings of 2026-10-20 and 2026-10-21)
+bool     g_ag_tp_blocked          = false;
+string   g_ag_tp_block_name       = "";     // the Q3 name, as AgTradeBlockName gives it
+int      g_ag_tp_block_code       = 0;      // 1 to 4 in the AgTradeBlockName order
+bool     g_ag_tp_episode          = false;  // a local journal episode is open, outside LOCKED
+int      g_ag_tp_episode_state    = 0;      // the guardian state the episode belongs to
+string   g_ag_tp_episode_name     = "";
+int      g_ag_tp_episode_ticks    = 0;      // for the AG_SWEEP_CADENCE_PASSES journal cadence
+//--- the queue model, in memory, written through AgAtomicWrite (quiet)
+AgTgEvent g_ag_tgq_events[];
+int      g_ag_tgq_count           = 0;
+long     g_ag_tgq_next_seq        = 1;
+long     g_ag_tgq_latch_anchor    = 0;      // the S9 latch's day anchor
+int      g_ag_tgq_s9_mask         = 0;      // the S9 levels fired
+bool     g_ag_tgq_loaded          = false;  // never loaded never written, applied by choice
+bool     g_ag_tgq_dirty           = false;
+datetime g_ag_tgq_last_write      = 0;      // local clock, A1 class
+int      g_ag_tgq_deferred        = 0;      // failed writes since the last success
+datetime g_ag_tgq_last_deferred   = 0;      // cadence of the deferral line
+datetime g_ag_tgq_last_load_warn  = 0;      // cadence of the load retry WARN
+AgTgEvent g_ag_tgq_held[];                  // pushed before the load succeeded
+int      g_ag_tgq_held_count      = 0;
+//--- the producer's memory of the last tick, reset in OnInit
+int      g_ag_tgp_prev_state      = 0;
+datetime g_ag_tgp_prev_locked_until = 0;
+bool     g_ag_tgp_first_exit_done = false;  // the first SYNCING exit after this init
+bool     g_ag_tgp_s1_pending      = false;  // S1 waits for the first completed ACTIVE pass
+bool     g_ag_tgp_s8_pending      = false;  // an expiry seen, its outcome not yet
+datetime g_ag_tgp_s8_expired_until = 0;
+bool     g_ag_tgp_prev_connected  = true;
+datetime g_ag_tgp_disc_local      = 0;
+datetime g_ag_tgp_disc_server     = 0;
+int      g_ag_tgp_prev_block_code = 0;
+datetime g_ag_tgp_prev_anchor     = 0;
+bool     g_ag_tgp_anchor_seeded   = false;
+int      g_ag_tgp_prev_fail_count = 0;
+datetime g_ag_tgp_last_s21        = 0;
+bool     g_ag_tgp_s22_sent        = false;
+bool     g_ag_tgp_s19_lock_sent   = false;
+datetime g_ag_tgp_s19_day_anchor  = 0;
+bool     g_ag_tgp_s24_sent        = false;
+int      g_ag_tgp_prev_write_fail = 0;
+bool     g_ag_tgp_s3_sent         = false;
+int      g_ag_tgp_dispatch_state  = 0;      // set in OnTimer just before the dispatch
+int      g_ag_tgp_dispatch_fails  = 0;
+//--- what OnInit found, for the events pushed at its end
+int      g_ag_tg_halt_kind        = 0;      // 1 crash loop, 2 persisted from an earlier session
+int      g_ag_tg_halt_chain       = 0;
+int      g_ag_tg_init_source_mask = 0;      // S16: 1 the state file unexpired, 2 the lock GV unexpired
+int      g_ag_tg_init_quarantine  = 0;      // S17 at load: bit 0 state, 1 halt, 2 floor, 3 peak, 4 queue
+bool     g_ag_tg_init_resumed     = false;  // S15
+
 //--- R10, D1f: the two limit inputs are enums whose backing integer is
 //--- the value. Every arithmetic read goes through these two accessors,
 //--- so no site can read the enum as if it were the double it replaced.
@@ -229,6 +292,10 @@ void AgRefreshBanner()
       if(sweep_sub != "")
          pnl += ", " + sweep_sub;
      }
+   //--- S12 in ACTIVE, local alerting (rulings of 2026-10-20 and 2026-10-21):
+   //--- the CANNOT_TRADE sub-condition on the ACTIVE line while a block holds
+   if(g_ag_state == AG_STATE_ACTIVE && g_ag_tp_blocked)
+      pnl += ", CANNOT_TRADE: " + g_ag_tp_block_name;
    AgBanner(AgStateName(g_ag_state), AgLockReasonName(g_ag_lock_reason), g_ag_locked_until, pnl);
   }
 
@@ -1042,23 +1109,663 @@ void AgEnterSafeHalt(const string reason)
   }
 
 //+------------------------------------------------------------------+
+//| TELEGRAM ALERTS, TG-1 (B), design addendum items 1, 2 and 8.     |
+//| The EA writes the alert queue and makes no network call. Nothing |
+//| here is called from AgEvaluateActive, AgBootDerivation,          |
+//| AgEvaluateLocked, AgDeclareLock, AgEnterLockFromBoot or          |
+//| AgTransition, and nothing here is read by a decision path: the   |
+//| producer reads, at the end of the tick, the globals those        |
+//| functions leave, and the two pure readers AgFloorEffectiveLimit  |
+//| and AgPeakEffectiveLevel reproduce what the pass enforced.       |
+//+------------------------------------------------------------------+
+
+//--- the common result line of every event, as the state reads now (1.2)
+void AgTgPnlNow(int &mode, double &pnl, double &limit)
+  {
+   if(g_ag_state == AG_STATE_LOCKED && g_ag_state_limit_snap > 0.0)
+     {
+      mode  = AG_TG_PNL_LOCKED;
+      pnl   = AccountInfoDouble(ACCOUNT_BALANCE) + AgFloating() - g_ag_state_base_snap;
+      limit = g_ag_state_limit_snap;
+      return;
+     }
+   if(g_ag_state == AG_STATE_ACTIVE && g_ag_have_pnl_numbers)
+     {
+      mode  = AG_TG_PNL_ACTIVE;
+      pnl   = g_ag_last_pnl;
+      limit = AgFloorEffectiveLimit(g_ag_last_limit, g_ag_last_anchor);
+      return;
+     }
+   //--- SYNCING, SAFE_HALT, ACTIVE before its first pass, and a CORRUPT_STATE
+   //--- lock, whose zeroed snapshot gives no day result to show
+   mode  = AG_TG_PNL_NONE;
+   pnl   = 0.0;
+   limit = 0.0;
+  }
+
+//--- numbered and appended; the bound applies at once (1.12)
+void AgTgAppend(AgTgEvent &e)
+  {
+   e.seq = g_ag_tgq_next_seq;
+   g_ag_tgq_next_seq++;
+   ArrayResize(g_ag_tgq_events, g_ag_tgq_count + 1);
+   g_ag_tgq_events[g_ag_tgq_count] = e;
+   g_ag_tgq_count++;
+   int forgotten = AgTgQueueTrim(g_ag_tgq_events, g_ag_tgq_count, AG_TGQ_MAX_EVENTS);
+   if(forgotten > 0)
+      AgWarn(AgTgQueueOverflowLine(forgotten));
+   g_ag_tgq_dirty = true;
+  }
+
+//--- one event, with its common line given; held until the load when the
+//--- queue is not loaded yet (1.4)
+void AgTgPushFull(const int code, const int pnl_mode, const double pnl, const double limit,
+                  const double x1 = 0, const double x2 = 0, const double x3 = 0, const double x4 = 0,
+                  const double x5 = 0, const double x6 = 0, const double x7 = 0, const double x8 = 0)
+  {
+   AgTgEvent e;
+   e.seq      = 0;
+   e.code     = code;
+   e.server_t = (long)TimeCurrent();
+   e.local_t  = (long)TimeLocal();
+   e.state    = (int)g_ag_state;
+   e.pnl_mode = pnl_mode;
+   e.balance  = AccountInfoDouble(ACCOUNT_BALANCE);
+   e.equity   = e.balance + AgFloating();
+   e.pnl      = pnl;
+   e.limit    = limit;
+   e.x[0] = x1; e.x[1] = x2; e.x[2] = x3; e.x[3] = x4;
+   e.x[4] = x5; e.x[5] = x6; e.x[6] = x7; e.x[7] = x8;
+   if(!g_ag_tgq_loaded)
+     {
+      ArrayResize(g_ag_tgq_held, g_ag_tgq_held_count + 1);
+      g_ag_tgq_held[g_ag_tgq_held_count] = e;
+      g_ag_tgq_held_count++;
+      return;
+     }
+   AgTgAppend(e);
+  }
+
+//--- one event, with the common line as the state reads now
+void AgTgPush(const int code, const double x1 = 0, const double x2 = 0, const double x3 = 0,
+              const double x4 = 0, const double x5 = 0, const double x6 = 0,
+              const double x7 = 0, const double x8 = 0)
+  {
+   int    mode  = AG_TG_PNL_NONE;
+   double pnl   = 0.0;
+   double limit = 0.0;
+   AgTgPnlNow(mode, pnl, limit);
+   AgTgPushFull(code, mode, pnl, limit, x1, x2, x3, x4, x5, x6, x7, x8);
+  }
+
+//--- the snapshot line's figures, all globals the code already keeps (item 2)
+void AgTgSnapshotNow(AgTgSnapshot &s)
+  {
+   double balance  = AccountInfoDouble(ACCOUNT_BALANCE);
+   double floating = AgFloating();
+   int    mode     = AG_TG_PNL_NONE;
+   double pnl      = 0.0;
+   double limit    = 0.0;
+   AgTgPnlNow(mode, pnl, limit);
+   double enforced = AgFloorEffectiveLimit(g_ag_last_limit, g_ag_last_anchor);
+   s.local_t          = (long)TimeLocal();
+   s.server_t         = (long)TimeCurrent();
+   s.state            = (int)g_ag_state;
+   s.reason           = (int)g_ag_lock_reason;
+   s.seconds_in_state = AgSecondsInState();
+   s.connected        = g_ag_obs_connected ? 1 : 0;
+   s.block            = g_ag_tp_block_code;
+   s.pnl_mode         = mode;
+   s.balance          = balance;
+   s.floating         = floating;
+   s.equity           = balance + floating;
+   s.pnl              = pnl;
+   s.limit            = limit;
+   s.live_limit       = g_ag_last_limit;
+   s.enforced_limit   = enforced;
+   s.peak             = g_ag_peak_currency;
+   s.peak_level       = AgPeakEffectiveLevel(enforced, g_ag_last_anchor);
+   s.anchor           = (long)g_ag_last_anchor;
+   s.locked_until     = (long)g_ag_locked_until;
+   s.limit_snap       = g_ag_state_limit_snap;
+   s.base_snap        = g_ag_state_base_snap;
+   s.percent          = AgInputPercent();
+   s.currency         = AgInputCurrency();
+   s.sweep_open       = AgSweepOpenCount();
+   s.sweep_held       = AgSweepHeldCount();
+  }
+
+//--- the write, quiet: a failure is a deferral journaled at the LIFE cadence
+//--- and retried on the next tick, never a popup (1.3). At most once per tick,
+//--- and only when something changed or the snapshot is 30 s old.
+void AgTgQueueWrite(const bool force)
+  {
+   if(!g_ag_tgq_loaded || !g_owns_mutex)
+      return;
+   datetime now_local = TimeLocal();
+   if(!force && !g_ag_tgq_dirty && g_ag_tgq_last_write != 0
+      && now_local - g_ag_tgq_last_write < AG_LIFE_INTERVAL_SECONDS)
+      return;
+   AgTgSnapshot s;
+   AgTgSnapshotNow(s);
+   string text = AgTgQueueSerialize(g_ag_login, g_ag_tgq_next_seq, g_ag_tgq_latch_anchor,
+                                    g_ag_tgq_s9_mask, AgTgSnapshotLine(s, AG_BUILD_LABEL),
+                                    g_ag_tgq_events, g_ag_tgq_count);
+   if(AgAtomicWrite(AgTgQueuePath(g_ag_login), text, true))
+     {
+      g_ag_tgq_dirty      = false;
+      g_ag_tgq_last_write = now_local;
+      g_ag_tgq_deferred   = 0;
+      return;
+     }
+   g_ag_tgq_deferred++;
+   if(g_ag_tgq_last_deferred == 0 || now_local - g_ag_tgq_last_deferred >= AG_LIFE_INTERVAL_SECONDS)
+     {
+      AgInfo(AgTgQueueDeferredLine(g_ag_tgq_deferred));
+      g_ag_tgq_last_deferred = now_local;
+     }
+  }
+
+//--- the events pushed before the load, numbered after the loaded ones
+void AgTgAppendHeld()
+  {
+   for(int i = 0; i < g_ag_tgq_held_count; i++)
+      AgTgAppend(g_ag_tgq_held[i]);
+   g_ag_tgq_held_count = 0;
+   ArrayResize(g_ag_tgq_held, 0);
+  }
+
+//--- the load, right after the mutex is acquired (1.4). A file that does not
+//--- parse is quarantined under a free name, never deleted (1.5); numbering
+//--- goes on from the larger of E.next_seq and the acknowledgement plus one.
+void AgTgQueueLoad()
+  {
+   string path    = AgTgQueuePath(g_ag_login);
+   double ack     = 0.0;
+   GlobalVariableGet(AgGvTgAck(g_ag_login), ack);
+   long   ack_seq = (long)ack;
+   if(!FileIsExist(path))
+     {
+      g_ag_tgq_count        = 0;
+      ArrayResize(g_ag_tgq_events, 0);
+      g_ag_tgq_next_seq     = ack_seq + 1;
+      g_ag_tgq_latch_anchor = 0;
+      g_ag_tgq_s9_mask      = 0;
+      g_ag_tgq_loaded       = true;
+      g_ag_tgq_dirty        = true;
+      AgInfo(AgTgQueueLoadedLine(0, g_ag_tgq_next_seq));
+      AgTgAppendHeld();
+      return;
+     }
+   string text = "";
+   if(!AgTgQueueReadText(path, text))
+     {
+      datetime now_local = TimeLocal();
+      if(g_ag_tgq_last_load_warn == 0 || now_local - g_ag_tgq_last_load_warn >= AG_LIFE_INTERVAL_SECONDS)
+        {
+         AgWarn("alerts queue exists but cannot be opened, error " + (string)GetLastError()
+                + "; nothing is written until a load succeeds, retried every tick");
+         g_ag_tgq_last_load_warn = now_local;
+        }
+      return;
+     }
+   long         login        = 0;
+   long         next_seq     = 0;
+   long         latch_anchor = 0;
+   int          s9_mask      = 0;
+   AgTgSnapshot snap;
+   string       build        = "";
+   AgTgEvent    loaded[];
+   int          count        = 0;
+   string       why          = "";
+   bool ok = AgTgQueueParse(text, login, next_seq, latch_anchor, s9_mask, snap, build, loaded, count, why);
+   if(ok && login != g_ag_login)
+     {
+      ok  = false;
+      why = "carries login " + (string)login;
+     }
+   if(!ok)
+     {
+      string bad = AgStateQuarantinePath(path);
+      if(!FileMove(path, 0, bad, FILE_REWRITE))
+         AgWarn("alerts queue quarantine move FAILED onto " + bad + ", error " + (string)GetLastError());
+      AgWarn(AgTgQueueQuarantinedLine(bad, why));
+      g_ag_tg_init_quarantine |= 16;
+      g_ag_tgq_count        = 0;
+      ArrayResize(g_ag_tgq_events, 0);
+      g_ag_tgq_next_seq     = ack_seq + 1;
+      g_ag_tgq_latch_anchor = 0;
+      g_ag_tgq_s9_mask      = 0;
+      g_ag_tgq_loaded       = true;
+      g_ag_tgq_dirty        = true;
+      AgTgAppendHeld();
+      return;
+     }
+   ArrayResize(g_ag_tgq_events, count);
+   for(int i = 0; i < count; i++)
+      g_ag_tgq_events[i] = loaded[i];
+   g_ag_tgq_count        = count;
+   AgTgQueueForget(g_ag_tgq_events, g_ag_tgq_count, ack_seq);
+   g_ag_tgq_next_seq     = MathMax(next_seq, ack_seq + 1);
+   g_ag_tgq_latch_anchor = latch_anchor;
+   g_ag_tgq_s9_mask      = s9_mask;
+   g_ag_tgq_loaded       = true;
+   g_ag_tgq_dirty        = true;
+   AgInfo(AgTgQueueLoadedLine(g_ag_tgq_count, g_ag_tgq_next_seq));
+   AgTgAppendHeld();
+  }
+
+//--- forget what the service has acknowledged, one GV read per tick (1.6)
+void AgTgAckRead()
+  {
+   double ack = 0.0;
+   if(!GlobalVariableGet(AgGvTgAck(g_ag_login), ack))
+      return;
+   if(AgTgQueueForget(g_ag_tgq_events, g_ag_tgq_count, (long)ack) > 0)
+      g_ag_tgq_dirty = true;
+  }
+
+//--- a refused start never touches the queue; one GV write instead (1.10)
+void AgTgSetRefused(const int code)
+  {
+   GlobalVariableSet(AgGvTgRefused(g_ag_login), (double)((long)TimeLocal() * 100 + code));
+   GlobalVariablesFlush();
+  }
+
+//--- which lock, halt, floor or peak file a loud write failure named (S17)
+int AgTgFileKind(const string path)
+  {
+   if(path == AgStatePath()) return 1;
+   if(path == AgHaltPath())  return 2;
+   if(path == AgFloorPath()) return 3;
+   if(path == AgPeakPath())  return 4;
+   return 0;
+  }
+
+//+------------------------------------------------------------------+
+//| S12 IN EVERY STATE (addendum item 8, rulings of 2026-10-20 and   |
+//| 2026-10-21). Sweep.mqh's four account wide reads, once per tick, |
+//| named as the sweep names them. Outside LOCKED it opens a local   |
+//| episode: the journal line at entry and every                     |
+//| AG_SWEEP_CADENCE_PASSES ticks, the restored line at exit, and in |
+//| ACTIVE one Alert at entry and one at exit and the banner's       |
+//| CANNOT_TRADE sub-condition. SYNCING and SAFE_HALT journal only.  |
+//| A block that still holds when the guardian enters ACTIVE opens   |
+//| an ACTIVE episode, with its Alert. Leaving ACTIVE while blocked  |
+//| ends the episode with no exit Alert; in LOCKED the sweep keeps   |
+//| its own lines and popups, unchanged. ALERTING ONLY: no state,    |
+//| transition, breach test, sweep branch or expiry reads the result.|
+//+------------------------------------------------------------------+
+void AgTgPermissionRead()
+  {
+   string name = "";
+   AgTradeAllowed(name);
+   g_ag_tp_block_name = name;
+   g_ag_tp_block_code = AgTgBlockCode(name);
+   g_ag_tp_blocked    = (g_ag_tp_block_code != 0);
+
+   int  st   = (int)g_ag_state;
+   bool want = g_ag_tp_blocked && st != AG_STATE_LOCKED;
+   if(g_ag_tp_episode && (!want || st != g_ag_tp_episode_state || name != g_ag_tp_episode_name))
+     {
+      if(!g_ag_tp_blocked)
+        {
+         AgInfo(AgTgTradeRestoredLine(g_ag_tp_episode_name,
+                                      AgStateName((ENUM_AG_STATE)g_ag_tp_episode_state)));
+         if(g_ag_tp_episode_state == AG_STATE_ACTIVE && st == AG_STATE_ACTIVE)
+            AgAlertEvent("trading restored while ACTIVE: " + g_ag_tp_episode_name + " cleared");
+        }
+      g_ag_tp_episode = false;
+     }
+   if(want && !g_ag_tp_episode)
+     {
+      g_ag_tp_episode       = true;
+      g_ag_tp_episode_state = st;
+      g_ag_tp_episode_name  = name;
+      g_ag_tp_episode_ticks = 0;
+      AgInfo(AgTgTradeBlockedLine(name, AgStateName((ENUM_AG_STATE)st)));
+      if(st == AG_STATE_ACTIVE)
+         AgAlertEvent("CANNOT_TRADE while ACTIVE: " + name
+                      + "; a breach would still lock the account, and the guardian could not"
+                      + " close positions until trading is restored");
+     }
+   else if(want)
+     {
+      g_ag_tp_episode_ticks++;
+      if(g_ag_tp_episode_ticks % AG_SWEEP_CADENCE_PASSES == 0)
+         AgInfo(AgTgTradeBlockedLine(name, AgStateName((ENUM_AG_STATE)st)));
+     }
+  }
+
+//--- the LIFE line's note while a block holds outside LOCKED
+string AgTgPermissionNote()
+  {
+   if(!g_ag_tp_blocked || g_ag_state == AG_STATE_LOCKED)
+      return "";
+   return "CANNOT_TRADE: " + g_ag_tp_block_name;
+  }
+
+//--- the sweep's four events, noted at their own sites in Sweep.mqh
+void AgTgDrainSweepNotes()
+  {
+   int n = ArraySize(g_ag_sweep_notes);
+   for(int i = 0; i < n; i++)
+     {
+      AgSweepNote note = g_ag_sweep_notes[i];
+      if(note.kind == AG_SWEEP_NOTE_COMPLETE)
+         AgTgPush(AG_TG_S6C, note.a, note.b, note.c, note.d, note.e);
+      else if(note.kind == AG_SWEEP_NOTE_HOLD)
+         AgTgPush(AG_TG_S6H, (double)note.ticket, note.is_order, note.a, (double)(long)note.next_open);
+      else if(note.kind == AG_SWEEP_NOTE_FLATTENED)
+         AgTgPush(AG_TG_S6F, (double)note.ticket, note.is_order);
+      else if(note.kind == AG_SWEEP_NOTE_ACCEL_DONE)
+         AgTgPush(AG_TG_S7, (double)note.ticket, note.a);
+     }
+   ArrayResize(g_ag_sweep_notes, 0);
+  }
+
+//+------------------------------------------------------------------+
+//| THE ALERT PRODUCER (addendum 1.11), at the end of OnTimer and    |
+//| just before the SAFE_HALT return. It compares this tick's        |
+//| globals with the ones it kept from the last tick and pushes      |
+//| events on the edges, then forgets what the service acknowledged  |
+//| and writes the queue. A completed ACTIVE pass is one the         |
+//| dispatch ran in ACTIVE with no DEGRADED or RESYNC return and no   |
+//| history read failure, read from the markers OnTimer sets just    |
+//| before the dispatch.                                             |
+//+------------------------------------------------------------------+
+void AgTgProduce()
+  {
+   if(!g_owns_mutex)
+      return;
+   if(!g_ag_tgq_loaded)
+      AgTgQueueLoad();   // a load OnInit could not take is retried every tick
+
+   int      st        = (int)g_ag_state;
+   int      prev      = g_ag_tgp_prev_state;
+   datetime now_local = TimeLocal();
+   bool pass_completed = (g_ag_tgp_dispatch_state == AG_STATE_ACTIVE)
+                         && !g_ag_degraded && !g_ag_resyncing
+                         && g_ag_history_fail_count == g_ag_tgp_dispatch_fails;
+
+   //--- S3, SAFE_HALT: once per init, on its first tick
+   if(st == AG_STATE_SAFE_HALT && !g_ag_tgp_s3_sent)
+     {
+      g_ag_tgp_s3_sent = true;
+      AgTgPush(AG_TG_S3, g_ag_tg_halt_kind, (double)(long)g_ag_halt_time, g_ag_tg_halt_chain,
+               AG_CRASH_LOOP_WINDOW_SECONDS);
+     }
+
+   //--- the SYNCING exits: the first after this init is S1 or S16, an exit
+   //--- after an expiry is S8
+   if(prev == AG_STATE_SYNCING && st == AG_STATE_ACTIVE && !g_ag_tgp_first_exit_done)
+     {
+      g_ag_tgp_first_exit_done = true;
+      g_ag_tgp_s1_pending      = true;   // the figures come with the first completed pass
+     }
+   if(prev == AG_STATE_SYNCING && st == AG_STATE_LOCKED)
+     {
+      if(g_ag_tgp_first_exit_done && g_ag_tgp_s8_pending)
+        {
+         g_ag_tgp_s8_pending = false;
+         AgTgPush(AG_TG_S8, 2, (double)(long)g_ag_locked_until, g_ag_state_limit_snap);
+        }
+      else
+        {
+         g_ag_tgp_first_exit_done = true;
+         int mask = (g_ag_tg_init_source_mask != 0) ? g_ag_tg_init_source_mask : 4;
+         AgTgPush(AG_TG_S16, (int)g_ag_lock_reason, (double)(long)g_ag_locked_until, mask,
+                  g_ag_state_limit_snap, PositionsTotal(), AgSweepCountPendings());
+        }
+     }
+   if(prev == AG_STATE_LOCKED && st == AG_STATE_SYNCING)
+     {
+      g_ag_tgp_s8_pending       = true;
+      g_ag_tgp_s8_expired_until = g_ag_tgp_prev_locked_until;
+     }
+
+   //--- the completed ACTIVE pass: S1, S8 released, S9, S19 held raise, S20
+   if(pass_completed)
+     {
+      double enforced   = AgFloorEffectiveLimit(g_ag_last_limit, g_ag_last_anchor);
+      double peak_level = AgPeakEffectiveLevel(enforced, g_ag_last_anchor);
+      if(g_ag_tgp_s1_pending)
+        {
+         g_ag_tgp_s1_pending = false;
+         AgTgPushFull(AG_TG_S1, AG_TG_PNL_ACTIVE, g_ag_last_pnl, enforced,
+                      AgInputPercent(), AgInputCurrency(), g_ag_last_limit, enforced);
+        }
+      if(g_ag_tgp_s8_pending && st == AG_STATE_ACTIVE)
+        {
+         g_ag_tgp_s8_pending = false;
+         AgTgPushFull(AG_TG_S8, AG_TG_PNL_ACTIVE, g_ag_last_pnl, enforced,
+                      1, (double)(long)g_ag_tgp_s8_expired_until, enforced);
+        }
+      if(st == AG_STATE_ACTIVE)
+        {
+         //--- S9 (TG-3 (B)). The latch lives in the queue file's E line, so a
+         //--- restart neither repeats a level nor loses one.
+         if(g_ag_tgq_latch_anchor != (long)g_ag_last_anchor)
+           {
+            g_ag_tgq_latch_anchor = (long)g_ag_last_anchor;
+            g_ag_tgq_s9_mask      = 0;
+            g_ag_tgq_dirty        = true;
+           }
+         double share       = AgTgShareUsed(peak_level, enforced, g_ag_last_pnl);
+         int    mask_before = g_ag_tgq_s9_mask;
+         int    level       = AgTgS9Step(share, g_ag_tgq_s9_mask);
+         if(g_ag_tgq_s9_mask != mask_before)
+            g_ag_tgq_dirty = true;
+         if(level > 0)
+            AgTgPushFull(AG_TG_S9, AG_TG_PNL_ACTIVE, g_ag_last_pnl, enforced,
+                         level, share, enforced, g_ag_last_pnl - peak_level);
+         //--- S19, a raised limit the ratchet holds, once per day
+         if(g_ag_last_limit > enforced + AG_PNL_EPSILON && g_ag_tgp_s19_day_anchor != g_ag_last_anchor)
+           {
+            g_ag_tgp_s19_day_anchor = g_ag_last_anchor;
+            AgTgPushFull(AG_TG_S19, AG_TG_PNL_ACTIVE, g_ag_last_pnl, enforced,
+                         2, g_ag_last_limit, enforced);
+           }
+        }
+      //--- S20, the day anchor advanced by more than one day
+      if(g_ag_tgp_anchor_seeded && (long)g_ag_last_anchor - (long)g_ag_tgp_prev_anchor > 86400)
+         AgTgPushFull(AG_TG_S20, AG_TG_PNL_ACTIVE, g_ag_last_pnl, enforced,
+                      (double)(long)g_ag_tgp_prev_anchor, (double)(long)g_ag_last_anchor,
+                      (double)((long)g_ag_last_anchor - (long)g_ag_tgp_prev_anchor));
+      g_ag_tgp_prev_anchor   = g_ag_last_anchor;
+      g_ag_tgp_anchor_seeded = true;
+     }
+
+   //--- S4, ACTIVE to LOCKED, with the breach pass's figures. The crossed
+   //--- limit by the plan's field map: the peak when the peak set the level,
+   //--- else the held floor when it was below the live limit, else the smaller
+   //--- of the two legs.
+   if(prev == AG_STATE_ACTIVE && st == AG_STATE_LOCKED)
+     {
+      double snap = g_ag_state_limit_snap;
+      int    kind = 2;
+      if(AgPeakEffectiveLevel(snap, g_ag_last_anchor) > -snap)
+         kind = 4;
+      else if(snap < g_ag_last_limit - AG_PNL_EPSILON)
+         kind = 3;
+      else if(g_ag_last_base * AgInputPercent() / 100.0 <= AgInputCurrency())
+         kind = 1;
+      AgTgPushFull(AG_TG_S4, AG_TG_PNL_ACTIVE, g_ag_last_pnl, snap,
+                   kind, (double)(long)g_ag_locked_until, snap, AgInputPercent(), AgInputCurrency(),
+                   g_ag_peak_currency, PositionsTotal(), AgSweepCountPendings());
+     }
+
+   //--- S10, the broker connection back after 30 s or more
+   if(g_ag_tgp_prev_connected && !g_ag_obs_connected)
+     {
+      g_ag_tgp_disc_local  = now_local;
+      g_ag_tgp_disc_server = TimeCurrent();
+     }
+   else if(!g_ag_tgp_prev_connected && g_ag_obs_connected && g_ag_tgp_disc_local > 0)
+     {
+      int gap = (int)(now_local - g_ag_tgp_disc_local);
+      if(gap >= 30)
+         AgTgPush(AG_TG_S10, (double)(long)g_ag_tgp_disc_server, (double)(long)TimeCurrent(), gap);
+      g_ag_tgp_disc_local = 0;
+     }
+   g_ag_tgp_prev_connected = g_ag_obs_connected;
+
+   //--- S12, each edge of the account wide block, in every state
+   if(g_ag_tp_block_code != g_ag_tgp_prev_block_code)
+     {
+      if(g_ag_tp_block_code != 0)
+         AgTgPush(AG_TG_S12, 1, g_ag_tp_block_code, st);
+      else
+         AgTgPush(AG_TG_S12, 0, g_ag_tgp_prev_block_code, st);
+      g_ag_tgp_prev_block_code = g_ag_tp_block_code;
+     }
+
+   //--- S17, a loud write failure of a lock, halt, floor or peak file
+   if(g_ag_write_fail_count != g_ag_tgp_prev_write_fail)
+     {
+      g_ag_tgp_prev_write_fail = g_ag_write_fail_count;
+      AgTgPush(AG_TG_S17, AgTgFileKind(g_ag_write_fail_path), 1);
+     }
+
+   //--- S19 while LOCKED: live inputs that differ from the captured ones,
+   //--- the condition AgEvaluateLocked journals, once per lock
+   if(prev != AG_STATE_LOCKED && st == AG_STATE_LOCKED)
+      g_ag_tgp_s19_lock_sent = false;
+   if(st == AG_STATE_LOCKED && !g_ag_tgp_s19_lock_sent && g_ag_lock_inputs_captured
+      && (AgInputPercent() != g_ag_locked_in_percent || AgInputCurrency() != g_ag_locked_in_currency))
+     {
+      g_ag_tgp_s19_lock_sent = true;
+      int which = ((AgInputPercent() != g_ag_locked_in_percent) ? 1 : 0)
+                + ((AgInputCurrency() != g_ag_locked_in_currency) ? 2 : 0);
+      AgTgPush(AG_TG_S19, 1, AgInputPercent(), g_ag_state_limit_snap, AgInputCurrency(), which);
+     }
+
+   //--- S21, a history read failure or a derivation not evaluable, at most
+   //--- once per 300 s
+   if(g_ag_history_fail_count != g_ag_tgp_prev_fail_count)
+     {
+      g_ag_tgp_prev_fail_count = g_ag_history_fail_count;
+      if(g_ag_tgp_last_s21 == 0 || now_local - g_ag_tgp_last_s21 >= 300)
+        {
+         g_ag_tgp_last_s21 = now_local;
+         bool not_evaluable = (g_ag_dynamic_waiting_on == "boot derivation not evaluable, retrying");
+         AgTgPush(AG_TG_S21, not_evaluable ? 2 : 1, g_ag_history_fail_count);
+        }
+     }
+
+   //--- S22, SYNCING for 300 s or more, once per occupancy
+   if(st != AG_STATE_SYNCING)
+      g_ag_tgp_s22_sent = false;
+   else if(!g_ag_tgp_s22_sent && AgSecondsInState() >= 300)
+     {
+      g_ag_tgp_s22_sent = true;
+      AgTgPush(AG_TG_S22, AgSecondsInState(), g_ag_obs_connected ? 2 : 1);
+     }
+
+   //--- S24, the mutex overwritten by another instance
+   if(g_ag_mutex_overwritten && !g_ag_tgp_s24_sent)
+     {
+      g_ag_tgp_s24_sent = true;
+      AgTgPush(AG_TG_S24);
+     }
+
+   AgTgDrainSweepNotes();
+
+   g_ag_tgp_prev_state        = st;
+   g_ag_tgp_prev_locked_until = g_ag_locked_until;
+
+   AgTgAckRead();
+   AgTgQueueWrite(false);
+  }
+
+//--- at the top of OnInit: an in place re-init inherits every global, so
+//--- the alert state starts afresh here and the queue is loaded again
+void AgTgInitReset()
+  {
+   g_ag_tgq_loaded          = false;
+   g_ag_tgq_dirty           = false;
+   g_ag_tgq_count           = 0;
+   ArrayResize(g_ag_tgq_events, 0);
+   g_ag_tgq_held_count      = 0;
+   ArrayResize(g_ag_tgq_held, 0);
+   g_ag_tgq_last_write      = 0;
+   g_ag_tgq_deferred        = 0;
+   g_ag_tgq_last_deferred   = 0;
+   g_ag_tgq_last_load_warn  = 0;
+   ArrayResize(g_ag_sweep_notes, 0);
+   g_ag_tp_blocked          = false;
+   g_ag_tp_block_name       = "";
+   g_ag_tp_block_code       = 0;
+   g_ag_tp_episode          = false;
+   g_ag_tp_episode_state    = 0;
+   g_ag_tp_episode_name     = "";
+   g_ag_tp_episode_ticks    = 0;
+   g_ag_tgp_prev_state      = 0;
+   g_ag_tgp_prev_locked_until = 0;
+   g_ag_tgp_first_exit_done = false;
+   g_ag_tgp_s1_pending      = false;
+   g_ag_tgp_s8_pending      = false;
+   g_ag_tgp_s8_expired_until = 0;
+   g_ag_tgp_prev_connected  = true;
+   g_ag_tgp_disc_local      = 0;
+   g_ag_tgp_disc_server     = 0;
+   g_ag_tgp_prev_block_code = 0;
+   g_ag_tgp_prev_anchor     = 0;
+   g_ag_tgp_anchor_seeded   = false;
+   g_ag_tgp_prev_fail_count = g_ag_history_fail_count;
+   g_ag_tgp_last_s21        = 0;
+   g_ag_tgp_s22_sent        = false;
+   g_ag_tgp_s19_lock_sent   = false;
+   g_ag_tgp_s19_day_anchor  = 0;
+   g_ag_tgp_s24_sent        = false;
+   g_ag_tgp_prev_write_fail = g_ag_write_fail_count;
+   g_ag_tgp_s3_sent         = false;
+   g_ag_tgp_dispatch_state  = 0;
+   g_ag_tgp_dispatch_fails  = g_ag_history_fail_count;
+   g_ag_tg_halt_kind        = 0;
+   g_ag_tg_halt_chain       = 0;
+   g_ag_tg_init_source_mask = 0;
+   g_ag_tg_init_quarantine  = 0;
+   g_ag_tg_init_resumed     = false;
+  }
+
+//--- before each successful return of OnInit: the events OnInit found,
+//--- with the state OnInit leaves, and the producer's starting state
+void AgTgInitEvents()
+  {
+   if(g_ag_tg_init_resumed)
+      AgTgPush(AG_TG_S15);
+   if(g_ag_mutex_takeover_age > 0)
+      AgTgPush(AG_TG_S18, g_ag_mutex_takeover_age);
+   for(int kind = 1; kind <= 5; kind++)
+      if((g_ag_tg_init_quarantine & (1 << (kind - 1))) != 0)
+         AgTgPush(AG_TG_S17, kind, 2);
+   g_ag_tgp_prev_state = (int)g_ag_state;
+  }
+
+//+------------------------------------------------------------------+
 int OnInit()
   {
    g_ag_verbosity = LogVerbosity;
    g_ag_login     = AccountInfoInteger(ACCOUNT_LOGIN);
-   //--- build label, standing rule 7's identity channel: ENF names the
-   //--- content of this build, the enforcement phase (ruling
-   //--- ENF-26(a) of 2026-09-16).
-   AgInfo("init|build=PK|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
+   //--- build label, standing rule 7's identity channel: TG names the
+   //--- content of this build, the Telegram alerts (TG-1 (B) of
+   //--- 2026-10-20, design addendum item 10).
+   AgInfo("init|build=" + AG_BUILD_LABEL + "|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
    //--- sweep state is in memory only and starts empty in every image; the
    //--- LOCKED entry resets it again so each lock episode starts from zero
    AgSweepReset();
+   //--- Telegram alerts: the alert state starts afresh in every init, an in
+   //--- place re-init included, and the queue is loaded after the mutex
+   AgTgInitReset();
 
    //--- core config validation (Q4): refuse to run, visibly
    string why = "";
    if(!AgValidateLimits((int)DailyLossPercent, (int)DailyLossCurrency, why))
      {
       AgAlertEvent("refusing to run, core config invalid: " + why);
+      //--- Telegram alerts (1.10): a refused start sets one GV, never the queue
+      AgTgSetRefused(AgDailyLossPercentIsMember((int)DailyLossPercent) ? 2 : 1);
       return AgRefuseInit(INIT_PARAMETERS_INCORRECT, "core config invalid: " + why);
      }
    AgInfo("limits accepted|percent=" + DoubleToString(AgInputPercent(), 2)
@@ -1079,14 +1786,20 @@ int OnInit()
      {
       AgAlertEvent("refusing to run: another AccountGuardian instance is live on account "
                    + (string)g_ag_login);
+      AgTgSetRefused(3);
       return AgRefuseInit(INIT_FAILED, "duplicate instance: another instance holds the mutex");
      }
    g_owns_mutex = true;
+   //--- Telegram alerts (1.4): the queue, right after the mutex and before any
+   //--- branch that returns; a load that cannot be taken now is retried per tick
+   AgTgQueueLoad();
 
    //--- crash-loop evidence, persisted across process death (A1)
    int load_result = AgHaltLoad();
    if(load_result == 1)
       AgVerbose("no halt file, first session on this account");
+   else if(load_result == 2)
+      g_ag_tg_init_quarantine |= 2;   // Telegram alerts, S17 at load
 
    //--- Lock state file. The load is required before any write can be
    //--- legitimate: the FINAL never-loaded-never-written rule names this file
@@ -1106,6 +1819,11 @@ int OnInit()
       AgWarn("lock state file was quarantined at load (code " + (string)state_result
              + "); a fresh CORRUPT_STATE file was written and the boot derivation"
              " will weigh it at the SYNCING exit");
+   //--- Telegram alerts: the S16 lock source and the S17 quarantine at load
+   if(state_result == 0 && g_ag_state_reason != AG_LOCK_NONE && g_ag_state_locked_until > TimeCurrent())
+      g_ag_tg_init_source_mask |= 1;
+   if(state_result == 2 || state_result == 3)
+      g_ag_tg_init_quarantine |= 1;
 
    //--- GV lock mirror, reported beside the state file (defect 2 witness line,
    //--- ruling D2D4-2(b) of 2026-09-09): what the mirror held at the
@@ -1120,6 +1838,8 @@ int OnInit()
    GlobalVariableGet(AgGvLock(), gv_init);
    AgInfo("lock GV mirror at init|raw=" + TimeToString((datetime)(long)gv_init, TIME_DATE | TIME_SECONDS)
           + "|weighed by the boot derivation at the SYNCING exit");
+   if((datetime)(long)gv_init > TimeCurrent())
+      g_ag_tg_init_source_mask |= 2;   // Telegram alerts, the S16 lock source
 
    //--- Ratchet floor (Phase 2 Stage 5). Loaded for the same reason the state
    //--- file is: AgFloorSave refuses while g_ag_floor_loaded is false, so
@@ -1134,9 +1854,12 @@ int OnInit()
    else if(floor_result == 1)
       AgVerbose("no ratchet floor file, first session on this account");
    else
+     {
       AgWarn("ratchet floor file was quarantined at load (code " + (string)floor_result
              + "); it reseeds from the live limit on the next completed pass"
              " and no lock follows, the floor not being lock state");
+      g_ag_tg_init_quarantine |= 4;   // Telegram alerts, S17 at load
+     }
 
    //--- Realized peak (version 1, D6 and D3.1 FINAL 2026-08-24). Loaded for
    //--- the same reason the floor is: AgPeakSave refuses while
@@ -1157,9 +1880,12 @@ int OnInit()
    else if(peak_result == 1)
       AgVerbose("no realized peak file, first session on this account");
    else
+     {
       AgWarn("realized peak file was quarantined at load (code " + (string)peak_result
              + "); it reconstructs from today's deal history on the next completed pass"
              " and no lock follows, the peak not being lock state");
+      g_ag_tg_init_quarantine |= 8;   // Telegram alerts, S17 at load
+     }
 
    double gv_halt = 0.0;
    bool   was_halted_before = (GlobalVariableGet(AgGvHaltFlag(), gv_halt) && gv_halt > 0.5);
@@ -1169,6 +1895,7 @@ int OnInit()
       GlobalVariableSet(AgGvHaltFlag(), 0.0);
       GlobalVariablesFlush();
       AgInfo("RESUMED_FROM_SAFE_HALT|halt file removed by hand, documented manual resume procedure");
+      g_ag_tg_init_resumed = true;   // Telegram alerts, S15
      }
 
    if(g_ag_halt_flag)
@@ -1181,6 +1908,8 @@ int OnInit()
                    + ". Delete " + AgHaltPath() + " while the EA is stopped, then restart.");
       AgRefreshBanner();
       AgArmTimer();
+      g_ag_tg_halt_kind = 2;   // Telegram alerts, S3 persisted from an earlier session
+      AgTgInitEvents();
       return INIT_SUCCEEDED;
      }
 
@@ -1194,6 +1923,9 @@ int OnInit()
       AgEnterSafeHalt("crash loop: " + (string)chain + " consecutive unclean sessions, adjacent inits within "
                       + (string)AG_CRASH_LOOP_WINDOW_SECONDS + "s, limit " + (string)AG_CRASH_LOOP_MAX_INITS);
       AgArmTimer();
+      g_ag_tg_halt_kind  = 1;   // Telegram alerts, S3 crash loop
+      g_ag_tg_halt_chain = chain;
+      AgTgInitEvents();
       return INIT_SUCCEEDED;
      }
    AgVerbose("crash-loop check|chain=" + (string)chain + "/" + (string)AG_CRASH_LOOP_MAX_INITS
@@ -1203,6 +1935,7 @@ int OnInit()
                 + "|timer=" + (string)AG_SWEEP_PERIOD_SECONDS + "s");
    AgRefreshBanner();
    AgArmTimer();
+   AgTgInitEvents();
    return INIT_SUCCEEDED;
   }
 
@@ -1280,6 +2013,10 @@ void OnTimer()
    //--- entirely offline on 2026-08-14 were indistinguishable from healthy
    //--- ones to any reader.
    g_ag_obs_connected = (bool)TerminalInfoInteger(TERMINAL_CONNECTED);
+   //--- Telegram alerts, S12 in every state (rulings of 2026-10-20 and
+   //--- 2026-10-21, addendum item 8): the four permission reads once per tick,
+   //--- here so this tick's LIFE line and banner reflect them. Alerting only.
+   AgTgPermissionRead();
 
    string waiting_on = AgWaitingOn();
    string obs_note   = AgObservabilityNote();
@@ -1289,12 +2026,24 @@ void OnTimer()
       if(!is_degraded_note || g_ag_state == AG_STATE_SYNCING || g_ag_state == AG_STATE_LOCKED)
          waiting_on = (waiting_on == "") ? obs_note : (waiting_on + "|" + obs_note);
      }
+   string tp_note = AgTgPermissionNote();
+   if(tp_note != "")
+      waiting_on = (waiting_on == "") ? tp_note : (waiting_on + "|" + tp_note);
    AgProofOfLife(AgStateName(g_ag_state), AgSecondsInState(), waiting_on,
                  AG_LIFE_INTERVAL_SECONDS, AgPnlNumbersString());
    AgRefreshBanner();
 
+   //--- Telegram alerts: what the dispatch below starts from, so the producer
+   //--- can tell a completed ACTIVE pass from an early return. Read by the
+   //--- producer only.
+   g_ag_tgp_dispatch_state = (int)g_ag_state;
+   g_ag_tgp_dispatch_fails = g_ag_history_fail_count;
+
    if(g_ag_state == AG_STATE_SAFE_HALT)
+     {
+      AgTgProduce();   // Telegram alerts: SAFE_HALT ticks write the queue too
       return;   // closes nothing, sweeps nothing, no expiry: daily PnL logic never runs here
+     }
 
    //--- per-state dispatch (A6, 4.4). LOCKED is an explicit empty case so
    //--- Phase 2 adds expiry and witness code without touching this branch.
@@ -1369,6 +2118,10 @@ void OnTimer()
          AgInfo("RESYNC exited|history stable again, evaluation resumes");
       g_ag_obs_resync_prev = g_ag_resyncing;
      }
+
+   //--- Telegram alerts (addendum 1.11): the producer, last in the tick, after
+   //--- every dispatch and every line above it
+   AgTgProduce();
   }
 
 //+------------------------------------------------------------------+
@@ -1429,6 +2182,18 @@ void OnDeinit(const int reason)
       AgInfo("deinit|halt file NOT written: the halt model was never loaded this session"
              + " (init refused before AgHaltLoad), so writing it would erase the session"
              + " history and any persisted halt flag");
+   //--- Telegram alerts, TG-13 (B) read under TG-1 (B), addendum item 7: the
+   //--- stop event is written after the halt clean mark and before the mutex
+   //--- heartbeat is released, so a released mutex heartbeat means the stop
+   //--- event is already on disk. A refused init (reason 8) owns no queue and
+   //--- writes none.
+   if(g_owns_mutex && g_ag_tgq_loaded && reason != REASON_INITFAILED)
+     {
+      AgTgDrainSweepNotes();
+      AgTgAckRead();
+      AgTgPush(AG_TG_S2, reason);
+      AgTgQueueWrite(true);
+     }
    if(g_owns_mutex)
       AgMutexRelease();
    AgInfo("deinit|reason=" + (string)reason + "|session marked clean"
