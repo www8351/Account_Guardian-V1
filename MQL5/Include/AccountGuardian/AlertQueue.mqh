@@ -454,6 +454,14 @@ int AgTgQueueForget(AgTgEvent &events[], int &count, const long ack)
    return forgotten;
   }
 
+//--- numbering after a load (addendum 1.6): the larger of the file's next
+//--- seq and the acknowledgement plus one, so a queue file lost while the
+//--- acknowledgement survives never reuses a number the service has passed
+long AgTgNextSeqAfterLoad(const long file_next_seq, const long ack)
+  {
+   return (file_next_seq > ack + 1) ? file_next_seq : ack + 1;
+  }
+
 //--- the bound (addendum 1.12): keep the oldest unacknowledged event and the
 //--- newest max_events - 1, forget the ones between; returns how many
 int AgTgQueueTrim(AgTgEvent &events[], int &count, const int max_events)

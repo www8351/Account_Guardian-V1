@@ -1346,7 +1346,7 @@ void AgTgQueueLoad()
       g_ag_tgq_events[i] = loaded[i];
    g_ag_tgq_count        = count;
    AgTgQueueForget(g_ag_tgq_events, g_ag_tgq_count, ack_seq);
-   g_ag_tgq_next_seq     = MathMax(next_seq, ack_seq + 1);
+   g_ag_tgq_next_seq     = AgTgNextSeqAfterLoad(next_seq, ack_seq);
    g_ag_tgq_latch_anchor = latch_anchor;
    g_ag_tgq_s9_mask      = s9_mask;
    g_ag_tgq_loaded       = true;
