@@ -116,7 +116,7 @@ foreach ($mediaPath in ([System.Text.Encoding]::UTF8.GetString($mediaListBytes) 
     $mediaBytes = Invoke-GitCapture -ArgumentText ('cat-file blob "' + $commitHash + ':' + $mediaPath + '"')
     Write-ExportedFile -RelativePath $mediaPath -Bytes $mediaBytes
 }
-$ignoreText = "# Build output and the installer's own run files`n*.ex5`ninstaller/install-log.txt`ninstaller/compile.log`n"
+$ignoreText = "# Build output and the installer's own run files`n*.ex5`ninstaller/install-log.txt`ninstaller/compile.log`ninstaller/compile-service.log`n"
 Write-ExportedFile -RelativePath '.gitignore' -Bytes ([System.Text.Encoding]::ASCII.GetBytes($ignoreText))
 
 # Check 1: the exported bytes against the manifest.

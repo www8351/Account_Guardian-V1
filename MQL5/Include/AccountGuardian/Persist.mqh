@@ -59,6 +59,12 @@ bool     g_ag_halt_loaded = false;
 
 // --- mutex ----------------------------------------------------------
 double   g_ag_instance_id = 0.0;
+//--- Telegram alerts build: what AgMutexAcquire saw when it took over a
+//--- stale mutex (the S18 downtime, 0 when no takeover happened), and
+//--- whether AgMutexRefresh ever saw the mutex overwritten (S24). Both are
+//--- read by the EA's alert producer only.
+int      g_ag_mutex_takeover_age = 0;
+bool     g_ag_mutex_overwritten  = false;
 
 // --- lock state file in-memory model (design doc item 5) -------------
 // Its own model, mirroring the halt file's, rather than writing State.mqh's
@@ -105,11 +111,22 @@ uint AgChecksum(const string payload)
    return hash;
   }
 
+//--- Telegram alerts build (TG-1 (B), design addendum item 1.3): the last
+//--- loud write failure, read by the EA's alert producer for the S17
+//--- event. Set beside the ALERT and read by nothing on a decision path.
+string g_ag_write_fail_path  = "";
+int    g_ag_write_fail_count = 0;
+
 //+------------------------------------------------------------------+
 //| Atomic write: tmp, FileFlush, FileMove FILE_REWRITE (SPEC 3).    |
 //| Failures are loud and reported to the caller.                    |
+//| quiet (Telegram alerts build): the alert queue file alone passes |
+//| true. It carries no lock or halt state, so a failed open or      |
+//| rename raises no state-write ALERT; the caller journals the      |
+//| deferral and retries. Every other call keeps the default and     |
+//| behaves exactly as before.                                       |
 //+------------------------------------------------------------------+
-bool AgAtomicWrite(const string path, const string content)
+bool AgAtomicWrite(const string path, const string content, const bool quiet = false)
   {
    if(!FolderCreate(AG_FILES_DIR))
      {
@@ -120,7 +137,11 @@ bool AgAtomicWrite(const string path, const string content)
    int handle = FileOpen(tmp, FILE_WRITE | FILE_TXT | FILE_ANSI);
    if(handle == INVALID_HANDLE)
      {
+      if(quiet)
+         return false;
       AgAlertEvent("state-write failure: cannot open " + tmp + ", error " + (string)GetLastError());
+      g_ag_write_fail_path = path;
+      g_ag_write_fail_count++;
       return false;
      }
    FileWriteString(handle, content);
@@ -128,7 +149,11 @@ bool AgAtomicWrite(const string path, const string content)
    FileClose(handle);
    if(!FileMove(tmp, 0, path, FILE_REWRITE))
      {
+      if(quiet)
+         return false;
       AgAlertEvent("state-write failure: cannot rename " + tmp + " onto " + path + ", error " + (string)GetLastError());
+      g_ag_write_fail_path = path;
+      g_ag_write_fail_count++;
       return false;
      }
    return true;
@@ -1226,6 +1251,7 @@ double AgPeakUpdate(const datetime window_anchor, const double enforced_limit,
 //+------------------------------------------------------------------+
 bool AgMutexAcquire()
   {
+   g_ag_mutex_takeover_age = 0;
    double hb = 0.0;
    if(GlobalVariableGet(AgGvHeartbeat(), hb) && hb > 0.5)
      {
@@ -1233,6 +1259,7 @@ bool AgMutexAcquire()
       if(age < AG_MUTEX_STALE_SECONDS)
          return false;                          // live instance holds it
       AgWarn("stale mutex heartbeat (" + DoubleToString(age, 0) + "s), taking over crashed-instance mutex");
+      g_ag_mutex_takeover_age = (int)age;
      }
    g_ag_instance_id = (double)GetTickCount() * 65536.0 + (double)MathRand();
 
@@ -1268,6 +1295,7 @@ void AgMutexRefresh()
    if(GlobalVariableGet(AgGvInstance(), id) && id != g_ag_instance_id)
      {
       AgAlertEvent("instance mutex overwritten by another instance, this should not happen");
+      g_ag_mutex_overwritten = true;
       return;
      }
    datetime hb_now = TimeLocal();              // A1 clock exemption

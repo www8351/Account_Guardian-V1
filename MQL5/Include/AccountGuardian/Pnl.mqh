@@ -31,6 +31,11 @@
 //+------------------------------------------------------------------+
 #define AG_PNL_EPSILON 0.01
 
+//--- Telegram alerts build (TG-1 (B), design addendum item 1.11, S21): one
+//--- count of the HistorySelect failures below, raised beside each WARN.
+//--- Read by the EA's alert producer only, never by a decision path.
+int g_ag_history_fail_count = 0;
+
 //+------------------------------------------------------------------+
 //| Sums one deal's contribution per the ruled formula (Q3 FINAL,    |
 //| 2026-08-08): profit, swap, commission and fee, uniformly over    |
@@ -148,6 +153,7 @@ double AgRealizedRunFold(const datetime anchor, bool &ok, double &running_min,
       AgWarn("HistorySelect failed for the realized window, anchor="
              + TimeToString(anchor, TIME_DATE | TIME_SECONDS)
              + ": treated as a stability failure, never as zero deals");
+      g_ag_history_fail_count++;
       return 0.0;
      }
 
@@ -309,6 +315,7 @@ double AgDealsSumAll(const datetime anchor, bool &ok)
       AgWarn("HistorySelect failed for the day-base window, anchor="
              + TimeToString(anchor, TIME_DATE | TIME_SECONDS)
              + ": treated as a stability failure, never as zero deals");
+      g_ag_history_fail_count++;
       return 0.0;
      }
    double sum = 0.0;
@@ -520,6 +527,7 @@ bool AgHistoryStable(const int required_polls)
      {
       g_ag_stable_polls = 0;
       AgWarn("HistorySelect failed during the SYNCING stability poll: stability counter reset");
+      g_ag_history_fail_count++;
       return false;
      }
    long total = HistoryDealsTotal();

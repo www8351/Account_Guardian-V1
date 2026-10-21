@@ -39,6 +39,9 @@
 
 #include <AccountGuardian/Persist.mqh>
 #include <AccountGuardian/SweepPolicy.mqh>
+#include <AccountGuardian/AlertQueue.mqh>
+#include <AccountGuardian/AlertJson.mqh>
+#include <AccountGuardian/AlertText.mqh>
 
 //--- Synthetic logins. None of these is a real account and none of them
 //--- may ever equal the live one; vector 0 enforces that.
@@ -132,6 +135,51 @@ string AgVecReadRaw(const string path)
    return out;
   }
 
+//--- TG: the md5 of a string's UTF-8 bytes, the trailing zero dropped
+string AgVecMd5Hex(const string s)
+  {
+   uchar data[];
+   uchar key[];
+   uchar hash[];
+   int n = StringToCharArray(s, data, 0, WHOLE_ARRAY, CP_UTF8);
+   if(n > 0)
+      ArrayResize(data, n - 1);
+   if(CryptEncode(CRYPT_HASH_MD5, data, key, hash) <= 0)
+      return "";
+   string hex = "";
+   for(int i = 0; i < ArraySize(hash); i++)
+      hex += StringFormat("%02X", hash[i]);
+   return hex;
+  }
+
+void AgVecMd5(const string name, const string got, const string want_md5)
+  {
+   string m = AgVecMd5Hex(got);
+   AgVecCheck(name, m == want_md5, "md5=" + m + " text=" + got);
+  }
+
+//--- one line of a rendered message, 0 based
+string AgVecLine(const string text, const int index)
+  {
+   string parts[];
+   int n = StringSplit(text, '\n', parts);
+   return (index < n) ? parts[index] : "";
+  }
+
+//--- the common lines of a draft: the demo account of the drafts
+void AgVecC(AgTgCommon &c, const datetime server_t, const double balance, const double equity,
+            const double pnl, const int mode, const double limit, const int state)
+  {
+   c.login    = 1200252169;
+   c.server_t = server_t;
+   c.balance  = balance;
+   c.equity   = equity;
+   c.pnl      = pnl;
+   c.limit    = limit;
+   c.pnl_mode = mode;
+   c.state    = state;
+  }
+
 //--- A well-formed body plus a correct checksum line.
 string AgVecSealed(const string body) { return body + "C|" + (string)AgChecksum(body) + "\n"; }
 
@@ -145,6 +193,281 @@ string AgVecBody(const long login, const int reason, const datetime until,
           + "L|" + (string)reason + "|" + (string)((long)until) + "|" + (string)((long)breach) + "\n"
           + "N|" + DoubleToString(limit_snap, AG_STATE_MONEY_DIGITS)
           + "|" + DoubleToString(base_snap, AG_STATE_MONEY_DIGITS) + "\n";
+  }
+
+//+------------------------------------------------------------------+
+//| TG, the queue file on hostile input (fix pass B2 of 2026-10-21). |
+//| The EA reads the queue in OnInit, before the halt load, so a     |
+//| runtime error there would stop the guardian at every start. Each |
+//| case feeds AgTgQueueParse, then what AgTgQueueLoad runs on a     |
+//| parsed file: the login compare, AgTgQueueForget,                 |
+//| AgTgNextSeqAfterLoad, and the append with AgTgQueueTrim that     |
+//| AgTgAppendHeld makes. Every case must end in a rejection with    |
+//| its reason or in a valid result. Pure: no file and no GV.        |
+//+------------------------------------------------------------------+
+#define AGVEC_TGQ_LOGIN 990000021
+
+//--- field k of a '|' line replaced
+string AgVecTgField(const string line, const int k, const string value)
+  {
+   string f[];
+   int n = StringSplit(line, '|', f);
+   string out = "";
+   for(int i = 0; i < n; i++)
+      out += (i == 0 ? "" : "|") + (i == k ? value : f[i]);
+   return out;
+  }
+
+//--- the last field of a '|' line dropped
+string AgVecTgDropLast(const string line)
+  {
+   int at = StringLen(line) - 1;
+   while(at >= 0 && StringGetCharacter(line, at) != '|')
+      at--;
+   return (at < 0) ? "" : StringSubstr(line, 0, at);
+  }
+
+string AgVecTgHeader() { return AG_TGQ_MAGIC + "|1|" + (string)AGVEC_TGQ_LOGIN; }
+
+string AgVecTgE() { return "E|200|" + (string)(long)D'2026.10.21 01:00:00' + "|1"; }
+
+string AgVecTgN()
+  {
+   AgTgSnapshot s;
+   ZeroMemory(s);
+   s.local_t        = (long)D'2026.10.21 12:00:02';
+   s.server_t       = (long)D'2026.10.21 12:00:01';
+   s.state          = AG_STATE_ACTIVE;
+   s.seconds_in_state = 3600;
+   s.connected      = 1;
+   s.pnl_mode       = AG_TG_PNL_ACTIVE;
+   s.balance        = 2172.06;
+   s.floating       = -21.96;
+   s.equity         = 2150.10;
+   s.pnl            = -21.96;
+   s.limit          = 126.21;
+   s.live_limit     = 126.21;
+   s.enforced_limit = 126.21;
+   s.peak_level     = -126.21;
+   s.anchor         = (long)D'2026.10.21 01:00:00';
+   s.percent        = 5.5;
+   s.currency       = 200.0;
+   return AgTgSnapshotLine(s, "TG");
+  }
+
+//--- an S4 event, the figures of the S4 draft
+string AgVecTgV(const long seq)
+  {
+   AgTgEvent e;
+   ZeroMemory(e);
+   e.seq      = seq;
+   e.code     = AG_TG_S4;
+   e.server_t = (long)D'2026.09.15 18:36:17';
+   e.local_t  = (long)D'2026.09.15 18:36:18';
+   e.state    = AG_STATE_LOCKED;
+   e.pnl_mode = AG_TG_PNL_ACTIVE;
+   e.balance  = 2300.16;
+   e.equity   = 2164.56;
+   e.pnl      = -130.20;
+   e.limit    = 126.21;
+   e.x[0] = 1;
+   e.x[1] = (double)(long)D'2026.09.16 01:00:00';
+   e.x[2] = 126.21;
+   e.x[3] = 5.40;
+   e.x[4] = -135.60;
+   e.x[6] = 3;
+   return AgTgEventLine(e);
+  }
+
+//--- header, E and N lines, the V lines given (each ending "\n"), sealed
+string AgVecTgFile(const string header, const string e_line, const string n_line, const string v_lines)
+  {
+   return AgVecSealed(header + "\n" + e_line + "\n" + n_line + "\n" + v_lines);
+  }
+
+//--- want_ok: a valid result keeping want_kept events after the load's
+//--- forget at acknowledgement 100 and one held event appended; else the
+//--- rejection with its reason
+void AgVecTgQueueCase(const string name, const string text, const bool want_ok, const string want_why,
+                      const int want_kept)
+  {
+   long         login = 0, next_seq = 0, latch = 0;
+   int          mask = 0, count = 0;
+   AgTgSnapshot snap;
+   string       build = "", why = "";
+   AgTgEvent    loaded[];
+   bool ok = AgTgQueueParse(text, login, next_seq, latch, mask, snap, build, loaded, count, why);
+   if(ok && login != AGVEC_TGQ_LOGIN)
+     {
+      ok  = false;
+      why = "carries login " + (string)login;
+     }
+   int kept = -1;
+   if(ok)
+     {
+      AgTgQueueForget(loaded, count, 100);
+      AgTgEvent held;
+      ZeroMemory(held);
+      held.seq  = AgTgNextSeqAfterLoad(next_seq, 100);
+      held.code = AG_TG_S2;
+      ArrayResize(loaded, count + 1);
+      loaded[count] = held;
+      count++;
+      AgTgQueueTrim(loaded, count, AG_TGQ_MAX_EVENTS);
+      kept = count;
+     }
+   bool pass = want_ok ? (ok && kept == want_kept) : (!ok && why == want_why);
+   AgVecCheck("tg_qr_" + name, pass, "ok=" + (string)ok + " why=" + why + " kept=" + (string)kept);
+  }
+
+void AgVecTgQueueCases()
+  {
+   string H    = AgVecTgHeader();
+   string E    = AgVecTgE();
+   string N    = AgVecTgN();
+   string V    = AgVecTgV(101) + "\n" + AgVecTgV(102) + "\n";
+   string last = AgVecTgV(103);
+   string body = H + "\n" + E + "\n" + N + "\n" + V + last + "\n";
+   string good = AgVecSealed(body);
+
+   //--- the reference file, and the same with CRLF line ends
+   AgVecTgQueueCase("reference_file_is_valid", good, true, "", 4);
+   string crlf = good;
+   StringReplace(crlf, "\n", "\r\n");
+   AgVecTgQueueCase("crlf_line_ends_are_valid", crlf, true, "", 4);
+
+   //--- an empty file, and line ends only
+   AgVecTgQueueCase("empty_file", "", false, "no checksum line", 0);
+   AgVecTgQueueCase("line_ends_only", "\n\n\n", false, "no checksum line", 0);
+
+   //--- a truncated last line, inside the last V line and inside the C line
+   AgVecTgQueueCase("truncated_inside_last_v_line", StringSubstr(body, 0, StringLen(body) - 10),
+                    false, "no checksum line", 0);
+   AgVecTgQueueCase("truncated_inside_c_line", StringSubstr(good, 0, StringLen(good) - 3),
+                    false, "checksum mismatch", 0);
+
+   //--- a missing C line, and a C line with nothing above it
+   AgVecTgQueueCase("missing_c_line", body, false, "no checksum line", 0);
+   AgVecTgQueueCase("c_line_alone", AgVecSealed(""), false, "too few lines", 0);
+
+   //--- extra and missing fields on each line type, every file sealed so
+   //--- the line itself is what is judged
+   AgVecTgQueueCase("header_extra_field", AgVecTgFile(H + "|0", E, N, V), false, "bad header", 0);
+   AgVecTgQueueCase("header_missing_field", AgVecTgFile(AgVecTgDropLast(H), E, N, V), false, "bad header", 0);
+   AgVecTgQueueCase("e_extra_field", AgVecTgFile(H, E + "|0", N, V), false, "bad E line", 0);
+   AgVecTgQueueCase("e_missing_field", AgVecTgFile(H, AgVecTgDropLast(E), N, V), false, "bad E line", 0);
+   AgVecTgQueueCase("n_extra_field", AgVecTgFile(H, E, N + "|0", V), false, "bad N line", 0);
+   AgVecTgQueueCase("n_missing_field", AgVecTgFile(H, E, AgVecTgDropLast(N), V), false, "bad N line", 0);
+   AgVecTgQueueCase("v_extra_field", AgVecTgFile(H, E, N, V + last + "|0\n"), false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_missing_field", AgVecTgFile(H, E, N, V + AgVecTgDropLast(last) + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_blank_line", AgVecTgFile(H, E, N, V + "\n" + last + "\n"), false, "bad V line 6", 0);
+   AgVecTgQueueCase("c_extra_field", body + "C|" + (string)AgChecksum(body) + "|0\n", false, "checksum mismatch", 0);
+   AgVecTgQueueCase("c_missing_value", body + "C|\n", false, "checksum mismatch", 0);
+
+   //--- non numeric fields
+   AgVecTgQueueCase("header_login_not_numeric", AgVecTgFile(AgVecTgField(H, 2, "99000002l"), E, N, V),
+                    false, "bad header", 0);
+   AgVecTgQueueCase("header_version_not_numeric", AgVecTgFile(AgVecTgField(H, 1, "x"), E, N, V),
+                    false, "bad header", 0);
+   AgVecTgQueueCase("e_next_seq_not_numeric", AgVecTgFile(H, AgVecTgField(E, 1, "12a"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_empty", AgVecTgFile(H, AgVecTgField(E, 3, ""), N, V), false, "bad E line", 0);
+   AgVecTgQueueCase("n_balance_not_numeric", AgVecTgFile(H, E, AgVecTgField(N, 10, "abc"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_state_with_a_decimal", AgVecTgFile(H, E, AgVecTgField(N, 4, "1.5"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_build_not_a_label", AgVecTgFile(H, E, AgVecTgField(N, 3, "t@g"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_build_empty", AgVecTgFile(H, E, AgVecTgField(N, 3, ""), V), false, "bad N line", 0);
+   AgVecTgQueueCase("v_seq_not_numeric", AgVecTgFile(H, E, N, V + AgVecTgField(last, 1, "abc") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_code_unknown_text", AgVecTgFile(H, E, N, V + AgVecTgField(last, 2, "SX") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_code_empty", AgVecTgFile(H, E, N, V + AgVecTgField(last, 2, "") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_balance_with_an_exponent", AgVecTgFile(H, E, N, V + AgVecTgField(last, 7, "1e5") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_x_nan", AgVecTgFile(H, E, N, V + AgVecTgField(last, 11, "nan") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_x_minus_only", AgVecTgFile(H, E, N, V + AgVecTgField(last, 12, "-") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_x_two_points", AgVecTgFile(H, E, N, V + AgVecTgField(last, 13, "1.2.3") + "\n"),
+                    false, "bad V line 6", 0);
+
+   //--- numbers beyond the long and int ranges, and at their edges
+   AgVecTgQueueCase("header_login_beyond_long", AgVecTgFile(AgVecTgField(H, 2, "9223372036854775808"), E, N, V),
+                    false, "bad header", 0);
+   AgVecTgQueueCase("e_next_seq_beyond_long", AgVecTgFile(H, AgVecTgField(E, 1, "9223372036854775808"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_next_seq_at_long_max", AgVecTgFile(H, AgVecTgField(E, 1, "9223372036854775807"), N, V + last + "\n"),
+                    true, "", 4);
+   AgVecTgQueueCase("e_latch_beyond_long", AgVecTgFile(H, AgVecTgField(E, 2, "99999999999999999999"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_beyond_int", AgVecTgFile(H, AgVecTgField(E, 3, "2147483648"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_that_truncates_to_3", AgVecTgFile(H, AgVecTgField(E, 3, "4294967299"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_at_int_max", AgVecTgFile(H, AgVecTgField(E, 3, "2147483647"), N, V + last + "\n"),
+                    true, "", 4);
+   AgVecTgQueueCase("n_state_that_truncates_to_locked", AgVecTgFile(H, E, AgVecTgField(N, 4, "4294967299"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_local_t_beyond_long", AgVecTgFile(H, E, AgVecTgField(N, 1, "-9223372036854775809"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_seconds_beyond_int", AgVecTgFile(H, E, AgVecTgField(N, 6, "-2147483649"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("v_seq_beyond_long", AgVecTgFile(H, E, N, V + AgVecTgField(last, 1, "9223372036854775808") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_code_that_truncates_to_s1", AgVecTgFile(H, E, N, V + AgVecTgField(last, 2, "S4294967297") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_state_that_truncates_to_syncing", AgVecTgFile(H, E, N, V + AgVecTgField(last, 5, "4294967297") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_money_beyond_long_is_a_number",
+                    AgVecTgFile(H, E, N, V + AgVecTgField(last, 7, "12345678901234567890123.45") + "\n"), true, "", 4);
+   AgVecTgQueueCase("v_x_beyond_long_is_a_number",
+                    AgVecTgFile(H, E, N, V + AgVecTgField(last, 11, "9223372036854775808") + "\n"), true, "", 4);
+   AgVecTgQueueCase("v_money_longer_than_32_characters",
+                    AgVecTgFile(H, E, N, V + AgVecTgField(last, 8, "1234567890123456789012345678901234567890.00") + "\n"),
+                    false, "bad V line 6", 0);
+
+   //--- more than 50 V lines
+   string many = "";
+   for(int k = 0; k < AG_TGQ_MAX_EVENTS; k++)
+      many += AgVecTgV(101 + k) + "\n";
+   AgVecTgQueueCase("fifty_v_lines_are_valid", AgVecTgFile(H, E, N, many), true, "", AG_TGQ_MAX_EVENTS);
+   AgVecTgQueueCase("fifty_one_v_lines", AgVecTgFile(H, E, N, many + AgVecTgV(151) + "\n"),
+                    false, "too many V lines", 0);
+   string lots = many;
+   for(int k = AG_TGQ_MAX_EVENTS; k < 200; k++)
+      lots += AgVecTgV(101 + k) + "\n";
+   AgVecTgQueueCase("two_hundred_v_lines", AgVecTgFile(H, E, N, lots), false, "too many V lines", 0);
+
+   //--- a seq out of order, repeated, zero or negative; gaps are allowed
+   AgVecTgQueueCase("v_seq_descending", AgVecTgFile(H, E, N, AgVecTgV(102) + "\n" + AgVecTgV(101) + "\n"),
+                    false, "V lines out of order", 0);
+   AgVecTgQueueCase("v_seq_repeated", AgVecTgFile(H, E, N, AgVecTgV(101) + "\n" + AgVecTgV(101) + "\n"),
+                    false, "V lines out of order", 0);
+   AgVecTgQueueCase("v_seq_zero", AgVecTgFile(H, E, N, AgVecTgV(0) + "\n"), false, "bad V line 4", 0);
+   AgVecTgQueueCase("v_seq_negative", AgVecTgFile(H, E, N, AgVecTgField(AgVecTgV(101), 1, "-5") + "\n"),
+                    false, "bad V line 4", 0);
+   AgVecTgQueueCase("v_seq_with_gaps",
+                    AgVecTgFile(H, E, N, AgVecTgV(101) + "\n" + AgVecTgV(140) + "\n" + AgVecTgV(199) + "\n"),
+                    true, "", 4);
+
+   //--- characters outside printable ASCII, each file sealed
+   string alef = ShortToString(0x05D0), e_acute = ShortToString(0x00E9);
+   string repl = ShortToString(0xFFFD), tab = ShortToString(9);
+   AgVecTgQueueCase("hebrew_letter_in_the_build", AgVecTgFile(H, E, AgVecTgField(N, 3, "T" + alef), V),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("latin_letter_in_a_v_field", AgVecTgFile(H, E, N, V + AgVecTgField(last, 11, "1" + e_acute) + "\n"),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("replacement_character_in_the_magic", AgVecTgFile("AG" + repl + "Q|1|990000021", E, N, V),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("tab_inside_a_field", AgVecTgFile(H, AgVecTgField(E, 1, "12" + tab + "1"), N, V),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("character_after_the_c_line", good + e_acute + "\n", false, "not printable ASCII", 0);
+   AgVecTgQueueCase("character_inside_the_c_line", body + "C|" + (string)AgChecksum(body) + e_acute + "\n",
+                    false, "not printable ASCII", 0);
   }
 
 void OnStart()
@@ -935,6 +1258,478 @@ void OnStart()
               && g_ag_state_locked_until == until_ref,
               "rc=" + (string)pk_rc + " reason=" + (string)(int)g_ag_state_reason);
    AgVecCheckInt("pk_state_format_version_is_still_1", AG_STATE_FORMAT_VERSION, 1);
+
+
+   //================================================================
+   //--- TG, the Telegram alerts build (TG-1 (B) of 2026-10-20, design
+   //--- addendum docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md item 12). Pure
+   //--- functions of AlertQueue.mqh, AlertJson.mqh and AlertText.mqh only:
+   //--- no file, no global variable and no network call is touched here.
+   //================================================================
+
+   //--- TG-S12, the queue: a round trip of every code, the checksum, a cut
+   //--- file, the bound, the acknowledgement, the numbering, ASCII bytes
+   int tg_codes[21] = {AG_TG_S1, AG_TG_S2, AG_TG_S3, AG_TG_S4, AG_TG_S6C, AG_TG_S6H, AG_TG_S6F,
+                       AG_TG_S7, AG_TG_S8, AG_TG_S9, AG_TG_S10, AG_TG_S12, AG_TG_S15, AG_TG_S16,
+                       AG_TG_S17, AG_TG_S18, AG_TG_S19, AG_TG_S20, AG_TG_S21, AG_TG_S22, AG_TG_S24};
+   AgTgEvent tg_ev[];
+   ArrayResize(tg_ev, 21);
+   for(int k = 0; k < 21; k++)
+     {
+      tg_ev[k].seq      = 100 + k;
+      tg_ev[k].code     = tg_codes[k];
+      tg_ev[k].server_t = (long)D'2026.10.21 12:00:00' + k;
+      tg_ev[k].local_t  = (long)D'2026.10.21 12:00:01' + k;
+      tg_ev[k].state    = (k % 4) + 1;
+      tg_ev[k].pnl_mode = k % 3;
+      tg_ev[k].balance  = 2172.06;
+      tg_ev[k].equity   = 2150.10;
+      tg_ev[k].pnl      = -21.96;
+      tg_ev[k].limit    = 126.21;
+      for(int x = 0; x < AG_TGQ_X_COUNT; x++)
+         tg_ev[k].x[x] = (x == 0) ? 781624897.0 : (x == 1 ? 5.5 : (double)(k * 10 + x));
+     }
+   AgTgSnapshot tg_sn;
+   tg_sn.local_t = (long)D'2026.10.21 12:00:02'; tg_sn.server_t = (long)D'2026.10.21 12:00:01';
+   tg_sn.state = AG_STATE_ACTIVE; tg_sn.reason = 0; tg_sn.seconds_in_state = 3600; tg_sn.connected = 1;
+   tg_sn.block = 0; tg_sn.pnl_mode = AG_TG_PNL_ACTIVE; tg_sn.balance = 2172.06; tg_sn.floating = -21.96;
+   tg_sn.equity = 2150.10; tg_sn.pnl = -21.96; tg_sn.limit = 126.21; tg_sn.live_limit = 126.21;
+   tg_sn.enforced_limit = 126.21; tg_sn.peak = 0.0; tg_sn.peak_level = -126.21;
+   tg_sn.anchor = (long)D'2026.10.21 01:00:00'; tg_sn.locked_until = 0; tg_sn.limit_snap = 0.0;
+   tg_sn.base_snap = 0.0; tg_sn.percent = 5.5; tg_sn.currency = 200.0; tg_sn.sweep_open = 0; tg_sn.sweep_held = 0;
+   string tg_q = AgTgQueueSerialize(990000021, 121, (long)D'2026.10.21 01:00:00', 3,
+                                    AgTgSnapshotLine(tg_sn, "TG"), tg_ev, 21);
+   long tg_login = 0, tg_next = 0, tg_latch = 0; int tg_mask = 0, tg_count = 0;
+   AgTgSnapshot tg_sn2; string tg_build = "", tg_why = ""; AgTgEvent tg_back[];
+   bool tg_ok = AgTgQueueParse(tg_q, tg_login, tg_next, tg_latch, tg_mask, tg_sn2, tg_build, tg_back, tg_count, tg_why);
+   AgVecCheck("tg_q_roundtrip_parses", tg_ok, tg_why);
+   AgVecCheck("tg_q_roundtrip_header_e_and_n",
+              tg_login == 990000021 && tg_next == 121 && tg_latch == (long)D'2026.10.21 01:00:00'
+              && tg_mask == 3 && tg_build == "TG" && tg_sn2.anchor == tg_sn.anchor
+              && MathAbs(tg_sn2.equity - 2150.10) < 0.000001 && tg_sn2.seconds_in_state == 3600,
+              "login=" + (string)tg_login + " next=" + (string)tg_next + " build=" + tg_build);
+   AgVecCheckInt("tg_q_roundtrip_every_code_count", tg_count, 21);
+   bool tg_same = (tg_count == 21);
+   for(int k = 0; k < tg_count && tg_same; k++)
+      tg_same = tg_back[k].seq == tg_ev[k].seq && tg_back[k].code == tg_ev[k].code
+                && tg_back[k].server_t == tg_ev[k].server_t && tg_back[k].local_t == tg_ev[k].local_t
+                && tg_back[k].state == tg_ev[k].state && tg_back[k].pnl_mode == tg_ev[k].pnl_mode
+                && MathAbs(tg_back[k].pnl - tg_ev[k].pnl) < 0.000001
+                && MathAbs(tg_back[k].x[0] - 781624897.0) < 0.5 && MathAbs(tg_back[k].x[1] - 5.5) < 0.000001
+                && MathAbs(tg_back[k].x[7] - tg_ev[k].x[7]) < 0.000001;
+   AgVecCheck("tg_q_roundtrip_every_code_every_field", tg_same, "a field changed in the round trip");
+   bool tg_ascii = true;
+   for(int k = 0; k < StringLen(tg_q); k++)
+      if(StringGetCharacter(tg_q, k) > 127)
+         tg_ascii = false;
+   AgVecCheck("tg_q_every_byte_is_ascii", tg_ascii, "a byte above 127");
+   string tg_bad = tg_q;
+   StringReplace(tg_bad, "|781624897|", "|781624898|");
+   AgVecCheck("tg_q_changed_byte_fails_the_checksum",
+              !AgTgQueueParse(tg_bad, tg_login, tg_next, tg_latch, tg_mask, tg_sn2, tg_build, tg_back, tg_count, tg_why)
+              && tg_why == "checksum mismatch", tg_why);
+   string tg_cut = StringSubstr(tg_q, 0, StringFind(tg_q, "C|"));
+   AgVecCheck("tg_q_cut_file_is_refused",
+              !AgTgQueueParse(tg_cut, tg_login, tg_next, tg_latch, tg_mask, tg_sn2, tg_build, tg_back, tg_count, tg_why),
+              tg_why);
+   AgVecCheck("tg_q_halt_file_is_not_a_queue",
+              !AgTgQueueParse(AgVecSealed("AGHALT|1|990000021\nH|1|crash loop|1786027355\n"),
+                              tg_login, tg_next, tg_latch, tg_mask, tg_sn2, tg_build, tg_back, tg_count, tg_why)
+              && AG_TGQ_MAGIC != "AGHALT" && AG_TGQ_MAGIC != "AGSTATE" && AG_TGQ_MAGIC != "AGFLOOR"
+              && AG_TGQ_MAGIC != "AGPEAK", tg_why);
+   AgTgEvent tg_rev[];
+   ArrayResize(tg_rev, 2);
+   tg_rev[0] = tg_ev[1];
+   tg_rev[1] = tg_ev[0];
+   AgVecCheck("tg_q_events_out_of_order_are_refused",
+              !AgTgQueueParse(AgTgQueueSerialize(990000021, 121, 0, 0, AgTgSnapshotLine(tg_sn, "TG"), tg_rev, 2),
+                              tg_login, tg_next, tg_latch, tg_mask, tg_sn2, tg_build, tg_back, tg_count, tg_why)
+              && tg_why == "V lines out of order", tg_why);
+   AgTgEvent tg_many[];
+   int tg_n = 60;
+   ArrayResize(tg_many, tg_n);
+   for(int k = 0; k < tg_n; k++)
+     {
+      tg_many[k] = tg_ev[0];
+      tg_many[k].seq = k + 1;
+     }
+   int tg_dropped = AgTgQueueTrim(tg_many, tg_n, AG_TGQ_MAX_EVENTS);
+   AgVecCheck("tg_q_overflow_keeps_the_oldest_and_the_newest_49",
+              tg_dropped == 10 && tg_n == 50 && tg_many[0].seq == 1 && tg_many[1].seq == 12 && tg_many[49].seq == 60,
+              "dropped=" + (string)tg_dropped + " n=" + (string)tg_n + " first=" + (string)tg_many[0].seq
+              + " second=" + (string)tg_many[1].seq);
+   //--- the trim above kept seq 1 and 12 to 60, so 30 forgets seq 1 and 12 to 30
+   int tg_forgot = AgTgQueueForget(tg_many, tg_n, 30);
+   AgVecCheck("tg_q_forgotten_at_the_acknowledgement",
+              tg_forgot == 20 && tg_n == 30 && tg_many[0].seq == 31 && tg_many[29].seq == 60,
+              "forgot=" + (string)tg_forgot + " n=" + (string)tg_n);
+   AgVecCheck("tg_q_numbering_goes_on_after_a_reload",
+              AgTgNextSeqAfterLoad(121, 50) == 121 && AgTgNextSeqAfterLoad(10, 50) == 51
+              && AgTgNextSeqAfterLoad(1, 0) == 1, "next seq after load");
+   bool tg_codes_ok = true;
+   for(int k = 0; k < 21; k++)
+      if(AgTgCodeFromText(AgTgCodeText(tg_codes[k])) != tg_codes[k])
+         tg_codes_ok = false;
+   AgVecCheck("tg_q_code_text_round_trips_and_rejects_unknown",
+              tg_codes_ok && AgTgCodeFromText("S5") == 0 && AgTgCodeFromText("S23") == 0
+              && AgTgCodeFromText("X1") == 0 && AgTgCodeFromText("S-1") == 0, "code text");
+   AgVecCheck("tg_q_names_carry_the_login",
+              AgTgQueuePath(990000021) == "AccountGuardian\\tgqueue_990000021.dat"
+              && AgGvTgAck(990000021) == "AG_TGACK_990000021"
+              && AgGvTgRefused(990000021) == "AG_TGREFUSED_990000021"
+              && AgGvTgRefSeen(990000021) == "AG_TGREFSEEN_990000021", AgTgQueuePath(990000021));
+   AgVecCheck("tg_q_block_codes_in_the_q3_order",
+              AgTgBlockCode(AgTradeBlockName(false, true, true, true)) == 1
+              && AgTgBlockCode(AgTradeBlockName(true, false, true, true)) == 2
+              && AgTgBlockCode(AgTradeBlockName(true, true, false, true)) == 3
+              && AgTgBlockCode(AgTradeBlockName(true, true, true, false)) == 4
+              && AgTgBlockCode(AgTradeBlockName(true, true, true, true)) == 0, "block codes");
+
+   //--- the queue file on hostile input, fix pass B2
+   AgVecTgQueueCases();
+
+   //--- S9, TG-3 (B): the share and the latch
+   AgVecCheck("tg_s9_share_on_the_draft_figures_is_80",
+              MathAbs(AgTgShareUsed(-126.21, 126.21, -100.97) - 80.0016) < 0.001,
+              DoubleToString(AgTgShareUsed(-126.21, 126.21, -100.97), 4));
+   AgVecCheck("tg_s9_share_from_the_peak",
+              MathAbs(AgTgShareUsed(253.00 - 158.69, 158.69, 150.00) - 64.9064) < 0.001,
+              DoubleToString(AgTgShareUsed(253.00 - 158.69, 158.69, 150.00), 4));
+   int tg_m = 0;
+   int tg_l1 = AgTgS9Step(55.0, tg_m);
+   int tg_l2 = AgTgS9Step(60.0, tg_m);
+   int tg_l3 = AgTgS9Step(85.0, tg_m);
+   int tg_l4 = AgTgS9Step(75.0, tg_m);
+   int tg_l5 = AgTgS9Step(70.0, tg_m);
+   int tg_m5 = tg_m;
+   int tg_l6 = AgTgS9Step(39.0, tg_m);
+   int tg_l7 = AgTgS9Step(50.0, tg_m);
+   AgVecCheck("tg_s9_levels_fire_once_and_rearm_ten_points_below",
+              tg_l1 == 50 && tg_l2 == 0 && tg_l3 == 80 && tg_l4 == 0 && tg_l5 == 0 && tg_m5 == 1
+              && tg_l6 == 0 && tg_l7 == 50,
+              (string)tg_l1 + "," + (string)tg_l2 + "," + (string)tg_l3 + "," + (string)tg_l4 + ","
+              + (string)tg_l5 + "," + (string)tg_l6 + "," + (string)tg_l7);
+   int tg_jm = 0;
+   AgVecCheck("tg_s9_a_jump_past_both_levels_fires_80_once",
+              AgTgS9Step(95.0, tg_jm) == 80 && tg_jm == 3 && AgTgS9Step(96.0, tg_jm) == 0, "jump");
+
+   //--- TG-S13, the command, on fixed getUpdates answers
+   string tg_chat = (string)(990000000 + 123);
+   long   tg_now  = (long)D'2026.10.21 10:00:00';
+   string tg_head = "{\"ok\":true,\"result\":[{\"update_id\":7,\"message\":{\"message_id\":3,\"chat\":{\"id\":";
+   string tg_raw  = tg_head + tg_chat + ",\"type\":\"private\"},\"date\":" + (string)(tg_now - 5)
+                  + ",\"text\":\"" + AgTgCommandText() + "\"}}]}";
+   long tg_max = 0; int tg_ign = 0; bool tg_aok = false;
+   int  tg_hit = AgTgMatchCommands(tg_raw, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_exact_text_matches", tg_aok && tg_hit == 1 && tg_ign == 0 && tg_max == 7,
+              "hit=" + (string)tg_hit + " ignored=" + (string)tg_ign + " max=" + (string)tg_max);
+   char   tg_bytes[];
+   int    tg_nb = AgTgUtf8Bytes(tg_raw, tg_bytes);
+   string tg_dec = AgTgUtf8ToString(tg_bytes, tg_nb);
+   tg_hit = AgTgMatchCommands(tg_dec, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_exact_text_matches_through_utf8", tg_dec == tg_raw && tg_hit == 1 && tg_nb > StringLen(tg_raw),
+              "bytes=" + (string)tg_nb + " chars=" + (string)StringLen(tg_raw));
+   string tg_esc = tg_head + tg_chat + "},\"date\":" + (string)(tg_now - 5)
+                 + ",\"text\":\"\\u05d1\\u05d3\\u05d5\\u05e7 \\u05d0\\u05d5\\u05ea\\u05d9\"}}]}";
+   tg_hit = AgTgMatchCommands(tg_esc, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_escaped_text_matches", tg_hit == 1, "hit=" + (string)tg_hit);
+   string tg_sp = tg_head + tg_chat + "},\"date\":" + (string)(tg_now - 5)
+                + ",\"text\":\"" + AgTgCommandText() + " \"}}]}";
+   tg_hit = AgTgMatchCommands(tg_sp, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_trailing_space_does_not_match", tg_hit == 0 && tg_ign == 1, "hit=" + (string)tg_hit);
+   string tg_rlm = tg_head + tg_chat + "},\"date\":" + (string)(tg_now - 5)
+                 + ",\"text\":\"\\u200f" + AgTgCommandText() + "\"}}]}";
+   tg_hit = AgTgMatchCommands(tg_rlm, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_leading_u200f_does_not_match", tg_hit == 0 && tg_ign == 1, "hit=" + (string)tg_hit);
+   tg_hit = AgTgMatchCommands(tg_raw, AgTgCommandText(), (string)(990000000 + 124), tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_another_chat_does_not_match", tg_hit == 0 && tg_ign == 1, "hit=" + (string)tg_hit);
+   string tg_edit = tg_raw;
+   StringReplace(tg_edit, "\"message\":", "\"edited_message\":");
+   tg_hit = AgTgMatchCommands(tg_edit, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_edited_message_does_not_match", tg_hit == 0 && tg_ign == 1 && tg_max == 7, "hit=" + (string)tg_hit);
+   string tg_old = tg_head + tg_chat + "},\"date\":" + (string)(tg_now - 121)
+                 + ",\"text\":\"" + AgTgCommandText() + "\"}}]}";
+   tg_hit = AgTgMatchCommands(tg_old, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_stale_date_does_not_match", tg_hit == 0 && tg_ign == 1, "hit=" + (string)tg_hit);
+   string tg_two = "{\"ok\":true,\"result\":[{\"update_id\":8,\"message\":{\"chat\":{\"id\":" + tg_chat + "},\"date\":"
+                 + (string)(tg_now - 9) + ",\"text\":\"" + AgTgCommandText() + "\"}},{\"update_id\":9,\"message\":{\"chat\":{\"id\":"
+                 + tg_chat + "},\"date\":" + (string)(tg_now - 4) + ",\"text\":\"" + AgTgCommandText() + "\"}}]}";
+   tg_hit = AgTgMatchCommands(tg_two, AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_two_commands_in_one_poll_and_the_offset", tg_hit == 2 && tg_max == 9,
+              "hit=" + (string)tg_hit + " max=" + (string)tg_max);
+   tg_hit = AgTgMatchCommands("{\"ok\":false,\"error_code\":409}", AgTgCommandText(), tg_chat, tg_now, 120, tg_max, tg_ign, tg_aok);
+   AgVecCheck("tg_cmd_not_ok_answer_is_flagged", !tg_aok && tg_hit == 0 && tg_max == -1, "ok flag");
+   AgVecCheckInt("tg_json_retry_after_of_a_429",
+                 AgTgRetryAfter("{\"ok\":false,\"error_code\":429,\"parameters\":{\"retry_after\":5}}"), 5);
+   AgVecCheck("tg_json_escape",
+              AgJsonEscape("a\"b\\c\nd\te") == "a\\\"b\\\\c\\nd\\te", AgJsonEscape("a\"b\\c\nd\te"));
+   string tg_jp[]; string tg_jv[]; int tg_jk[]; int tg_jc = 0;
+   bool tg_jok = AgJsonParse("{\"a\":[1,{\"b\":\"x\\/y\"}],\"c\":null,\"d\":-1.5e3}", tg_jp, tg_jv, tg_jk, tg_jc);
+   AgVecCheck("tg_json_flat_paths",
+              tg_jok && tg_jc == 4 && tg_jp[0] == "a[0]" && tg_jv[0] == "1" && tg_jp[1] == "a[1].b"
+              && tg_jv[1] == "x/y" && tg_jk[2] == AG_JSON_NULL && tg_jv[3] == "-1.5e3",
+              "count=" + (string)tg_jc);
+   AgVecCheck("tg_json_rejects_trailing_garbage",
+              !AgJsonParse("{\"a\":1} x", tg_jp, tg_jv, tg_jk, tg_jc), "parsed");
+
+   //--- the three inputs, on values built here so no token, chat id or ping
+   //--- URL shaped literal exists anywhere in the tree (TG-S6)
+   string tg_tail = "";
+   for(int k = 0; k < 35; k++)
+      tg_tail += "x";
+   string tg_token = (string)(990000000 + 1) + ":" + tg_tail;
+   AgVecCheck("tg_input_token_shape",
+              AgTgTokenValid(tg_token) && !AgTgTokenValid(StringSubstr(tg_token, 0, StringLen(tg_token) - 6))
+              && !AgTgTokenValid(tg_tail) && !AgTgTokenValid(tg_token + " ") && !AgTgTokenValid("a" + tg_token)
+              && !AgTgTokenValid(""), "token checks");
+   AgVecCheck("tg_input_chat_id_shape",
+              AgTgChatIdValid(tg_chat) && AgTgChatIdValid("-" + tg_chat) && !AgTgChatIdValid("")
+              && !AgTgChatIdValid("-") && !AgTgChatIdValid(tg_chat + "a")
+              && !AgTgChatIdValid(tg_chat + tg_chat + "123"), "chat id checks");
+   string tg_zero8 = "00000000", tg_zero4 = "0000";
+   string tg_uuid  = tg_zero8 + "-" + tg_zero4 + "-" + tg_zero4 + "-" + tg_zero4 + "-" + tg_zero4 + tg_zero8;
+   string tg_host  = "https://" + "hc-ping.com/";
+   AgVecCheck("tg_input_ping_url_shape",
+              AgTgPingUrlValid(tg_host + tg_uuid) && !AgTgPingUrlValid("http://" + "hc-ping.com/" + tg_uuid)
+              && !AgTgPingUrlValid(tg_host + tg_uuid + "/") && !AgTgPingUrlValid(tg_host + tg_zero8 + tg_zero8)
+              && !AgTgPingUrlValid(""), "ping URL checks");
+   AgVecCheck("tg_input_channel_states",
+              AgTgChannelState(true, false) == "off:empty" && AgTgChannelState(false, false) == "off:malformed"
+              && AgTgChannelState(false, true) == "on", "channel states");
+
+   //--- TG-S14, the status slot, TG-15 (A): the local clock's 4 hour slots
+   AgVecCheckInt("tg_slot_midnight", AgTgStatusSlot((long)D'2026.10.21 00:00:00'), (long)D'2026.10.21 00:00:00');
+   AgVecCheckInt("tg_slot_03_59_59", AgTgStatusSlot((long)D'2026.10.21 03:59:59'), (long)D'2026.10.21 00:00:00');
+   AgVecCheckInt("tg_slot_04_00_00", AgTgStatusSlot((long)D'2026.10.21 04:00:00'), (long)D'2026.10.21 04:00:00');
+   AgVecCheckInt("tg_slot_12_00_01", AgTgStatusSlot((long)D'2026.10.21 12:00:01'), (long)D'2026.10.21 12:00:00');
+   AgVecCheckInt("tg_slot_23_59_59", AgTgStatusSlot((long)D'2026.10.21 23:59:59'), (long)D'2026.10.21 20:00:00');
+   int tg_slots = 0;
+   long tg_prev_slot = AgTgStatusSlot((long)D'2026.10.20 23:59:59');
+   for(long tg_s = (long)D'2026.10.21 00:00:00'; tg_s < (long)D'2026.10.22 00:00:00'; tg_s += 60)
+     {
+      long tg_cur_slot = AgTgStatusSlot(tg_s);
+      if(tg_cur_slot != tg_prev_slot)
+         tg_slots++;
+      tg_prev_slot = tg_cur_slot;
+     }
+   AgVecCheckInt("tg_slot_six_per_local_day", tg_slots, 6);
+
+   //--- the new journal lines, field names exact, none taking a secret
+   AgVecCheck("tg_line_trading_blocked",
+              AgTgTradeBlockedLine("TERMINAL_TRADE_ALLOWED=false", "ACTIVE")
+              == "trading blocked|state=TERMINAL_TRADE_ALLOWED=false|guardian=ACTIVE", "");
+   AgVecCheck("tg_line_trading_restored",
+              AgTgTradeRestoredLine("MQL_TRADE_ALLOWED=false", "SYNCING")
+              == "trading restored|state=MQL_TRADE_ALLOWED=false|guardian=SYNCING", "");
+   AgVecCheck("tg_line_queue_deferred", AgTgQueueDeferredLine(3) == "alerts queue write deferred|attempts=3", "");
+   AgVecCheck("tg_line_queue_loaded", AgTgQueueLoadedLine(2, 15) == "alerts queue loaded|events=2|next_seq=15", "");
+   AgVecCheck("tg_line_service_started",
+              AgTgServiceStartedLine("TG", 1200252169, "on", "off:empty", "on")
+              == "alerts service started|build=TG|login=1200252169|telegram=on|network_heartbeat=off:empty|command=on", "");
+   AgVecCheck("tg_line_sent", AgTgSentLine(42, "S4", 200, 311) == "alerts sent|seq=42|class=S4|http=200|ms=311", "");
+   AgVecCheck("tg_line_failed",
+              AgTgFailedLine(43, "S12", -1, 4014, 2) == "alerts failed|seq=43|class=S12|http=-1|err=4014|ms=2", "");
+   AgVecCheck("tg_line_ping", AgTgPingLine(200, 180) == "alerts ping|http=200|ms=180", "");
+   AgVecCheck("tg_line_ping_skipped",
+              AgTgPingSkippedLine("released", 0) == "alerts ping skipped|guardian=released|age=0", "");
+   AgVecCheck("tg_line_guardian", AgTgGuardianLine("stale", 12) == "alerts guardian|state=stale|age=12", "");
+   AgVecCheck("tg_line_inbound", AgTgInboundLine(1, 2) == "alerts inbound|matched=1|ignored=2", "");
+   AgVecCheck("tg_line_stopping", AgTgStoppingLine(0) == "alerts service stopping|unsent=0", "");
+
+   //--- TG-S8, the Hebrew: each draft of item 13 rendered with its example
+   //--- values, the md5 of the UTF-8 bytes against the value computed from the
+   //--- draft's own text, independently, by a script at the build
+   AgTgCommon c;
+   AgVecC(c, D'2026.10.19 09:00:03', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s1_start", AgTgFinish(AgTgTextS1(c, 5.50, 200, 126.21), 0, 0, 0, "build=TG"), "083B04C0091BF54454F96892B18765C4");
+   AgVecC(c, D'2026.10.19 11:42:10', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s1_restarted", AgTgFinish(AgTgTextS1Restarted(c, 5, 126.21), 0, 0, 0, "build=TG"), "53EBD4119B493DC4BE93741B3241747B");
+   AgVecC(c, D'2026.10.19 18:00:00', 2217.06, 2217.06, 45.00, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_stop", AgTgFinish(AgTgTextS2(c, 1), 0, 0, 0, "build=TG"), "F430BC40109BB14D0D35AB818A553517");
+   AgVecC(c, D'2026.09.07 13:19:28', 2294.76, 2294.76, 0.0, AG_TG_PNL_NONE, 0.0, AG_TG_STATE_NOT_RUNNING);
+   AgVecMd5("tg_text_s3_refused", AgTgFinish(AgTgTextS3Refused(c), 0, 0, 300, "build=TG"), "AB7D78D1162F622C8FE9F8FDECD44080");
+   AgVecC(c, D'2026.08.03 01:48:42', 2133.00, 2133.00, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s3_second", AgTgFinish(AgTgTextS3Second(c), 0, 0, 0, "build=TG"), "AC04ACE07E8E3EBD6A90B9EAB16B05A3");
+   AgVecC(c, D'2026.08.04 16:37:04', 2133.00, 2133.00, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SAFE_HALT);
+   AgVecMd5("tg_text_s3_crash", AgTgFinish(AgTgTextS3Crash(c, 4, 300), 0, 0, 0, "build=TG"), "0557C58A704BBB0A2D6BCED2DBCE5EB7");
+   AgVecC(c, D'2026.08.04 16:37:54', 2133.00, 2133.00, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SAFE_HALT);
+   AgVecMd5("tg_text_s3_persisted", AgTgFinish(AgTgTextS3Persisted(c, D'2026.08.04 16:37:04'), 0, 0, 0, "build=TG"), "9ECBE59A30D14B2442FE9EA1CAB0B5AD");
+   AgVecC(c, D'2026.09.15 18:36:17', 2300.16, 2164.56, -130.20, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s4_daily", AgTgFinish(AgTgTextS4(c, 1, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0), 0, 0, 0, "build=TG"), "D0237364FF8F4A37CF9F2B2B98BBE814");
+   AgVecC(c, D'2026.09.26 16:35:35', 3138.34, 2976.30, 90.96, AG_TG_PNL_ACTIVE, 158.69, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s4_peak", AgTgFinish(AgTgTextS4Peak(c, D'2026.09.27 01:00:00', 253.00, 253.00 - 158.69, 90.96, 3, 0), 0, 0, 0, "build=TG"), "80A66ED6251EF6962D66E6466A46B952");
+   AgVecC(c, D'2026.09.23 15:28:24', 2880.70, 2880.70, 0.0, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s6_complete", AgTgFinish(AgTgTextS6C(c, 3, 2, 5, 0, 7), 0, 0, 0, "build=TG"), "D8F4F09CC719498FDA6E8AC07A0ED86D");
+   AgVecC(c, D'2026.09.26 16:35:38', 3138.34, 3138.30, 0.0, AG_TG_PNL_LOCKED, 158.69, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s6_session", AgTgFinish(AgTgTextS6H(c, 781624897, false, 1, "XAUUSD.ecn", D'2026.09.28 01:01:00', 10, 60), 0, 0, 0, "build=TG"), "064CF32FB4D29B876B061BF304E2E90C");
+   AgVecC(c, D'2026.09.23 15:30:00', 2880.70, 2850.10, -30.60, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s6_hard_stop", AgTgFinish(AgTgTextS6H(c, 753031555, false, 2, "XAUUSD.ecn", 0, 10, 60), 0, 0, 0, "build=TG"), "12BFF28457C32AE0170F71ECCE8F1177");
+   AgVecC(c, D'2026.09.28 01:01:05', 2998.80, 2998.80, 0.0, AG_TG_PNL_LOCKED, 158.69, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s6_flattened", AgTgFinish(AgTgTextS6F(c, 781624897, false, "XAUUSD.ecn"), 0, 0, 0, "build=TG"), "CF1506144B16AEE891C9C0A680031670");
+   AgVecC(c, D'2026.09.23 15:56:12', 2880.62, 2880.62, -0.08, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s7", AgTgFinish(AgTgTextS7(c, 753338779, "XAUUSD.ecn", 1), 0, 0, 0, "build=TG"), "5AE8E544D1187E8E87BE5FD6DF085BBE");
+   AgVecC(c, D'2026.09.27 01:00:03', 2998.84, 2998.80, -0.04, AG_TG_PNL_ACTIVE, 164.94, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s8_released", AgTgFinish(AgTgTextS8Released(c, D'2026.09.27 01:00:00', 164.94), 0, 0, 0, "build=TG"), "E9BFA715259FC144EDEC8CF3F633F3DB");
+   AgVecC(c, D'2026.08.26 01:00:10', 2027.98, 1919.14, -108.84, AG_TG_PNL_LOCKED, 101.40, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s8_again", AgTgFinish(AgTgTextS8Again(c, D'2026.08.27 01:00:00'), 0, 0, 0, "build=TG"), "D50DF78A7351DC829AA9EA09355EDE36");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2071.09, -100.97, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s9", AgTgFinish(AgTgTextS9(c, 80, 25.24), 0, 0, 0, "build=TG"), "1CD151937296BCAF2F5011F1346367C0");
+   AgVecC(c, D'2026.08.18 12:13:43', 2133.13, 2133.13, 0.0, AG_TG_PNL_ACTIVE, 106.66, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s10", AgTgFinish(AgTgTextS10(c, D'2026.08.18 12:08:42', D'2026.08.18 12:13:43', 301), 0, 0, 0, "build=TG"), "F21C7BF345BD06E27C63B4FADD826708");
+   AgVecC(c, D'2026.10.19 12:20:40', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s11", AgTgFinish(AgTgTextS11(c, D'2026.10.19 12:00:05', D'2026.10.19 12:20:40', 4), 0, 0, 0, "build=TG"), "D5B9FA5D948CA92E940CB50F9C94F1B9");
+   AgVecC(c, D'2026.09.28 10:44:02', 2805.35, 2805.35, -193.49, AG_TG_PNL_LOCKED, 164.94, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s12_blocked_locked", AgTgFinish(AgTgTextS12Blocked(c, 1), 0, 0, 0, "build=TG"), "8960AC9EA44F61C94EBD64DB4EAEE4F6");
+   AgVecC(c, D'2026.09.28 10:47:03', 2805.35, 2805.36, -193.48, AG_TG_PNL_LOCKED, 164.94, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s12_restored", AgTgFinish(AgTgTextS12Restored(c), 0, 0, 0, "build=TG"), "2C18A8F647BC576394DCF4C49C447C88");
+   AgVecC(c, D'2026.10.20 01:00:04', 2140.50, 2140.50, 0.0, AG_TG_PNL_ACTIVE, 117.73, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s14", AgTgFinish(AgTgTextS14(c, D'2026.10.19 01:00:00', -31.56, 12.40, 0, 117.73), 0, 0, 0, "build=TG"), "B564FCF803BCCF4AF3CA4828324DEC9F");
+   AgVecC(c, D'2026.08.04 16:39:54', 2133.00, 2133.00, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_s15", AgTgFinish(AgTgTextS15(c), 0, 0, 0, "build=TG"), "96806982DC7D3E0675015A20F74AD010");
+   AgVecC(c, D'2026.09.23 16:57:35', 2880.70, 2879.58, -1.12, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s16", AgTgFinish(AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 3, 1, 0, -1), 0, 0, 0, "build=TG"), "F2D787D5C54E0F3823FF7783C999BE76");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_LOCKED, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s17", AgTgFinish(AgTgTextS17(c, 1, 1), 0, 0, 0, "build=TG"), "B45123BF0C08879BF1EF68247C62CBCA");
+   AgVecC(c, D'2026.09.15 22:35:38', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_s18", AgTgFinish(AgTgTextS18(c, 28), 0, 0, 0, "build=TG"), "B3B6289EDC18EC177CEF030D8C624860");
+   AgVecC(c, D'2026.08.18 15:36:30', 239.63, 239.63, -1893.50, AG_TG_PNL_LOCKED, 106.66, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s19_locked", AgTgFinish(AgTgTextS19Locked(c, 1, 10.00, 200, 106.66), 0, 0, 0, "build=TG"), "09CC33A9090FF80F316368F322392809");
+   AgVecC(c, D'2026.09.07 14:32:54', 2294.76, 2294.76, 0.0, AG_TG_PNL_ACTIVE, 114.74, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s19_raise", AgTgFinish(AgTgTextS19Raise(c, 126.21, 114.74), 0, 0, 0, "build=TG"), "658AC83E61B3805305D91FE6DA29CD11");
+   AgVecC(c, D'2026.08.10 01:00:00', 2003.46, 2003.46, 0.0, AG_TG_PNL_ACTIVE, 100.17, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s20", AgTgFinish(AgTgTextS20(c, 259200), 0, 0, 0, "build=TG"), "EE876FB092B119A4B2F1BC423FA7FBF2");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_s21", AgTgFinish(AgTgTextS21(c), 0, 0, 0, "build=TG"), "D9A7BE2439B4AEB13F384F4551877921");
+   AgVecC(c, D'2026.10.19 09:05:03', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_s22", AgTgFinish(AgTgTextS22(c, 300, 1), 0, 0, 0, "build=TG"), "10A507E6ACA605EB10B8E38F3ED534E1");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s24", AgTgFinish(AgTgTextS24(c), 0, 0, 0, "build=TG"), "B8A6D72ED9ABE1F43B9AD64F02A50813");
+   AgVecC(c, D'2026.10.21 12:00:01', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_status_active", AgTgFinish(AgTgTextStatus(c, 1, -1, 0, 126.21), 0, 0, 0, "build=TG"), "99910E7A49063AF26151118224129465");
+   AgVecC(c, D'2026.09.23 16:00:01', 2880.70, 2880.70, 0.0, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_status_locked", AgTgFinish(AgTgTextStatus(c, 1, -1, D'2026.09.24 01:00:00', 0), 0, 0, 0, "build=TG"), "7D1EF6317D246EB75FB0D4C1E6632C9B");
+   AgVecC(c, D'2026.10.21 14:05:12', 2172.06, 2150.10, 0.0, AG_TG_PNL_NONE, 0.0, AG_TG_STATE_NOT_RUNNING);
+   AgVecMd5("tg_text_not_responding", AgTgFinish(AgTgTextNotResponding(c, 15, false, true), 0, 0, 0, "build=TG"), "767F4678A0E8A950192C454A507F4BFF");
+   AgVecC(c, D'2026.10.21 09:01:00', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_TG_STATE_NOT_RUNNING);
+   AgVecMd5("tg_text_not_running", AgTgFinish(AgTgTextNotRunning(c, 60), 0, 0, 0, "build=TG"), "DA47462893CC077C21667544336E6B99");
+   AgVecC(c, D'2026.10.21 14:05:54', 2172.06, 2150.10, -21.96, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_responds_again", AgTgFinish(AgTgTextRespondsAgain(c, 42), 0, 0, 0, "build=TG"), "8D6777C1F841098E7E42645C3DC7595E");
+   AgVecC(c, D'2026.10.21 10:44:02', 2805.35, 2805.35, 12.40, AG_TG_PNL_ACTIVE, 164.94, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s12_active", AgTgFinish(AgTgTextS12Blocked(c, 1), 0, 0, 0, "build=TG"), "16B85CAA49323415B4A653DD9FE53F56");
+   AgVecC(c, D'2026.09.26 16:35:38', 3138.34, 3138.30, 0.0, AG_TG_PNL_LOCKED, 158.69, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s6_order_session", AgTgFinish(AgTgTextS6H(c, 781624901, true, 1, "XAUUSD.ecn", 0, 10, 60), 0, 0, 0, "build=TG"), "04A4AF7757F86157652B03E396B8742A");
+   AgVecC(c, D'2026.09.23 15:30:00', 2880.70, 2850.10, -30.60, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s6_refuse", AgTgFinish(AgTgTextS6H(c, 753031555, false, 3, "XAUUSD.ecn", 0, 10, 60), 0, 0, 0, "build=TG"), "02614EC64006304E64311DF99CFF581C");
+   AgVecC(c, D'2026.09.23 15:30:00', 2880.70, 2850.10, -30.60, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s6_order_hold", AgTgFinish(AgTgTextS6H(c, 753031560, true, 5, "XAUUSD.ecn", 0, 10, 60), 0, 0, 0, "build=TG"), "497C7DEE2EA202896EBB7C1368AF3CD3");
+   AgVecC(c, D'2026.09.26 16:35:38', 3138.34, 3138.30, 0.0, AG_TG_PNL_LOCKED, 158.69, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s6_mode", AgTgFinish(AgTgTextS6H(c, 781624897, false, 4, "XAUUSD.ecn", 0, 10, 60), 0, 0, 0, "build=TG"), "AD14F7DE0250C53373A66CCE00525AA8");
+   AgVecC(c, D'2026.09.23 15:30:00', 2880.70, 2850.10, -30.60, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s6_order_hard_stop", AgTgFinish(AgTgTextS6H(c, 753031560, true, 2, "XAUUSD.ecn", 0, 10, 60), 0, 0, 0, "build=TG"), "3EE6B318456D3B030A81CE21623227CC");
+   AgVecC(c, D'2026.09.28 01:01:05', 2998.80, 2998.80, 0.0, AG_TG_PNL_LOCKED, 158.69, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s6_order_flattened", AgTgFinish(AgTgTextS6F(c, 781624901, true, "XAUUSD.ecn"), 0, 0, 0, "build=TG"), "6788B5CD02F7BA1C0F15AE2ADD4A62BA");
+   AgVecC(c, D'2026.09.23 15:28:24', 2880.70, 2880.70, 0.0, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s6_complete_singular", AgTgFinish(AgTgTextS6C(c, 1, 1, 2, 0, 3), 0, 0, 0, "build=TG"), "108D3143FC9627E73407158CC6CF48E5");
+   AgVecC(c, D'2026.09.23 15:56:12', 2880.62, 2880.62, -0.08, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s7_later", AgTgFinish(AgTgTextS7(c, 753338779, "XAUUSD.ecn", 2), 0, 0, 0, "build=TG"), "A728BC9FD29055A7AFAC1C0AE024DD3B");
+   AgVecC(c, D'2026.10.21 09:00:05', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_b_s17_corrupt", AgTgFinish(AgTgTextS17(c, 4, 2), 0, 0, 0, "build=TG"), "92DC7BF47110B034CF539B5FF27CB164");
+   AgVecC(c, D'2026.10.21 09:00:20', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_b_s12_syncing", AgTgFinish(AgTgTextS12Blocked(c, 2), 0, 0, 0, "build=TG"), "31DAEF8F0BA928D1942DD56931E72C40");
+   AgVecC(c, D'2026.09.23 16:57:35', 2880.70, 2880.70, 0.0, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_b_s16_restarted", AgTgFinish(AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 3, 0, 0, 5), 0, 0, 0, "build=TG"), "4AD71ACE0C5D26DF5D678C197BDEAB81");
+   AgVecC(c, D'2026.10.21 08:00:01', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_b_status_syncing", AgTgFinish(AgTgTextStatus(c, 0, -1, 0, 0), 0, 0, 0, "build=TG"), "6DB53DDF7D6984BB7ED86689A08C392C");
+   AgVecC(c, D'2026.10.21 16:00:01', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_TG_STATE_NOT_RUNNING);
+   AgVecMd5("tg_text_b_status_not_running", AgTgFinish(AgTgTextStatus(c, 75, -1, 0, 0), 0, 0, 0, "build=TG"), "52C7D3DD872E35077271FE92DC271EC5");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_0", AgVecLine(AgTgTextS2(c, 0), 7), "EFFC6FE0AFB6D214779B3CB0620114C8");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_1", AgVecLine(AgTgTextS2(c, 1), 7), "6A7D3A6FD4BAF6CA0F94DF05DD14AF59");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_2", AgVecLine(AgTgTextS2(c, 2), 7), "A85CCC66109BB2F09A1B907F8CA12246");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_3", AgVecLine(AgTgTextS2(c, 3), 7), "DA1DF861E6DA30C26F2DE543E888648A");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_4", AgVecLine(AgTgTextS2(c, 4), 7), "14DFB15DD808C277F3A2262F979066AD");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_5", AgVecLine(AgTgTextS2(c, 5), 7), "37EB87B03E42D7B571169D079A8ABF13");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_6", AgVecLine(AgTgTextS2(c, 6), 7), "B1C33DC93A3E84E1924D6B346B49A842");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_7", AgVecLine(AgTgTextS2(c, 7), 7), "AD9224F80C1FF452F601BA5420A4900E");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_8", AgVecLine(AgTgTextS2(c, 8), 7), "9A0C779AEC236D1E208DAB338E141B3E");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s2_reason_9", AgVecLine(AgTgTextS2(c, 9), 7), "8900648F5865D426098106B334F0EFEE");
+   AgVecMd5("tg_text_delay_line", AgVecLine(AgTgFinish("x", 0, 0, 125, "b"), 1), "8EAA2DA778AAEC914F4772EEEC4B4DED");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_state_word_0", AgVecLine(AgTgCommonLines(c), 5), "DFCEBBAC82AAC91BA849E79083932102");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_state_word_1", AgVecLine(AgTgCommonLines(c), 5), "38B0D69A08429B1D6617BD67F15EFF4F");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_state_word_2", AgVecLine(AgTgCommonLines(c), 5), "5BCCFCF3134C7A4874D58E0047B28915");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SAFE_HALT);
+   AgVecMd5("tg_text_state_word_3", AgVecLine(AgTgCommonLines(c), 5), "F6C9844D33FA068CEC5BEF5A5E5BE8D6");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_TG_STATE_NOT_RUNNING);
+   AgVecMd5("tg_text_state_word_4", AgVecLine(AgTgCommonLines(c), 5), "9562A8A8F62E0AD704F8B60DF579D6DB");
+   AgVecMd5("tg_text_not_computed", AgTgPnlLine(AG_TG_PNL_NONE, 0.0, 0.0), "BA6813B1FD8BF7600B8715F027D9BC86");
+   AgVecC(c, D'2026.09.15 18:36:17', 2300.16, 2164.56, -130.20, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s4_crossed_1", AgVecLine(AgTgTextS4(c, 1, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0), 8), "34EE2F371DCD66F33FF985BED6EF3E3A");
+   AgVecC(c, D'2026.09.15 18:36:17', 2300.16, 2164.56, -130.20, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s4_crossed_2", AgVecLine(AgTgTextS4(c, 2, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0), 8), "9671A01A64EA5B9C83A3D431DD8DD0AA");
+   AgVecC(c, D'2026.09.15 18:36:17', 2300.16, 2164.56, -130.20, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s4_crossed_3", AgVecLine(AgTgTextS4(c, 3, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0), 8), "11F89A2B1319C519D0A907553263AF3C");
+   AgVecC(c, D'2026.09.28 10:44:02', 2805.35, 2805.35, -193.49, AG_TG_PNL_LOCKED, 164.94, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s12_block_1", AgVecLine(AgTgTextS12Blocked(c, 1), 7), "2F1934631C7D76C2FB7F56E1801F09EC");
+   AgVecC(c, D'2026.09.28 10:44:02', 2805.35, 2805.35, -193.49, AG_TG_PNL_LOCKED, 164.94, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s12_block_2", AgVecLine(AgTgTextS12Blocked(c, 2), 7), "9281EA859503597569F601DECFFF7C66");
+   AgVecC(c, D'2026.09.28 10:44:02', 2805.35, 2805.35, -193.49, AG_TG_PNL_LOCKED, 164.94, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s12_block_3", AgVecLine(AgTgTextS12Blocked(c, 3), 7), "25D16C40CE2CD11ADAC33DD4E46F16AF");
+   AgVecC(c, D'2026.09.28 10:44:02', 2805.35, 2805.35, -193.49, AG_TG_PNL_LOCKED, 164.94, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s12_block_4", AgVecLine(AgTgTextS12Blocked(c, 4), 7), "27BD40527388F4D497376D4289C70954");
+   AgVecC(c, D'2026.10.21 10:44:02', 2805.35, 2805.35, 12.40, AG_TG_PNL_ACTIVE, 164.94, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_s12_block_active_line", AgVecLine(AgTgTextS12Blocked(c, 1), 8), "3D37082A4E466348F54AD0F31EE7495A");
+   AgVecC(c, D'2026.09.23 16:57:35', 2880.70, 2879.58, -1.12, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s16_source_0", AgVecLine(AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 1, 1, 0, -1), 8), "BF9EC31513727B11E73278097A3D1C85");
+   AgVecC(c, D'2026.09.23 16:57:35', 2880.70, 2879.58, -1.12, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s16_source_1", AgVecLine(AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 2, 1, 0, -1), 8), "F6D3610089F38B8B88AE4375FE63C464");
+   AgVecC(c, D'2026.09.23 16:57:35', 2880.70, 2879.58, -1.12, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s16_source_2", AgVecLine(AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 4, 1, 0, -1), 8), "852A45F36772D0E02257E22B32245BBA");
+   AgVecC(c, D'2026.09.23 16:57:35', 2880.70, 2879.58, -1.12, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s16_source_3", AgVecLine(AgTgTextS16(c, D'2026.09.24 01:00:00', 3, 4, 1, 0, -1), 8), "2C705986277AEAD941F701A67C008206");
+   AgVecC(c, D'2026.09.23 16:57:35', 2880.70, 2879.58, -1.12, AG_TG_PNL_LOCKED, 147.54, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s16_source_5", AgVecLine(AgTgTextS16(c, D'2026.09.24 01:00:00', 2, 0, 1, 0, -1), 8), "39FA38E8A2F394F20ADF98A3C5D688F4");
+   AgVecC(c, D'2026.10.19 09:05:03', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_s22_reason_2", AgVecLine(AgTgTextS22(c, 300, 2), 8), "EC1E7EBF5486146290506C1D6BFFD8C0");
+   AgVecC(c, D'2026.10.21 12:00:01', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SYNCING);
+   AgVecMd5("tg_text_status_head_0", AgVecLine(AgTgTextStatus(c, 1, -1, 0, 0), 0), "230CA79BB306AB73BAE75AF4334EC56E");
+   AgVecC(c, D'2026.10.21 12:00:01', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SAFE_HALT);
+   AgVecMd5("tg_text_status_head_1", AgVecLine(AgTgTextStatus(c, 1, -1, 0, 0), 0), "52F6D3A4AD1903B68DCC15EE4D1EBD4B");
+   AgVecC(c, D'2026.10.21 12:00:01', 2172.06, 2172.06, 0.0, AG_TG_PNL_NONE, 0.0, AG_TG_STATE_NOT_RUNNING);
+   AgVecMd5("tg_text_status_head_2", AgVecLine(AgTgTextStatus(c, 1, -1, 0, 0), 0), "91267B133E82749BBCDF631759985241");
+   AgVecC(c, D'2026.10.21 12:00:01', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_status_age_line", AgVecLine(AgTgTextStatus(c, 1, 95, 0, 126.21), 8), "DF4F4237D38D15D4ADBA5BBCCA4A1F89");
+   AgVecC(c, D'2026.10.21 14:05:12', 2172.06, 2150.10, 0.0, AG_TG_PNL_NONE, 0.0, AG_TG_STATE_NOT_RUNNING);
+   AgVecMd5("tg_text_not_recorded_line", AgVecLine(AgTgTextNotResponding(c, 15, true, true), 8), "C10637B17D3AE72327E68AA478F8EC81");
+   AgVecMd5("tg_text_overflow_line", AgVecLine(AgTgFinish("x", 12, 0, 0, "b"), 1), "9F8A156E44B7AB84BF09856938986BB6");
+   AgVecMd5("tg_text_held_back_line", AgVecLine(AgTgFinish("x", 0, 3, 0, "b"), 1), "D07D1D0964E9134A1FEA5EF948068AE3");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_LOCKED, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s17_file_2", AgVecLine(AgTgTextS17(c, 2, 1), 7), "FEDDC56CB6EC2426C4EF0A6F7BA2FE81");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_LOCKED, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s17_file_3", AgVecLine(AgTgTextS17(c, 3, 1), 7), "41134456EA780E684FCF05DCD91BE87C");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_LOCKED, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s17_file_5", AgVecLine(AgTgTextS17(c, 5, 1), 7), "AF3C4D258B1A85879AFA858B2BCC565A");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_LOCKED, 126.21, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s17_file_0", AgVecLine(AgTgTextS17(c, 0, 1), 7), "30BF0DD7FCEDDBF4403E8CE60CAB2E56");
+   AgVecC(c, D'2026.08.18 15:36:30', 239.63, 239.63, -1893.50, AG_TG_PNL_LOCKED, 106.66, AG_STATE_LOCKED);
+   AgVecMd5("tg_text_s19_currency_line", AgVecLine(AgTgTextS19Locked(c, 2, 10.00, 150, 106.66), 7), "82684F0043E3EC1EFA610A2CEF74283F");
+   AgVecMd5("tg_text_locked_profit_line", AgTgPnlLine(AG_TG_PNL_LOCKED, 5.00, 147.54), "37AD271703A309E1ECFC3A70E66ABA8A");
+   AgVecMd5("tg_text_singular_delay", AgVecLine(AgTgFinish("x", 0, 0, 1, "b"), 1), "00059E5C4A28D835CD116A15604AB354");
+   AgVecC(c, D'2026.08.04 16:37:04', 2133.00, 2133.00, 0.0, AG_TG_PNL_NONE, 0.0, AG_STATE_SAFE_HALT);
+   AgVecMd5("tg_text_singular_crash", AgVecLine(AgTgTextS3Crash(c, 1, 300), 7), "5F44BCCAE9BFE5BFAE53D3795E020758");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_ACTIVE);
+   AgVecMd5("tg_text_singular_hard_stop", AgVecLine(AgTgTextS6H(c, 1, false, 2, "", 0, 1, 60), 0), "6C06EE97EF07A2C25F12DF0F7D9257EA");
 
    PrintFormat("AGVEC|SUMMARY|%d/%d", g_pass, g_total);
   }

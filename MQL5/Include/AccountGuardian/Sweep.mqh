@@ -102,6 +102,71 @@ int      g_ag_sweep_open_count       = 0;
 int      g_ag_sweep_held_count       = 0;
 
 //+------------------------------------------------------------------+
+//| TELEGRAM ALERTS BUILD (TG-1 (B), design addendum item 1.11). The |
+//| sweep notes its four alert events at their own emission sites in |
+//| this buffer, numbers only and in memory only, and the EA's alert |
+//| producer drains it at the end of the tick. Nothing here sends,   |
+//| nothing here is persisted, and no sweep branch reads it.          |
+//| The three episode counters feed the S6 completion event beside   |
+//| the existing attempts count.                                     |
+//+------------------------------------------------------------------+
+#define AG_SWEEP_NOTE_COMPLETE   1   // the sweep complete line (S6C)
+#define AG_SWEEP_NOTE_HOLD       2   // the first hold of a ticket (S6H)
+#define AG_SWEEP_NOTE_FLATTENED  3   // flattened after hold (S6F)
+#define AG_SWEEP_NOTE_ACCEL_DONE 4   // a close done on an accelerated pass (S7)
+
+struct AgSweepNote
+  {
+   int      kind;      // AG_SWEEP_NOTE_*
+   ulong    ticket;    // the ticket, 0 for the completion note
+   int      is_order;  // 1 for a pending order, 0 for a position
+   int      a;         // complete: positions closed; hold: reason code; accel: attempt
+   int      b;         // complete: pendings deleted
+   int      c;         // complete: attempts
+   int      d;         // complete: failures
+   int      e;         // complete: elapsed passes
+   datetime next_open; // hold: the next session open, 0 when unknown
+  };
+
+AgSweepNote g_ag_sweep_notes[];
+int      g_ag_sweep_episode_closed   = 0;
+int      g_ag_sweep_episode_deleted  = 0;
+int      g_ag_sweep_episode_failures = 0;
+
+void AgSweepNoteAdd(const int kind, const ulong ticket, const int is_order, const int a,
+                    const int b, const int c, const int d, const int e, const datetime next_open)
+  {
+   int n = ArraySize(g_ag_sweep_notes);
+   if(n >= 64)
+      return;   // bounded; the producer drains every tick, so this is never reached in practice
+   ArrayResize(g_ag_sweep_notes, n + 1);
+   g_ag_sweep_notes[n].kind      = kind;
+   g_ag_sweep_notes[n].ticket    = ticket;
+   g_ag_sweep_notes[n].is_order  = is_order;
+   g_ag_sweep_notes[n].a         = a;
+   g_ag_sweep_notes[n].b         = b;
+   g_ag_sweep_notes[n].c         = c;
+   g_ag_sweep_notes[n].d         = d;
+   g_ag_sweep_notes[n].e         = e;
+   g_ag_sweep_notes[n].next_open = next_open;
+  }
+
+//--- the hold reason as the alert event carries it: 1 session closed, 2 hard
+//--- stop, 3 refuse, 4 trade mode disabled, 5 a hold class retcode
+int AgSweepHoldAlertCode(const int hold)
+  {
+   switch(hold)
+     {
+      case AG_SWEEP_HOLD_SESSION:   return 1;
+      case AG_SWEEP_HOLD_HARD_STOP: return 2;
+      case AG_SWEEP_HOLD_REFUSE:    return 3;
+      case AG_SWEEP_HOLD_MODE:      return 4;
+      case AG_SWEEP_HOLD_RETCODE:   return 5;
+     }
+   return 0;
+  }
+
+//+------------------------------------------------------------------+
 //| THE ONLY CLOCK READ IN THIS FILE. See the header: two Q7 domain  |
 //| readings, the session pre-check and the coverage gap stamps.     |
 //+------------------------------------------------------------------+
@@ -127,6 +192,9 @@ void AgSweepReset()
    g_ag_sweep_episode_attempts = 0;
    g_ag_sweep_open_count       = 0;
    g_ag_sweep_held_count       = 0;
+   g_ag_sweep_episode_closed   = 0;
+   g_ag_sweep_episode_deleted  = 0;
+   g_ag_sweep_episode_failures = 0;
   }
 
 //--- the two counts the EA builder appends to the LOCKED LIFE line as
@@ -324,6 +392,9 @@ void AgSweepHold(const int idx, const int reason, const string symbol, const dat
       AgAlertEvent("CANNOT_FLATTEN: " + kind + " " + (string)g_ag_sweep_tickets[idx].ticket + " on " + symbol
                    + " is held while LOCKED, " + AgSweepHoldReason(idx)
                    + "; the sweep retries when the condition changes or at the re-arm cadence");
+      AgSweepNoteAdd(AG_SWEEP_NOTE_HOLD, g_ag_sweep_tickets[idx].ticket,
+                     g_ag_sweep_tickets[idx].is_order ? 1 : 0, AgSweepHoldAlertCode(reason),
+                     0, 0, 0, 0, next_open);
      }
   }
 
@@ -484,6 +555,9 @@ void AgSweepPass(const string origin)
          g_ag_sweep_complete_armed   = true;
          g_ag_sweep_episode_start    = pass;
          g_ag_sweep_episode_attempts = 0;
+         g_ag_sweep_episode_closed   = 0;
+         g_ag_sweep_episode_deleted  = 0;
+         g_ag_sweep_episode_failures = 0;
         }
       g_ag_sweep_flat_passes = 0;
      }
@@ -634,6 +708,18 @@ void AgSweepPass(const string origin)
          AgInfo(AgSweepCloseLine(ticket, symbol, type_name, volume, floating, retcode, cls, attempt_no,
                                  (cls == AG_RC_DONE || partial) ? result.volume : 0.0));
 
+      //--- the S6 completion counts: done sends by kind, and every other
+      //--- outcome but a partial fill as a failure
+      if(cls == AG_RC_DONE)
+        {
+         if(is_order)
+            g_ag_sweep_episode_deleted++;
+         else
+            g_ag_sweep_episode_closed++;
+        }
+      else if(!partial)
+         g_ag_sweep_episode_failures++;
+
       //--- THE CLASSES.
       if(cls == AG_RC_DONE)
         {
@@ -648,7 +734,11 @@ void AgSweepPass(const string origin)
             AgAlertEvent("flattened after hold: " + (is_order ? "order " : "position ") + (string)ticket
                          + " on " + symbol + " accepted with " + AgRetcodeName(retcode));
             g_ag_sweep_tickets[idx].alerted = false;
+            AgSweepNoteAdd(AG_SWEEP_NOTE_FLATTENED, ticket, is_order ? 1 : 0, 0, 0, 0, 0, 0, 0);
            }
+         //--- S7, a trade opened while LOCKED and closed by the accelerator's pass
+         else if(origin == "accelerated" && !is_order)
+            AgSweepNoteAdd(AG_SWEEP_NOTE_ACCEL_DONE, ticket, 0, attempt_no, 0, 0, 0, 0, 0);
         }
       else if(partial)
         {
@@ -702,6 +792,12 @@ void AgSweepPass(const string origin)
         {
          AgInfo(AgSweepCompleteLine(g_ag_sweep_episode_attempts, pass - g_ag_sweep_episode_start));
          g_ag_sweep_complete_armed = false;
+         //--- S6C. An episode that sent nothing, a lock declared on a flat
+         //--- book, has nothing to report and notes nothing.
+         if(g_ag_sweep_episode_attempts > 0)
+            AgSweepNoteAdd(AG_SWEEP_NOTE_COMPLETE, 0, 0, g_ag_sweep_episode_closed,
+                           g_ag_sweep_episode_deleted, g_ag_sweep_episode_attempts,
+                           g_ag_sweep_episode_failures, pass - g_ag_sweep_episode_start, 0);
         }
      }
   }
