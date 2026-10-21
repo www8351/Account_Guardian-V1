@@ -195,6 +195,281 @@ string AgVecBody(const long login, const int reason, const datetime until,
           + "|" + DoubleToString(base_snap, AG_STATE_MONEY_DIGITS) + "\n";
   }
 
+//+------------------------------------------------------------------+
+//| TG, the queue file on hostile input (fix pass B2 of 2026-10-21). |
+//| The EA reads the queue in OnInit, before the halt load, so a     |
+//| runtime error there would stop the guardian at every start. Each |
+//| case feeds AgTgQueueParse, then what AgTgQueueLoad runs on a     |
+//| parsed file: the login compare, AgTgQueueForget,                 |
+//| AgTgNextSeqAfterLoad, and the append with AgTgQueueTrim that     |
+//| AgTgAppendHeld makes. Every case must end in a rejection with    |
+//| its reason or in a valid result. Pure: no file and no GV.        |
+//+------------------------------------------------------------------+
+#define AGVEC_TGQ_LOGIN 990000021
+
+//--- field k of a '|' line replaced
+string AgVecTgField(const string line, const int k, const string value)
+  {
+   string f[];
+   int n = StringSplit(line, '|', f);
+   string out = "";
+   for(int i = 0; i < n; i++)
+      out += (i == 0 ? "" : "|") + (i == k ? value : f[i]);
+   return out;
+  }
+
+//--- the last field of a '|' line dropped
+string AgVecTgDropLast(const string line)
+  {
+   int at = StringLen(line) - 1;
+   while(at >= 0 && StringGetCharacter(line, at) != '|')
+      at--;
+   return (at < 0) ? "" : StringSubstr(line, 0, at);
+  }
+
+string AgVecTgHeader() { return AG_TGQ_MAGIC + "|1|" + (string)AGVEC_TGQ_LOGIN; }
+
+string AgVecTgE() { return "E|200|" + (string)(long)D'2026.10.21 01:00:00' + "|1"; }
+
+string AgVecTgN()
+  {
+   AgTgSnapshot s;
+   ZeroMemory(s);
+   s.local_t        = (long)D'2026.10.21 12:00:02';
+   s.server_t       = (long)D'2026.10.21 12:00:01';
+   s.state          = AG_STATE_ACTIVE;
+   s.seconds_in_state = 3600;
+   s.connected      = 1;
+   s.pnl_mode       = AG_TG_PNL_ACTIVE;
+   s.balance        = 2172.06;
+   s.floating       = -21.96;
+   s.equity         = 2150.10;
+   s.pnl            = -21.96;
+   s.limit          = 126.21;
+   s.live_limit     = 126.21;
+   s.enforced_limit = 126.21;
+   s.peak_level     = -126.21;
+   s.anchor         = (long)D'2026.10.21 01:00:00';
+   s.percent        = 5.5;
+   s.currency       = 200.0;
+   return AgTgSnapshotLine(s, "TG");
+  }
+
+//--- an S4 event, the figures of the S4 draft
+string AgVecTgV(const long seq)
+  {
+   AgTgEvent e;
+   ZeroMemory(e);
+   e.seq      = seq;
+   e.code     = AG_TG_S4;
+   e.server_t = (long)D'2026.09.15 18:36:17';
+   e.local_t  = (long)D'2026.09.15 18:36:18';
+   e.state    = AG_STATE_LOCKED;
+   e.pnl_mode = AG_TG_PNL_ACTIVE;
+   e.balance  = 2300.16;
+   e.equity   = 2164.56;
+   e.pnl      = -130.20;
+   e.limit    = 126.21;
+   e.x[0] = 1;
+   e.x[1] = (double)(long)D'2026.09.16 01:00:00';
+   e.x[2] = 126.21;
+   e.x[3] = 5.40;
+   e.x[4] = -135.60;
+   e.x[6] = 3;
+   return AgTgEventLine(e);
+  }
+
+//--- header, E and N lines, the V lines given (each ending "\n"), sealed
+string AgVecTgFile(const string header, const string e_line, const string n_line, const string v_lines)
+  {
+   return AgVecSealed(header + "\n" + e_line + "\n" + n_line + "\n" + v_lines);
+  }
+
+//--- want_ok: a valid result keeping want_kept events after the load's
+//--- forget at acknowledgement 100 and one held event appended; else the
+//--- rejection with its reason
+void AgVecTgQueueCase(const string name, const string text, const bool want_ok, const string want_why,
+                      const int want_kept)
+  {
+   long         login = 0, next_seq = 0, latch = 0;
+   int          mask = 0, count = 0;
+   AgTgSnapshot snap;
+   string       build = "", why = "";
+   AgTgEvent    loaded[];
+   bool ok = AgTgQueueParse(text, login, next_seq, latch, mask, snap, build, loaded, count, why);
+   if(ok && login != AGVEC_TGQ_LOGIN)
+     {
+      ok  = false;
+      why = "carries login " + (string)login;
+     }
+   int kept = -1;
+   if(ok)
+     {
+      AgTgQueueForget(loaded, count, 100);
+      AgTgEvent held;
+      ZeroMemory(held);
+      held.seq  = AgTgNextSeqAfterLoad(next_seq, 100);
+      held.code = AG_TG_S2;
+      ArrayResize(loaded, count + 1);
+      loaded[count] = held;
+      count++;
+      AgTgQueueTrim(loaded, count, AG_TGQ_MAX_EVENTS);
+      kept = count;
+     }
+   bool pass = want_ok ? (ok && kept == want_kept) : (!ok && why == want_why);
+   AgVecCheck("tg_qr_" + name, pass, "ok=" + (string)ok + " why=" + why + " kept=" + (string)kept);
+  }
+
+void AgVecTgQueueCases()
+  {
+   string H    = AgVecTgHeader();
+   string E    = AgVecTgE();
+   string N    = AgVecTgN();
+   string V    = AgVecTgV(101) + "\n" + AgVecTgV(102) + "\n";
+   string last = AgVecTgV(103);
+   string body = H + "\n" + E + "\n" + N + "\n" + V + last + "\n";
+   string good = AgVecSealed(body);
+
+   //--- the reference file, and the same with CRLF line ends
+   AgVecTgQueueCase("reference_file_is_valid", good, true, "", 4);
+   string crlf = good;
+   StringReplace(crlf, "\n", "\r\n");
+   AgVecTgQueueCase("crlf_line_ends_are_valid", crlf, true, "", 4);
+
+   //--- an empty file, and line ends only
+   AgVecTgQueueCase("empty_file", "", false, "no checksum line", 0);
+   AgVecTgQueueCase("line_ends_only", "\n\n\n", false, "no checksum line", 0);
+
+   //--- a truncated last line, inside the last V line and inside the C line
+   AgVecTgQueueCase("truncated_inside_last_v_line", StringSubstr(body, 0, StringLen(body) - 10),
+                    false, "no checksum line", 0);
+   AgVecTgQueueCase("truncated_inside_c_line", StringSubstr(good, 0, StringLen(good) - 3),
+                    false, "checksum mismatch", 0);
+
+   //--- a missing C line, and a C line with nothing above it
+   AgVecTgQueueCase("missing_c_line", body, false, "no checksum line", 0);
+   AgVecTgQueueCase("c_line_alone", AgVecSealed(""), false, "too few lines", 0);
+
+   //--- extra and missing fields on each line type, every file sealed so
+   //--- the line itself is what is judged
+   AgVecTgQueueCase("header_extra_field", AgVecTgFile(H + "|0", E, N, V), false, "bad header", 0);
+   AgVecTgQueueCase("header_missing_field", AgVecTgFile(AgVecTgDropLast(H), E, N, V), false, "bad header", 0);
+   AgVecTgQueueCase("e_extra_field", AgVecTgFile(H, E + "|0", N, V), false, "bad E line", 0);
+   AgVecTgQueueCase("e_missing_field", AgVecTgFile(H, AgVecTgDropLast(E), N, V), false, "bad E line", 0);
+   AgVecTgQueueCase("n_extra_field", AgVecTgFile(H, E, N + "|0", V), false, "bad N line", 0);
+   AgVecTgQueueCase("n_missing_field", AgVecTgFile(H, E, AgVecTgDropLast(N), V), false, "bad N line", 0);
+   AgVecTgQueueCase("v_extra_field", AgVecTgFile(H, E, N, V + last + "|0\n"), false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_missing_field", AgVecTgFile(H, E, N, V + AgVecTgDropLast(last) + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_blank_line", AgVecTgFile(H, E, N, V + "\n" + last + "\n"), false, "bad V line 6", 0);
+   AgVecTgQueueCase("c_extra_field", body + "C|" + (string)AgChecksum(body) + "|0\n", false, "checksum mismatch", 0);
+   AgVecTgQueueCase("c_missing_value", body + "C|\n", false, "checksum mismatch", 0);
+
+   //--- non numeric fields
+   AgVecTgQueueCase("header_login_not_numeric", AgVecTgFile(AgVecTgField(H, 2, "99000002l"), E, N, V),
+                    false, "bad header", 0);
+   AgVecTgQueueCase("header_version_not_numeric", AgVecTgFile(AgVecTgField(H, 1, "x"), E, N, V),
+                    false, "bad header", 0);
+   AgVecTgQueueCase("e_next_seq_not_numeric", AgVecTgFile(H, AgVecTgField(E, 1, "12a"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_empty", AgVecTgFile(H, AgVecTgField(E, 3, ""), N, V), false, "bad E line", 0);
+   AgVecTgQueueCase("n_balance_not_numeric", AgVecTgFile(H, E, AgVecTgField(N, 10, "abc"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_state_with_a_decimal", AgVecTgFile(H, E, AgVecTgField(N, 4, "1.5"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_build_not_a_label", AgVecTgFile(H, E, AgVecTgField(N, 3, "t@g"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_build_empty", AgVecTgFile(H, E, AgVecTgField(N, 3, ""), V), false, "bad N line", 0);
+   AgVecTgQueueCase("v_seq_not_numeric", AgVecTgFile(H, E, N, V + AgVecTgField(last, 1, "abc") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_code_unknown_text", AgVecTgFile(H, E, N, V + AgVecTgField(last, 2, "SX") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_code_empty", AgVecTgFile(H, E, N, V + AgVecTgField(last, 2, "") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_balance_with_an_exponent", AgVecTgFile(H, E, N, V + AgVecTgField(last, 7, "1e5") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_x_nan", AgVecTgFile(H, E, N, V + AgVecTgField(last, 11, "nan") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_x_minus_only", AgVecTgFile(H, E, N, V + AgVecTgField(last, 12, "-") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_x_two_points", AgVecTgFile(H, E, N, V + AgVecTgField(last, 13, "1.2.3") + "\n"),
+                    false, "bad V line 6", 0);
+
+   //--- numbers beyond the long and int ranges, and at their edges
+   AgVecTgQueueCase("header_login_beyond_long", AgVecTgFile(AgVecTgField(H, 2, "9223372036854775808"), E, N, V),
+                    false, "bad header", 0);
+   AgVecTgQueueCase("e_next_seq_beyond_long", AgVecTgFile(H, AgVecTgField(E, 1, "9223372036854775808"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_next_seq_at_long_max", AgVecTgFile(H, AgVecTgField(E, 1, "9223372036854775807"), N, V + last + "\n"),
+                    true, "", 4);
+   AgVecTgQueueCase("e_latch_beyond_long", AgVecTgFile(H, AgVecTgField(E, 2, "99999999999999999999"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_beyond_int", AgVecTgFile(H, AgVecTgField(E, 3, "2147483648"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_that_truncates_to_3", AgVecTgFile(H, AgVecTgField(E, 3, "4294967299"), N, V),
+                    false, "bad E line", 0);
+   AgVecTgQueueCase("e_mask_at_int_max", AgVecTgFile(H, AgVecTgField(E, 3, "2147483647"), N, V + last + "\n"),
+                    true, "", 4);
+   AgVecTgQueueCase("n_state_that_truncates_to_locked", AgVecTgFile(H, E, AgVecTgField(N, 4, "4294967299"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_local_t_beyond_long", AgVecTgFile(H, E, AgVecTgField(N, 1, "-9223372036854775809"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("n_seconds_beyond_int", AgVecTgFile(H, E, AgVecTgField(N, 6, "-2147483649"), V),
+                    false, "bad N line", 0);
+   AgVecTgQueueCase("v_seq_beyond_long", AgVecTgFile(H, E, N, V + AgVecTgField(last, 1, "9223372036854775808") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_code_that_truncates_to_s1", AgVecTgFile(H, E, N, V + AgVecTgField(last, 2, "S4294967297") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_state_that_truncates_to_syncing", AgVecTgFile(H, E, N, V + AgVecTgField(last, 5, "4294967297") + "\n"),
+                    false, "bad V line 6", 0);
+   AgVecTgQueueCase("v_money_beyond_long_is_a_number",
+                    AgVecTgFile(H, E, N, V + AgVecTgField(last, 7, "12345678901234567890123.45") + "\n"), true, "", 4);
+   AgVecTgQueueCase("v_x_beyond_long_is_a_number",
+                    AgVecTgFile(H, E, N, V + AgVecTgField(last, 11, "9223372036854775808") + "\n"), true, "", 4);
+   AgVecTgQueueCase("v_money_longer_than_32_characters",
+                    AgVecTgFile(H, E, N, V + AgVecTgField(last, 8, "1234567890123456789012345678901234567890.00") + "\n"),
+                    false, "bad V line 6", 0);
+
+   //--- more than 50 V lines
+   string many = "";
+   for(int k = 0; k < AG_TGQ_MAX_EVENTS; k++)
+      many += AgVecTgV(101 + k) + "\n";
+   AgVecTgQueueCase("fifty_v_lines_are_valid", AgVecTgFile(H, E, N, many), true, "", AG_TGQ_MAX_EVENTS);
+   AgVecTgQueueCase("fifty_one_v_lines", AgVecTgFile(H, E, N, many + AgVecTgV(151) + "\n"),
+                    false, "too many V lines", 0);
+   string lots = many;
+   for(int k = AG_TGQ_MAX_EVENTS; k < 200; k++)
+      lots += AgVecTgV(101 + k) + "\n";
+   AgVecTgQueueCase("two_hundred_v_lines", AgVecTgFile(H, E, N, lots), false, "too many V lines", 0);
+
+   //--- a seq out of order, repeated, zero or negative; gaps are allowed
+   AgVecTgQueueCase("v_seq_descending", AgVecTgFile(H, E, N, AgVecTgV(102) + "\n" + AgVecTgV(101) + "\n"),
+                    false, "V lines out of order", 0);
+   AgVecTgQueueCase("v_seq_repeated", AgVecTgFile(H, E, N, AgVecTgV(101) + "\n" + AgVecTgV(101) + "\n"),
+                    false, "V lines out of order", 0);
+   AgVecTgQueueCase("v_seq_zero", AgVecTgFile(H, E, N, AgVecTgV(0) + "\n"), false, "bad V line 4", 0);
+   AgVecTgQueueCase("v_seq_negative", AgVecTgFile(H, E, N, AgVecTgField(AgVecTgV(101), 1, "-5") + "\n"),
+                    false, "bad V line 4", 0);
+   AgVecTgQueueCase("v_seq_with_gaps",
+                    AgVecTgFile(H, E, N, AgVecTgV(101) + "\n" + AgVecTgV(140) + "\n" + AgVecTgV(199) + "\n"),
+                    true, "", 4);
+
+   //--- characters outside printable ASCII, each file sealed
+   string alef = ShortToString(0x05D0), e_acute = ShortToString(0x00E9);
+   string repl = ShortToString(0xFFFD), tab = ShortToString(9);
+   AgVecTgQueueCase("hebrew_letter_in_the_build", AgVecTgFile(H, E, AgVecTgField(N, 3, "T" + alef), V),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("latin_letter_in_a_v_field", AgVecTgFile(H, E, N, V + AgVecTgField(last, 11, "1" + e_acute) + "\n"),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("replacement_character_in_the_magic", AgVecTgFile("AG" + repl + "Q|1|990000021", E, N, V),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("tab_inside_a_field", AgVecTgFile(H, AgVecTgField(E, 1, "12" + tab + "1"), N, V),
+                    false, "not printable ASCII", 0);
+   AgVecTgQueueCase("character_after_the_c_line", good + e_acute + "\n", false, "not printable ASCII", 0);
+   AgVecTgQueueCase("character_inside_the_c_line", body + "C|" + (string)AgChecksum(body) + e_acute + "\n",
+                    false, "not printable ASCII", 0);
+  }
+
 void OnStart()
   {
    //--- Fixed reference values. The anchor boundary is the same arbitrary
@@ -1083,9 +1358,10 @@ void OnStart()
               tg_dropped == 10 && tg_n == 50 && tg_many[0].seq == 1 && tg_many[1].seq == 12 && tg_many[49].seq == 60,
               "dropped=" + (string)tg_dropped + " n=" + (string)tg_n + " first=" + (string)tg_many[0].seq
               + " second=" + (string)tg_many[1].seq);
+   //--- the trim above kept seq 1 and 12 to 60, so 30 forgets seq 1 and 12 to 30
    int tg_forgot = AgTgQueueForget(tg_many, tg_n, 30);
    AgVecCheck("tg_q_forgotten_at_the_acknowledgement",
-              tg_forgot == 19 && tg_n == 31 && tg_many[0].seq == 31 && tg_many[30].seq == 60,
+              tg_forgot == 20 && tg_n == 30 && tg_many[0].seq == 31 && tg_many[29].seq == 60,
               "forgot=" + (string)tg_forgot + " n=" + (string)tg_n);
    AgVecCheck("tg_q_numbering_goes_on_after_a_reload",
               AgTgNextSeqAfterLoad(121, 50) == 121 && AgTgNextSeqAfterLoad(10, 50) == 51
@@ -1108,6 +1384,9 @@ void OnStart()
               && AgTgBlockCode(AgTradeBlockName(true, true, false, true)) == 3
               && AgTgBlockCode(AgTradeBlockName(true, true, true, false)) == 4
               && AgTgBlockCode(AgTradeBlockName(true, true, true, true)) == 0, "block codes");
+
+   //--- the queue file on hostile input, fix pass B2
+   AgVecTgQueueCases();
 
    //--- S9, TG-3 (B): the share and the latch
    AgVecCheck("tg_s9_share_on_the_draft_figures_is_80",

@@ -25,6 +25,7 @@
 #define AG_TGQ_FORMAT_VERSION 1
 #define AG_TGQ_MAX_EVENTS     50     // plan 6.4.4
 #define AG_TGQ_X_COUNT        8
+#define AG_TGQ_MAX_NUMBER_CHARS 32   // a decimal field longer than this is no number the EA writes
 
 //--- event codes, the plan's catalog rows (addendum 1.11)
 #define AG_TG_S1    1
@@ -183,6 +184,76 @@ bool AgTgIsNumber(const string s)
    return digits > 0;
   }
 
+//+------------------------------------------------------------------+
+//| THE FIELD READERS. Each checks the text and the range before it  |
+//| converts, so no value taken from the file depends on how a       |
+//| conversion treats an overflow: a whole number must fit its type, |
+//| a decimal must be at most AG_TGQ_MAX_NUMBER_CHARS characters and |
+//| finite. A field that fails is a line that fails.                 |
+//+------------------------------------------------------------------+
+//--- an integer whose magnitude, leading zeros aside, is at most the
+//--- magnitude given as digits
+bool AgTgIntegerWithin(const string s, const string max_magnitude)
+  {
+   if(!AgTgIsInteger(s))
+      return false;
+   int n     = StringLen(s);
+   int start = (StringGetCharacter(s, 0) == '-') ? 1 : 0;
+   while(start < n - 1 && StringGetCharacter(s, start) == '0')
+      start++;
+   int len     = n - start;
+   int max_len = StringLen(max_magnitude);
+   if(len != max_len)
+      return len < max_len;
+   for(int i = 0; i < len; i++)
+     {
+      ushort a = StringGetCharacter(s, start + i);
+      ushort b = StringGetCharacter(max_magnitude, i);
+      if(a != b)
+         return a < b;
+     }
+   return true;
+  }
+
+bool AgTgReadLong(const string s, long &v)
+  {
+   if(!AgTgIntegerWithin(s, "9223372036854775807"))
+      return false;
+   v = StringToInteger(s);
+   return true;
+  }
+
+bool AgTgReadInt(const string s, int &v)
+  {
+   if(!AgTgIntegerWithin(s, "2147483647"))
+      return false;
+   v = (int)StringToInteger(s);
+   return true;
+  }
+
+bool AgTgReadDouble(const string s, double &v)
+  {
+   if(StringLen(s) > AG_TGQ_MAX_NUMBER_CHARS || !AgTgIsNumber(s))
+      return false;
+   v = StringToDouble(s);
+   return MathIsValidNumber(v);
+  }
+
+//--- the build label token: 1 to 16 capital ASCII letters and digits
+bool AgTgIsLabel(const string s)
+  {
+   int n = StringLen(s);
+   if(n < 1 || n > 16)
+      return false;
+   for(int i = 0; i < n; i++)
+     {
+      ushort ch = StringGetCharacter(s, i);
+      if(!((ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')))
+         return false;
+     }
+   return true;
+  }
+
 int AgTgCodeFromText(const string t)
   {
    if(t == "S6C") return AG_TG_S6C;
@@ -191,9 +262,9 @@ int AgTgCodeFromText(const string t)
    if(StringLen(t) < 2 || StringGetCharacter(t, 0) != 'S')
       return 0;
    string digits = StringSubstr(t, 1);
-   if(!AgTgIsInteger(digits) || StringGetCharacter(digits, 0) == '-')
+   int    code   = 0;
+   if(!AgTgIsInteger(digits) || StringGetCharacter(digits, 0) == '-' || !AgTgReadInt(digits, code))
       return 0;
-   int code = (int)StringToInteger(digits);
    return AgTgCodeKnown(code) ? code : 0;
   }
 
@@ -263,9 +334,12 @@ string AgTgQueueSerialize(const long login, const long next_seq, const long latc
   }
 
 //+------------------------------------------------------------------+
-//| THE PARSER. Acts only on a whole file: the header, E, N and C    |
-//| lines must parse and the checksum must verify, else nothing is   |
-//| taken (addendum 1.7). Pure on the text the reader returns.       |
+//| THE PARSER. Acts only on a whole file: every character printable |
+//| ASCII or a line end, the header, E, N and C lines parsing, the   |
+//| checksum verifying, every field read within its type, at most    |
+//| AG_TGQ_MAX_EVENTS V lines in ascending seq, else nothing is      |
+//| taken (addendum 1.2, 1.7, 1.12). Pure on the text the reader     |
+//| returns.                                                         |
 //+------------------------------------------------------------------+
 bool AgTgEventParse(const string line, AgTgEvent &e)
   {
@@ -275,61 +349,56 @@ bool AgTgEventParse(const string line, AgTgEvent &e)
    int code = AgTgCodeFromText(f[2]);
    if(code == 0)
       return false;
-   for(int i = 1; i < ArraySize(f); i++)
-      if(i != 2 && !AgTgIsNumber(f[i]))
-         return false;
-   if(!AgTgIsInteger(f[1]) || !AgTgIsInteger(f[3]) || !AgTgIsInteger(f[4])
-      || !AgTgIsInteger(f[5]) || !AgTgIsInteger(f[6]))
+   long   seq = 0, server_t = 0, local_t = 0;
+   int    state = 0, pnl_mode = 0;
+   double balance = 0.0, equity = 0.0, pnl = 0.0, limit = 0.0;
+   if(!AgTgReadLong(f[1], seq) || !AgTgReadLong(f[3], server_t) || !AgTgReadLong(f[4], local_t)
+      || !AgTgReadInt(f[5], state) || !AgTgReadInt(f[6], pnl_mode)
+      || !AgTgReadDouble(f[7], balance) || !AgTgReadDouble(f[8], equity)
+      || !AgTgReadDouble(f[9], pnl) || !AgTgReadDouble(f[10], limit))
       return false;
-   e.seq      = StringToInteger(f[1]);
-   e.code     = code;
-   e.server_t = StringToInteger(f[3]);
-   e.local_t  = StringToInteger(f[4]);
-   e.state    = (int)StringToInteger(f[5]);
-   e.pnl_mode = (int)StringToInteger(f[6]);
-   e.balance  = StringToDouble(f[7]);
-   e.equity   = StringToDouble(f[8]);
-   e.pnl      = StringToDouble(f[9]);
-   e.limit    = StringToDouble(f[10]);
    for(int i = 0; i < AG_TGQ_X_COUNT; i++)
-      e.x[i] = StringToDouble(f[11 + i]);
+     {
+      double x = 0.0;
+      if(!AgTgReadDouble(f[11 + i], x))
+         return false;
+      e.x[i] = x;
+     }
+   e.seq      = seq;
+   e.code     = code;
+   e.server_t = server_t;
+   e.local_t  = local_t;
+   e.state    = state;
+   e.pnl_mode = pnl_mode;
+   e.balance  = balance;
+   e.equity   = equity;
+   e.pnl      = pnl;
+   e.limit    = limit;
    return e.seq > 0;
   }
 
 bool AgTgSnapshotParse(const string line, AgTgSnapshot &n, string &build)
   {
    string f[];
-   if(StringSplit(line, '|', f) != 27 || f[0] != "N")
+   if(StringSplit(line, '|', f) != 27 || f[0] != "N" || !AgTgIsLabel(f[3]))
       return false;
-   for(int i = 1; i < 27; i++)
-      if(i != 3 && !AgTgIsNumber(f[i]))
-         return false;
-   build              = f[3];
-   n.local_t          = StringToInteger(f[1]);
-   n.server_t         = StringToInteger(f[2]);
-   n.state            = (int)StringToInteger(f[4]);
-   n.reason           = (int)StringToInteger(f[5]);
-   n.seconds_in_state = (int)StringToInteger(f[6]);
-   n.connected        = (int)StringToInteger(f[7]);
-   n.block            = (int)StringToInteger(f[8]);
-   n.pnl_mode         = (int)StringToInteger(f[9]);
-   n.balance          = StringToDouble(f[10]);
-   n.floating         = StringToDouble(f[11]);
-   n.equity           = StringToDouble(f[12]);
-   n.pnl              = StringToDouble(f[13]);
-   n.limit            = StringToDouble(f[14]);
-   n.live_limit       = StringToDouble(f[15]);
-   n.enforced_limit   = StringToDouble(f[16]);
-   n.peak             = StringToDouble(f[17]);
-   n.peak_level       = StringToDouble(f[18]);
-   n.anchor           = StringToInteger(f[19]);
-   n.locked_until     = StringToInteger(f[20]);
-   n.limit_snap       = StringToDouble(f[21]);
-   n.base_snap        = StringToDouble(f[22]);
-   n.percent          = StringToDouble(f[23]);
-   n.currency         = StringToDouble(f[24]);
-   n.sweep_open       = (int)StringToInteger(f[25]);
-   n.sweep_held       = (int)StringToInteger(f[26]);
+   AgTgSnapshot r;
+   if(!AgTgReadLong(f[1], r.local_t) || !AgTgReadLong(f[2], r.server_t)
+      || !AgTgReadInt(f[4], r.state) || !AgTgReadInt(f[5], r.reason)
+      || !AgTgReadInt(f[6], r.seconds_in_state) || !AgTgReadInt(f[7], r.connected)
+      || !AgTgReadInt(f[8], r.block) || !AgTgReadInt(f[9], r.pnl_mode)
+      || !AgTgReadDouble(f[10], r.balance) || !AgTgReadDouble(f[11], r.floating)
+      || !AgTgReadDouble(f[12], r.equity) || !AgTgReadDouble(f[13], r.pnl)
+      || !AgTgReadDouble(f[14], r.limit) || !AgTgReadDouble(f[15], r.live_limit)
+      || !AgTgReadDouble(f[16], r.enforced_limit) || !AgTgReadDouble(f[17], r.peak)
+      || !AgTgReadDouble(f[18], r.peak_level) || !AgTgReadLong(f[19], r.anchor)
+      || !AgTgReadLong(f[20], r.locked_until) || !AgTgReadDouble(f[21], r.limit_snap)
+      || !AgTgReadDouble(f[22], r.base_snap) || !AgTgReadDouble(f[23], r.percent)
+      || !AgTgReadDouble(f[24], r.currency) || !AgTgReadInt(f[25], r.sweep_open)
+      || !AgTgReadInt(f[26], r.sweep_held))
+      return false;
+   n     = r;
+   build = f[3];
    return true;
   }
 
@@ -340,6 +409,16 @@ bool AgTgQueueParse(const string text, long &login, long &next_seq, long &latch_
    count = 0;
    ArrayResize(events, 0);
    why   = "";
+   int text_len = StringLen(text);
+   for(int i = 0; i < text_len; i++)
+     {
+      ushort ch = StringGetCharacter(text, i);
+      if(ch > 126 || (ch < 32 && ch != '\n' && ch != '\r'))
+        {
+         why = "not printable ASCII";
+         return false;
+        }
+     }
    string lines[];
    int n = StringSplit(text, '\n', lines);
    string body = "";
@@ -375,25 +454,26 @@ bool AgTgQueueParse(const string text, long &login, long &next_seq, long &latch_
      }
    string h[];
    if(StringSplit(lines[0], '|', h) != 3 || h[0] != AG_TGQ_MAGIC
-      || h[1] != (string)AG_TGQ_FORMAT_VERSION || !AgTgIsInteger(h[2]))
+      || h[1] != (string)AG_TGQ_FORMAT_VERSION || !AgTgReadLong(h[2], login))
      {
       why = "bad header";
       return false;
      }
-   login = StringToInteger(h[2]);
    string e[];
    if(StringSplit(lines[1], '|', e) != 4 || e[0] != "E"
-      || !AgTgIsInteger(e[1]) || !AgTgIsInteger(e[2]) || !AgTgIsInteger(e[3]))
+      || !AgTgReadLong(e[1], next_seq) || !AgTgReadLong(e[2], latch_anchor) || !AgTgReadInt(e[3], s9_mask))
      {
       why = "bad E line";
       return false;
      }
-   next_seq     = StringToInteger(e[1]);
-   latch_anchor = StringToInteger(e[2]);
-   s9_mask      = (int)StringToInteger(e[3]);
    if(!AgTgSnapshotParse(lines[2], snap, build))
      {
       why = "bad N line";
+      return false;
+     }
+   if(c_index - 3 > AG_TGQ_MAX_EVENTS)
+     {
+      why = "too many V lines";
       return false;
      }
    for(int i = 3; i < c_index; i++)
