@@ -21,6 +21,10 @@ Set-StrictMode -Version 2.0
 # under MQL5/Scripts are not shipped.
 $shippedFiles = @(
     'MQL5/Experts/AccountGuardian/AccountGuardian.mq5',
+    'MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5',
+    'MQL5/Include/AccountGuardian/AlertJson.mqh',
+    'MQL5/Include/AccountGuardian/AlertQueue.mqh',
+    'MQL5/Include/AccountGuardian/AlertText.mqh',
     'MQL5/Include/AccountGuardian/Clock.mqh',
     'MQL5/Include/AccountGuardian/Log.mqh',
     'MQL5/Include/AccountGuardian/Persist.mqh',

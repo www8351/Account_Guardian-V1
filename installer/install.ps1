@@ -7,11 +7,15 @@
 #      its data folder and program folder, the terminal closed, an existing
 #      install, write access and free space, MetaEditor present, and the
 #      downloaded files against installer\manifest.txt.
-#   2. Compiles MQL5\Experts\AccountGuardian\AccountGuardian.mq5 in this
+#   2. Compiles MQL5\Experts\AccountGuardian\AccountGuardian.mq5 and
+#      MQL5\Services\AccountGuardian\AccountGuardianAlerts.mq5 in this
 #      downloaded folder with the chosen terminal's own MetaEditor.
-#   3. Copies the one compiled file, AccountGuardian.ex5, into the terminal's
-#      MQL5\Experts\AccountGuardian folder, creating that folder if it is absent.
-#   4. Prints the steps to attach the advisor to a chart.
+#   3. Copies the two compiled files: AccountGuardian.ex5 into the terminal's
+#      MQL5\Experts\AccountGuardian folder, creating that folder if it is
+#      absent, and AccountGuardianAlerts.ex5 straight into the terminal's
+#      existing MQL5\Services folder, which the installer never creates.
+#   4. Prints the steps to attach the advisor to a chart and to add the
+#      optional alerts service.
 # The window shows English only: one line per stage, prefixed with the stage's
 # percentage, and a progress bar. Every step, every message in English and
 # then in Hebrew, is appended to installer\install-log.txt beside this script.
@@ -38,6 +42,9 @@ $compileLogPath = Join-Path $installerFolder 'compile.log'
 $sourceFile = Join-Path $downloadRoot 'MQL5\Experts\AccountGuardian\AccountGuardian.mq5'
 $includeRoot = Join-Path $downloadRoot 'MQL5'
 $compiledFile = Join-Path $downloadRoot 'MQL5\Experts\AccountGuardian\AccountGuardian.ex5'
+$serviceSourceFile = Join-Path $downloadRoot 'MQL5\Services\AccountGuardian\AccountGuardianAlerts.mq5'
+$serviceCompiledFile = Join-Path $downloadRoot 'MQL5\Services\AccountGuardian\AccountGuardianAlerts.ex5'
+$serviceCompileLogPath = Join-Path $installerFolder 'compile-service.log'
 $minimumFreeBytes = 20MB
 $compileTimeoutMilliseconds = 300000
 $progressActivity = 'AccountGuardian installer'
@@ -146,6 +153,78 @@ function Test-DirectoryWriteAccess {
     return ($allowed -and -not $denied)
 }
 
+# One compile in the downloaded folder. The process exit code is recorded and
+# not used: the Result line of the log and a fresh compiled file are what
+# count. Returns the compiled file's item.
+function Invoke-InstallerCompile {
+    param([string]$SourcePath, [string]$CompiledPath, [string]$LogPath, [string]$CompiledName,
+          [string]$WhatEnglish, [string]$WhatHebrew)
+    Write-Progress -Activity $progressActivity -Status ('Compile: MetaEditor is compiling ' + $WhatEnglish) -PercentComplete 50
+    Write-InstallerMessage -English ('Compiling ' + $WhatEnglish + ' with MetaEditor. This takes a few seconds.') -Hebrew ('מהדר את ' + $WhatHebrew + ' בעזרת `MetaEditor`. זה לוקח שניות ספורות.')
+    $compileStart = Get-Date
+    $compileArguments = '/compile:"' + $SourcePath + '" /include:"' + $includeRoot + '" /log:"' + $LogPath + '"'
+    Add-InstallerRecordDetail ('Command: "' + $metaEditor + '" ' + $compileArguments)
+    $compileProcess = Start-Process -FilePath $metaEditor -ArgumentList $compileArguments -PassThru -WindowStyle Hidden
+    $processHandle = $compileProcess.Handle
+    if (-not $compileProcess.WaitForExit($compileTimeoutMilliseconds)) {
+        Exit-InstallerWithStop `
+            -English 'MetaEditor did not finish within five minutes. Close MetaEditor if it is open, then run the installer again. Nothing was copied into the terminal.' `
+            -Hebrew 'העורך `MetaEditor` לא סיים בתוך חמש דקות. סגור את `MetaEditor` אם הוא פתוח, והפעל שוב את תוכנית ההתקנה. דבר לא הועתק אל הטרמינל.'
+    }
+    Add-InstallerRecordDetail ('MetaEditor exit code, recorded and not used: ' + $compileProcess.ExitCode)
+    $compileLogItem = $null
+    if (Test-Path -LiteralPath $LogPath -PathType Leaf) { $compileLogItem = Get-Item -LiteralPath $LogPath }
+    if (($null -eq $compileLogItem) -or ($compileLogItem.LastWriteTime -lt $compileStart.AddSeconds(-2))) {
+        Exit-InstallerWithStop `
+            -English 'MetaEditor did not write a new compile log. Nothing was copied into the terminal.' `
+            -Hebrew 'העורך `MetaEditor` לא כתב יומן הידור חדש. דבר לא הועתק אל הטרמינל.' `
+            -Details @($LogPath)
+    }
+    $compileLines = @(Get-Content -LiteralPath $LogPath -Encoding Unicode)
+    foreach ($compileLine in $compileLines) {
+        if ($compileLine -match 'including') { Write-InstallerRecordLine ('    ' + $compileLine.Trim()) }
+    }
+    $resultLine = $null
+    foreach ($compileLine in $compileLines) {
+        if ($compileLine -match 'Result:\s*(\d+)\s+errors?,\s*(\d+)\s+warnings?') { $resultLine = $compileLine.Trim() }
+    }
+    if ($null -eq $resultLine) {
+        Exit-InstallerWithStop `
+            -English 'The compile log has no Result line. Nothing was copied into the terminal.' `
+            -Hebrew 'ביומן ההידור אין שורת `Result`. דבר לא הועתק אל הטרמינל.' `
+            -Details @($LogPath)
+    }
+    $null = $resultLine -match 'Result:\s*(\d+)\s+errors?,\s*(\d+)\s+warnings?'
+    $errorCount = [int]$Matches[1]
+    $warningCount = [int]$Matches[2]
+    Add-InstallerRecordDetail $resultLine
+    if ($errorCount -gt 0) {
+        $errorLines = @()
+        foreach ($compileLine in $compileLines) {
+            if (($compileLine -match '\berror\b') -and ($compileLine -notmatch 'Result:')) { $errorLines += $compileLine.Trim() }
+        }
+        $errorLines += $resultLine
+        Exit-InstallerWithStop `
+            -English 'The compile reported errors, listed below. Nothing was copied into the terminal.' `
+            -Hebrew 'ההידור דיווח על שגיאות, והן מופיעות להלן. דבר לא הועתק אל הטרמינל.' `
+            -Details $errorLines
+    }
+    if ($warningCount -gt 0) {
+        foreach ($compileLine in $compileLines) {
+            if ($compileLine -match '\bwarning\b') { Write-InstallerDetail $compileLine.Trim() }
+        }
+    }
+    $compiledItem = $null
+    if (Test-Path -LiteralPath $CompiledPath -PathType Leaf) { $compiledItem = Get-Item -LiteralPath $CompiledPath }
+    if (($null -eq $compiledItem) -or ($compiledItem.LastWriteTime -lt $compileStart.AddSeconds(-2))) {
+        Exit-InstallerWithStop `
+            -English ('MetaEditor reported no errors but wrote no new ' + $CompiledName + '. Nothing was copied into the terminal.') `
+            -Hebrew ('העורך `MetaEditor` לא דיווח על שגיאות אך לא כתב קובץ `' + $CompiledName + '` חדש. דבר לא הועתק אל הטרמינל.') `
+            -Details @($CompiledPath)
+    }
+    return $compiledItem
+}
+
 function Get-RunningTerminalCount {
     param([string]$ProgramFolder)
     $count = 0
@@ -176,8 +255,8 @@ try {
 
 try {
     Write-InstallerMessage `
-        -English 'AccountGuardian installer. It checks this computer, compiles the advisor with the MetaEditor of your own MetaTrader 5, and copies one file into the terminal you choose.' `
-        -Hebrew 'תוכנית ההתקנה של `AccountGuardian`. היא בודקת את המחשב הזה, מהדרת את היועץ בעזרת `MetaEditor` של מטא טריידר 5 שלך, ומעתיקה קובץ אחד אל הטרמינל שתבחר.' `
+        -English 'AccountGuardian installer. It checks this computer, compiles the advisor and its alerts service with the MetaEditor of your own MetaTrader 5, and copies the two files into the terminal you choose.' `
+        -Hebrew 'תוכנית ההתקנה של `AccountGuardian`. היא בודקת את המחשב הזה, מהדרת את היועץ ואת שירות ההתראות שלו בעזרת `MetaEditor` של מטא טריידר 5 שלך, ומעתיקה את שני הקבצים אל הטרמינל שתבחר.' `
         -Color 'Cyan'
     Write-InstallerMessage -English 'Every step is written, in English and in Hebrew, to this record file:' -Hebrew 'כל שלב נרשם, באנגלית ובעברית, בקובץ הרישום הזה:'
     Write-InstallerDetail $recordPath
@@ -271,6 +350,16 @@ try {
             -Hebrew 'בתיקיית הנתונים שנבחרה אין תיקייה `MQL5\Experts`. בדרך כלל פירוש הדבר שהטרמינל פועל במצב נייד ושומר את קבציו בתוך תיקיית התוכנה שלו. התקנה במצב נייד אינה חלק ממה שתוכנית ההתקנה הזו עושה. הדרך הידנית: בטרמינל בחר `File` ואז `Open Data Folder`; העתק את התיקיות `MQL5\Experts\AccountGuardian` ו`MQL5\Include\AccountGuardian` מההורדה הזו אל התיקיות המקבילות שם; פתח את `AccountGuardian.mq5` בעורך `MetaEditor` והדר אותו; הפעל מחדש את הטרמינל. דבר לא הותקן.' `
             -Details @($expertsFolder)
     }
+    # TG-16 (A): the alerts service lands straight into the existing
+    # MQL5\Services folder, which the terminal's own setup creates; the
+    # installer never creates it.
+    $servicesFolder = Join-Path $dataFolder 'MQL5\Services'
+    if (-not (Test-Path -LiteralPath $servicesFolder -PathType Container)) {
+        Exit-InstallerWithStop `
+            -English 'The chosen data folder has no MQL5\Services folder, which MetaTrader 5 creates when it is set up. The installer never creates it. The manual route: in the terminal choose File, then Open Data Folder, and check for MQL5\Services; if it is missing, update MetaTrader 5, open it once, close it, and run this installer again. Nothing was installed.' `
+            -Hebrew 'בתיקיית הנתונים שנבחרה אין תיקייה `MQL5\Services`, שמטא טריידר 5 יוצר בהתקנה שלו. תוכנית ההתקנה לעולם אינה יוצרת אותה. הדרך הידנית: בטרמינל בחר `File` ואז `Open Data Folder` ובדוק אם התיקייה `MQL5\Services` קיימת; אם היא חסרה, עדכן את מטא טריידר 5, פתח אותו פעם אחת, סגור אותו, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן.' `
+            -Details @($servicesFolder)
+    }
     if (-not (Test-Path -LiteralPath $terminalProgram -PathType Leaf)) {
         Exit-InstallerWithStop `
             -English 'The program folder named by this terminal''s origin.txt does not hold terminal64.exe. The terminal may have been moved or removed. Open the terminal once from where it is now, or choose another terminal, then run the installer again. Nothing was installed.' `
@@ -323,6 +412,25 @@ try {
     } else {
         Write-InstallerStage -Percent 35 -English 'Check 6 of 9, existing install: none. This is a fresh install.' -Hebrew 'בדיקה 6 מתוך 9, התקנה קיימת: אין. זו התקנה חדשה.'
     }
+    # The alerts service's one file in MQL5\Services. Every other file there
+    # belongs to someone else and is left alone.
+    $serviceTargetFile = Join-Path $servicesFolder 'AccountGuardianAlerts.ex5'
+    $isServiceUpgrade = $false
+    if (Test-Path -LiteralPath $serviceTargetFile) {
+        if (-not (Test-Path -LiteralPath $serviceTargetFile -PathType Leaf)) {
+            Exit-InstallerWithStop `
+                -English 'Where the installer puts the alerts service there is a folder it does not know, listed below. The installer does not overwrite, move or delete it. Move it away yourself, or delete it if you know what it is, then run the installer again. Nothing was installed.' `
+                -Hebrew 'במקום שבו תוכנית ההתקנה שמה את שירות ההתראות יש תיקייה שהיא אינה מכירה, והיא מופיעה להלן. תוכנית ההתקנה אינה דורסת, מעבירה או מוחקת אותה. העבר אותה בעצמך, או מחק אותה אם אתה יודע מהי, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן.' `
+                -Details @($serviceTargetFile)
+        }
+        $isServiceUpgrade = $true
+        $existingServiceFile = Get-Item -LiteralPath $serviceTargetFile
+        $existingServiceHash = Get-FileHash -Algorithm MD5 -LiteralPath $serviceTargetFile
+        Add-InstallerRecordDetail ('Installed alerts service: ' + $serviceTargetFile + ', it will be replaced')
+        Add-InstallerRecordDetail ('Installed alerts service md5: ' + $existingServiceHash.Hash + ', ' + $existingServiceFile.Length + ' bytes, written ' + $existingServiceFile.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
+    } else {
+        Add-InstallerRecordDetail ('Alerts service: not installed yet, ' + $serviceTargetFile)
+    }
     $earlierTraces = @()
     foreach ($tracePath in @((Join-Path $dataFolder 'MQL5\Include\AccountGuardian'), (Join-Path $dataFolder 'MQL5\Scripts\AccountGuardian'), (Join-Path $expertsFolder 'AccountGuardian.mq5'), (Join-Path $expertsFolder 'AccountGuardian.ex5'))) {
         if (Test-Path -LiteralPath $tracePath) { $earlierTraces += $tracePath }
@@ -336,7 +444,7 @@ try {
 
     # Check 7: write access and free space.
     if (Test-Path -LiteralPath $targetFolder -PathType Container) { $writeProbeFolder = $targetFolder } else { $writeProbeFolder = $expertsFolder }
-    $writeProbeFolders = @($writeProbeFolder, (Split-Path -Parent $compiledFile), $installerFolder)
+    $writeProbeFolders = @($writeProbeFolder, $servicesFolder, (Split-Path -Parent $compiledFile), (Split-Path -Parent $serviceCompiledFile), $installerFolder)
     foreach ($probeFolder in $writeProbeFolders) {
         if (-not (Test-DirectoryWriteAccess -DirectoryPath $probeFolder)) {
             Exit-InstallerWithStop `
@@ -352,6 +460,15 @@ try {
                 -English 'The installed AccountGuardian.ex5 is marked read only, so it cannot be replaced. Clear its read only mark in its file properties, then run the installer again. Nothing was installed.' `
                 -Hebrew 'הקובץ המותקן `AccountGuardian.ex5` מסומן לקריאה בלבד, ולכן אי אפשר להחליף אותו. הסר את הסימון לקריאה בלבד במאפייני הקובץ, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן.' `
                 -Details @($targetFile)
+        }
+    }
+    if ($isServiceUpgrade) {
+        $existingServiceItem = Get-Item -LiteralPath $serviceTargetFile
+        if ($existingServiceItem.IsReadOnly) {
+            Exit-InstallerWithStop `
+                -English 'The installed AccountGuardianAlerts.ex5 is marked read only, so it cannot be replaced. Clear its read only mark in its file properties, then run the installer again. Nothing was installed.' `
+                -Hebrew 'הקובץ המותקן `AccountGuardianAlerts.ex5` מסומן לקריאה בלבד, ולכן אי אפשר להחליף אותו. הסר את הסימון לקריאה בלבד במאפייני הקובץ, והפעל שוב את תוכנית ההתקנה. דבר לא הותקן.' `
+                -Details @($serviceTargetFile)
         }
     }
     foreach ($spacePath in @($dataFolder, $downloadRoot)) {
@@ -379,11 +496,11 @@ try {
     Add-InstallerRecordDetail ('MetaEditor: ' + $metaEditor)
 
     # Check 9: the downloaded files against installer\manifest.txt.
-    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf) -or -not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf) -or -not (Test-Path -LiteralPath $sourceFile -PathType Leaf) -or -not (Test-Path -LiteralPath $serviceSourceFile -PathType Leaf)) {
         Exit-InstallerWithStop `
             -English 'The downloaded folder is incomplete. Extract the whole ZIP file into one folder first, then run install.cmd from the installer folder inside it. Nothing was installed.' `
             -Hebrew 'התיקייה שהורדה אינה שלמה. חלץ קודם את כל קובץ ה`ZIP` לתיקייה אחת, ואז הפעל את `install.cmd` מתוך תיקיית `installer` שבתוכה. דבר לא הותקן.' `
-            -Details @($manifestPath, $sourceFile)
+            -Details @($manifestPath, $sourceFile, $serviceSourceFile)
     }
     $manifestEntries = @()
     foreach ($manifestLine in @(Get-Content -LiteralPath $manifestPath)) {
@@ -427,77 +544,21 @@ try {
         -English ('Check 9 of 9, downloaded files match their checksums: passed, ' + $manifestEntries.Count + ' files.') `
         -Hebrew ('בדיקה 9 מתוך 9, הקבצים שהורדו תואמים לטביעות הבדיקה שלהם: עברה. מספר הקבצים: ' + $manifestEntries.Count + '.')
 
-    # Compile in the downloaded folder. The process exit code is recorded and
-    # not used: the Result line of the log and a fresh ex5 are what count.
-    Write-Progress -Activity $progressActivity -Status 'Compile: MetaEditor is compiling the advisor' -PercentComplete 50
-    Write-InstallerMessage -English 'Compiling the advisor with MetaEditor. This takes a few seconds.' -Hebrew 'מהדר את היועץ בעזרת `MetaEditor`. זה לוקח שניות ספורות.'
-    $compileStart = Get-Date
-    $compileArguments = '/compile:"' + $sourceFile + '" /include:"' + $includeRoot + '" /log:"' + $compileLogPath + '"'
-    Add-InstallerRecordDetail ('Command: "' + $metaEditor + '" ' + $compileArguments)
-    $compileProcess = Start-Process -FilePath $metaEditor -ArgumentList $compileArguments -PassThru -WindowStyle Hidden
-    $processHandle = $compileProcess.Handle
-    if (-not $compileProcess.WaitForExit($compileTimeoutMilliseconds)) {
-        Exit-InstallerWithStop `
-            -English 'MetaEditor did not finish within five minutes. Close MetaEditor if it is open, then run the installer again. Nothing was copied into the terminal.' `
-            -Hebrew 'העורך `MetaEditor` לא סיים בתוך חמש דקות. סגור את `MetaEditor` אם הוא פתוח, והפעל שוב את תוכנית ההתקנה. דבר לא הועתק אל הטרמינל.'
-    }
-    Add-InstallerRecordDetail ('MetaEditor exit code, recorded and not used: ' + $compileProcess.ExitCode)
-    $compileLogItem = $null
-    if (Test-Path -LiteralPath $compileLogPath -PathType Leaf) { $compileLogItem = Get-Item -LiteralPath $compileLogPath }
-    if (($null -eq $compileLogItem) -or ($compileLogItem.LastWriteTime -lt $compileStart.AddSeconds(-2))) {
-        Exit-InstallerWithStop `
-            -English 'MetaEditor did not write a new compile log. Nothing was copied into the terminal.' `
-            -Hebrew 'העורך `MetaEditor` לא כתב יומן הידור חדש. דבר לא הועתק אל הטרמינל.' `
-            -Details @($compileLogPath)
-    }
-    $compileLines = @(Get-Content -LiteralPath $compileLogPath -Encoding Unicode)
-    foreach ($compileLine in $compileLines) {
-        if ($compileLine -match 'including') { Write-InstallerRecordLine ('    ' + $compileLine.Trim()) }
-    }
-    $resultLine = $null
-    foreach ($compileLine in $compileLines) {
-        if ($compileLine -match 'Result:\s*(\d+)\s+errors?,\s*(\d+)\s+warnings?') { $resultLine = $compileLine.Trim() }
-    }
-    if ($null -eq $resultLine) {
-        Exit-InstallerWithStop `
-            -English 'The compile log has no Result line. Nothing was copied into the terminal.' `
-            -Hebrew 'ביומן ההידור אין שורת `Result`. דבר לא הועתק אל הטרמינל.' `
-            -Details @($compileLogPath)
-    }
-    $null = $resultLine -match 'Result:\s*(\d+)\s+errors?,\s*(\d+)\s+warnings?'
-    $errorCount = [int]$Matches[1]
-    $warningCount = [int]$Matches[2]
-    Add-InstallerRecordDetail $resultLine
-    if ($errorCount -gt 0) {
-        $errorLines = @()
-        foreach ($compileLine in $compileLines) {
-            if (($compileLine -match '\berror\b') -and ($compileLine -notmatch 'Result:')) { $errorLines += $compileLine.Trim() }
-        }
-        $errorLines += $resultLine
-        Exit-InstallerWithStop `
-            -English 'The compile reported errors, listed below. Nothing was copied into the terminal.' `
-            -Hebrew 'ההידור דיווח על שגיאות, והן מופיעות להלן. דבר לא הועתק אל הטרמינל.' `
-            -Details $errorLines
-    }
-    if ($warningCount -gt 0) {
-        foreach ($compileLine in $compileLines) {
-            if ($compileLine -match '\bwarning\b') { Write-InstallerDetail $compileLine.Trim() }
-        }
-    }
-    $compiledItem = $null
-    if (Test-Path -LiteralPath $compiledFile -PathType Leaf) { $compiledItem = Get-Item -LiteralPath $compiledFile }
-    if (($null -eq $compiledItem) -or ($compiledItem.LastWriteTime -lt $compileStart.AddSeconds(-2))) {
-        Exit-InstallerWithStop `
-            -English 'MetaEditor reported no errors but wrote no new AccountGuardian.ex5. Nothing was copied into the terminal.' `
-            -Hebrew 'העורך `MetaEditor` לא דיווח על שגיאות אך לא כתב קובץ `AccountGuardian.ex5` חדש. דבר לא הועתק אל הטרמינל.' `
-            -Details @($compiledFile)
-    }
+    # Compile in the downloaded folder, the advisor and then the alerts service,
+    # each read the same way by Invoke-InstallerCompile.
+    $compiledItem = Invoke-InstallerCompile -SourcePath $sourceFile -CompiledPath $compiledFile -LogPath $compileLogPath `
+        -CompiledName 'AccountGuardian.ex5' -WhatEnglish 'the advisor' -WhatHebrew 'היועץ'
     $builtHash = Get-FileHash -Algorithm MD5 -LiteralPath $compiledFile
-    Write-InstallerStage -Percent 90 -English 'Compile: finished with no errors.' -Hebrew 'הידור: הסתיים ללא שגיאות.'
+    $serviceCompiledItem = Invoke-InstallerCompile -SourcePath $serviceSourceFile -CompiledPath $serviceCompiledFile -LogPath $serviceCompileLogPath `
+        -CompiledName 'AccountGuardianAlerts.ex5' -WhatEnglish 'the alerts service' -WhatHebrew 'שירות ההתראות'
+    $serviceBuiltHash = Get-FileHash -Algorithm MD5 -LiteralPath $serviceCompiledFile
+    Write-InstallerStage -Percent 90 -English 'Compile: finished with no errors, the advisor and the alerts service.' -Hebrew 'הידור: הסתיים ללא שגיאות, היועץ ושירות ההתראות.'
     Add-InstallerRecordDetail ('Compiled file: ' + $compiledFile)
     Add-InstallerRecordDetail ('Compiled md5: ' + $builtHash.Hash + ', ' + $compiledItem.Length + ' bytes, written ' + $compiledItem.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
+    Add-InstallerRecordDetail ('Compiled file: ' + $serviceCompiledFile)
+    Add-InstallerRecordDetail ('Compiled md5: ' + $serviceBuiltHash.Hash + ', ' + $serviceCompiledItem.Length + ' bytes, written ' + $serviceCompiledItem.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss'))
 
-    # The one write into the data folder, after one more running check.
+    # The two writes into the data folder, after one more running check.
     if ((Get-RunningTerminalCount -ProgramFolder $programFolder) -gt 0) {
         Exit-InstallerWithStop `
             -English 'MetaTrader 5 or its MetaEditor was started while the installer ran. Close them, then run the installer again. Nothing was copied into the terminal.' `
@@ -517,15 +578,27 @@ try {
             -Hebrew 'הקובץ שהועתק אינו תואם לקובץ שהודר. הפעל שוב את תוכנית ההתקנה.' `
             -Details @(('Landed md5: ' + $landedHash.Hash), ('Compiled md5: ' + $builtHash.Hash))
     }
+    Copy-Item -LiteralPath $serviceCompiledFile -Destination $serviceTargetFile -Force
+    $serviceLandedHash = Get-FileHash -Algorithm MD5 -LiteralPath $serviceTargetFile
+    $serviceLandedItem = Get-Item -LiteralPath $serviceTargetFile
+    if ($serviceLandedHash.Hash -ne $serviceBuiltHash.Hash) {
+        Exit-InstallerWithStop `
+            -English 'The copied alerts service does not match the compiled file. Run the installer again.' `
+            -Hebrew 'שירות ההתראות שהועתק אינו תואם לקובץ שהודר. הפעל שוב את תוכנית ההתקנה.' `
+            -Details @(('Landed md5: ' + $serviceLandedHash.Hash), ('Compiled md5: ' + $serviceBuiltHash.Hash))
+    }
     Write-InstallerStage -Percent 95 `
-        -English 'Copy: the compiled advisor was copied into the terminal, and its md5 matches the compiled file.' `
-        -Hebrew 'העתקה: היועץ המהודר הועתק אל הטרמינל, וטביעת ה`md5` שלו תואמת לזו של הקובץ שהודר.'
+        -English 'Copy: the compiled advisor and the alerts service were copied into the terminal, and the md5 of each matches its compiled file.' `
+        -Hebrew 'העתקה: היועץ המהודר ושירות ההתראות הועתקו אל הטרמינל, וטביעת ה`md5` של כל אחד מהם תואמת לזו של הקובץ שהודר.'
     Add-InstallerRecordDetail ('Landed file: ' + $targetFile)
     Add-InstallerRecordDetail ('Landed md5: ' + $landedHash.Hash + ', ' + $landedItem.Length + ' bytes')
+    Add-InstallerRecordDetail ('Landed file: ' + $serviceTargetFile)
+    Add-InstallerRecordDetail ('Landed md5: ' + $serviceLandedHash.Hash + ', ' + $serviceLandedItem.Length + ' bytes')
     Write-InstallerStage -Percent 100 `
-        -English 'Done: the installer has finished. It changed one file in the terminal''s data folder:' `
-        -Hebrew 'סיום: תוכנית ההתקנה הסתיימה. היא שינתה קובץ אחד בתיקיית הנתונים של הטרמינל:'
+        -English 'Done: the installer has finished. It changed two files in the terminal''s data folder:' `
+        -Hebrew 'סיום: תוכנית ההתקנה הסתיימה. היא שינתה שני קבצים בתיקיית הנתונים של הטרמינל:'
     Write-InstallerDetail $targetFile
+    Write-InstallerDetail $serviceTargetFile
     Complete-InstallerProgress
 
     # The attach is by hand. The steps, in order.
@@ -540,6 +613,20 @@ try {
         Write-InstallerMessage `
             -English 'UPGRADE: if AccountGuardian is already on a chart, it keeps running the old build until it is attached again. Remove it from its chart, attach it again, and read init|build= and limits accepted in the Experts tab BEFORE any terminal restart. A refused start unloads the advisor, and a restart after that comes up with no guardian at all.' `
             -Hebrew 'שדרוג: אם `AccountGuardian` כבר נמצא על גרף, הוא ממשיך להריץ את הבנייה הישנה עד שהוא מחובר מחדש. הסר אותו מהגרף שלו, חבר אותו שוב, וקרא את `init|build=` ואת `limits accepted` בלשונית `Experts` לפני כל הפעלה מחדש של הטרמינל. עלייה שנדחתה פורקת את היועץ, והפעלה מחדש אחרי כן עולה בלי שומר בכלל.' `
+            -Color 'Yellow'
+    }
+
+    # The alerts service, optional, also by hand (design addendum item 9 B).
+    Write-InstallerMessage -English 'Then, if you want Telegram alerts, add the alerts service. It is optional: the advisor protects the account without it.' -Hebrew 'אחר כך, אם תרצה התראות לטלגרם, הוסף את שירות ההתראות. זה לא חובה: היועץ מגן על החשבון גם בלעדיו.' -Color 'Cyan'
+    Write-InstallerMessage -English '1. In Tools, Options, Expert Advisors, tick Allow WebRequest for listed URL and add exactly two addresses, https://api.telegram.org and https://hc-ping.com.' -Hebrew '1. ב`Tools`, `Options`, `Expert Advisors`, סמן `Allow WebRequest for listed URL` והוסף בדיוק שתי כתובות, `https://api.telegram.org` ו`https://hc-ping.com`.'
+    Write-InstallerMessage -English '2. In the Navigator window, under Services, right click AccountGuardianAlerts and choose Add Service.' -Hebrew '2. בחלון `Navigator`, תחת `Services`, לחץ בכפתור הימני על `AccountGuardianAlerts` ובחר `Add Service`.'
+    Write-InstallerMessage -English '3. On the Inputs tab, paste the bot token into TelegramToken, the chat id into TelegramChatId and the hosted check''s ping URL into NetworkHeartbeatUrl. A field left empty turns its channel off.' -Hebrew '3. בלשונית `Inputs`, הדבק את הטוקן של הבוט ב`TelegramToken`, את מספר הצ''אט ב`TelegramChatId` ואת כתובת הפינג של בדיקת החיים ב`NetworkHeartbeatUrl`. שדה שנשאר ריק מכבה את הערוץ שלו.'
+    Write-InstallerMessage -English '4. Do not press Save in that window, since a saved preset keeps the token. Press OK. If the service does not show as running, right click it and choose Start.' -Hebrew '4. אל תלחץ `Save` בחלון הזה, כי קובץ הגדרות שנשמר שומר גם את הטוקן. לחץ `OK`. אם השירות אינו מוצג כפועל, לחץ עליו בכפתור הימני ובחר `Start`.'
+    Write-InstallerMessage -English '5. In the journal read the line alerts service started|build= with telegram=on and network_heartbeat=on.' -Hebrew '5. ביומן קרא את השורה `alerts service started|build=` עם `telegram=on` ו`network_heartbeat=on`.'
+    if ($isServiceUpgrade) {
+        Write-InstallerMessage `
+            -English 'UPGRADE: a running alerts service keeps the old build until it is stopped and started again. Right click it under Services, choose Stop, then Start.' `
+            -Hebrew 'שדרוג: שירות התראות שכבר רץ ממשיך להריץ את הבנייה הישנה עד שהוא נעצר ומופעל שוב. לחץ עליו בכפתור הימני תחת `Services`, בחר `Stop` ואז `Start`.' `
             -Color 'Yellow'
     }
     Write-InstallerMessage `
