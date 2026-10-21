@@ -159,6 +159,12 @@ string AgSvcBuildLine()
    return "build=" + AG_SVC_BUILD_LABEL;
   }
 
+//--- F9: the build line of a class that carries one, else none
+string AgSvcBuildLineOf(const string cls) { return AgTgCarriesBuild(cls) ? AgSvcBuildLine() : ""; }
+
+//--- F4: the sign of the account currency, read when a message is rendered
+string AgSvcCurrency() { return AgTgCurrencySign(AccountInfoString(ACCOUNT_CURRENCY)); }
+
 //--- the common lines of an event, from the event's own figures
 void AgSvcCommonFromEvent(const AgTgEvent &e, AgTgCommon &c)
   {
@@ -384,7 +390,7 @@ string AgSvcRender(const AgTgEvent &e)
    switch(e.code)
      {
       case AG_TG_S1:
-         return AgTgTextS1(c, e.x[0], e.x[1], e.x[3]);
+         return AgTgTextS1(c, e.x[0], e.x[1], e.x[3], AgSvcCurrency());
       case AG_TG_S2:
          return AgTgTextS2(c, (int)e.x[0]);
       case AG_TG_S3:
@@ -394,9 +400,9 @@ string AgSvcRender(const AgTgEvent &e)
       case AG_TG_S4:
          if((int)e.x[0] == 4)
             return AgTgTextS4Peak(c, (datetime)(long)e.x[1], e.x[5], e.x[5] - e.x[2], e.pnl,
-                                  (long)e.x[6], (long)e.x[7]);
+                                  (long)e.x[6], (long)e.x[7], AgSvcCurrency());
          return AgTgTextS4(c, (int)e.x[0], (datetime)(long)e.x[1], e.x[3], e.x[4], e.pnl,
-                           (long)e.x[6], (long)e.x[7]);
+                           (long)e.x[6], (long)e.x[7], AgSvcCurrency());
       case AG_TG_S6C:
          return AgTgTextS6C(c, (long)e.x[0], (long)e.x[1], (long)e.x[2], (long)e.x[3], (long)e.x[4]);
       case AG_TG_S6H:
@@ -429,7 +435,7 @@ string AgSvcRender(const AgTgEvent &e)
          return AgTgTextS18(c, (long)e.x[0]);
       case AG_TG_S19:
          if((int)e.x[0] == 1)
-            return AgTgTextS19Locked(c, (int)e.x[4], e.x[1], e.x[3], e.x[2]);
+            return AgTgTextS19Locked(c, (int)e.x[4], e.x[1], e.x[3], e.x[2], AgSvcCurrency());
          return AgTgTextS19Raise(c, e.x[1], e.x[2]);
       case AG_TG_S20:
          return AgTgTextS20(c, (long)e.x[2]);
@@ -480,7 +486,7 @@ void AgSvcMerge(const AgTgEvent &stop, const AgTgEvent &start)
    string cls;
    if(start.code == AG_TG_S1)
      {
-      text = AgTgTextS1Restarted(c, (int)stop.x[0], start.x[3]);
+      text = AgTgTextS1Restarted(c, (int)stop.x[0]);
       cls  = "S2+S1";
      }
    else
@@ -780,9 +786,7 @@ string AgSvcStatusText(const datetime now)
      }
    else if(live == AG_SVC_LIVE_STALE)
       hb_age = (long)((double)now - hb);
-   return AgTgTextStatus(c, hb_age, data_age,
-                         g_svc_have_snap ? (datetime)g_svc_snap.locked_until : 0,
-                         g_svc_have_snap ? g_svc_snap.enforced_limit : 0.0);
+   return AgTgTextStatus(c, hb_age, data_age, g_svc_have_snap ? (datetime)g_svc_snap.locked_until : 0);
   }
 
 //--- TG-15 (A): the local clock's 4 hour slots; a slot missed while the
@@ -822,25 +826,42 @@ int AgSvcRequest(const string method, const string url, const string headers, co
    return code;
   }
 
-//--- one sendMessage; true when Telegram took it
-bool AgSvcSendText(const string text, const long seq, const string cls, const int timeout_ms, const datetime now)
+//--- one sendMessage body: F10's HTML form, the text escaped and its headline
+//--- bold, or the plain text as rendered
+string AgSvcSendBody(const string text, const bool html)
+  {
+   return "{\"chat_id\":\"" + TelegramChatId + "\",\"text\":\"" + AgJsonEscape(html ? AgTgHtmlBold(text) : text)
+        + "\"" + (html ? ",\"parse_mode\":\"HTML\"" : "") + ",\"disable_web_page_preview\":true}";
+  }
+
+//--- one sendMessage, the HTML form first (F10); a 400 to it has the plain
+//--- text sent once more at once, the 400 journaled and the second request's
+//--- line carrying the class with " plain". plain_retry false makes it one
+//--- attempt only. True when Telegram took the message.
+bool AgSvcSendText(const string text, const long seq, const string cls, const int timeout_ms, const datetime now,
+                   const bool plain_retry = true)
   {
    string url  = "https://api.telegram.org/bot" + TelegramToken + "/sendMessage";
-   string body = "{\"chat_id\":\"" + TelegramChatId + "\",\"text\":\"" + AgJsonEscape(text)
-               + "\",\"disable_web_page_preview\":true}";
+   string head = "Content-Type: application/json; charset=utf-8\r\n";
+   string line_cls = cls;
    string answer = "";
    int    err = 0, ms = 0;
-   int    http = AgSvcRequest("POST", url, "Content-Type: application/json; charset=utf-8\r\n",
-                              body, timeout_ms, answer, err, ms);
+   int    http = AgSvcRequest("POST", url, head, AgSvcSendBody(text, true), timeout_ms, answer, err, ms);
+   if(plain_retry && AgTgPlainAfter(http, true))
+     {
+      AgInfo(AgTgFailedLine(seq, cls, http, err, ms));
+      line_cls = cls + " plain";
+      http = AgSvcRequest("POST", url, head, AgSvcSendBody(text, false), timeout_ms, answer, err, ms);
+     }
    g_svc_next_send = now + AG_SVC_SEND_GAP;
    if(http == 200)
      {
-      AgInfo(AgTgSentLine(seq, cls, http, ms));
+      AgInfo(AgTgSentLine(seq, line_cls, http, ms));
       g_svc_fail_count    = 0;
       g_svc_backoff_until = 0;
       return true;
      }
-   AgInfo(AgTgFailedLine(seq, cls, http, err, ms));
+   AgInfo(AgTgFailedLine(seq, line_cls, http, err, ms));
    if(http == 429)
       g_svc_retry_until = now + AgTgRetryAfter(answer) + 1;
    if(g_svc_fail_since == 0)
@@ -853,12 +874,13 @@ bool AgSvcSendText(const string text, const long seq, const string cls, const in
    return false;
   }
 
-//--- the oldest waiting message, with its closing lines rendered now
+//--- the oldest waiting message, with its closing lines rendered now and the
+//--- build line where its class carries one (F9)
 bool AgSvcSendFirst(const datetime now, const int timeout_ms)
   {
    long delay = (long)now - g_out_local[0];
    string text = AgTgFinish(g_out_text[0], g_out_notkept[0], g_out_heldback[0],
-                            delay > AG_SVC_DELAY_SECONDS ? delay : 0, AgSvcBuildLine());
+                            delay > AG_SVC_DELAY_SECONDS ? delay : 0, AgSvcBuildLineOf(g_out_cls[0]));
    if(!AgSvcSendText(text, g_out_seq[0], g_out_cls[0], timeout_ms, now))
       return false;
    if(g_out_ack[0] > 0)
@@ -927,7 +949,7 @@ void AgSvcNetwork(const datetime now)
      {
       AgTgCommon c;
       AgSvcCommonNow(c, g_svc_live == AG_SVC_LIVE_FRESH);
-      string text = AgTgFinish(AgTgTextS11(c, g_svc_fail_since, now, g_out_count), 0, 0, 0, AgSvcBuildLine());
+      string text = AgTgFinish(AgTgTextS11(c, g_svc_fail_since, now, g_out_count), 0, 0, 0, AgSvcBuildLineOf("S11"));
       if(AgSvcSendText(text, 0, "S11", AG_SVC_TIMEOUT_MS, now))
          g_svc_fail_since = 0;
       return;
@@ -1024,9 +1046,11 @@ void AgSvcFinalPass()
       if(e.code != AG_TG_S2 || (int)e.x[0] != 9 || e.seq <= g_svc_ack)
          continue;
       long delay = (long)now - e.local_t;
-      string text = AgTgFinish(AgSvcRender(e), 0, 0, delay > AG_SVC_DELAY_SECONDS ? delay : 0, AgSvcBuildLine());
-      //--- acknowledged only when nothing older waits, so nothing is skipped
-      if(AgSvcSendText(text, e.seq, "S2", AG_SVC_FINAL_TIMEOUT_MS, now) && i == 0 && g_out_count == 0)
+      string text = AgTgFinish(AgSvcRender(e), 0, 0, delay > AG_SVC_DELAY_SECONDS ? delay : 0, AgSvcBuildLineOf("S2"));
+      //--- acknowledged only when nothing older waits, so nothing is skipped;
+      //--- one attempt, as TG-13 (B) has it, so no plain text second request:
+      //--- a 400 leaves the stop queued for the next start, which sends it
+      if(AgSvcSendText(text, e.seq, "S2", AG_SVC_FINAL_TIMEOUT_MS, now, false) && i == 0 && g_out_count == 0)
          AgSvcAck(e.seq);
       return;
      }
