@@ -424,7 +424,7 @@ Plan rows under TG-1 (B): TG-S1 becomes four compiles; TG-S2 and TG-S3 stand; TG
 
 ## 13. Hebrew drafts
 
-The block below carries every draft of plan 5, then the new ones, then, under labels that begin `BUILD:`, the drafts the build of 2026-10-21 adds, and, under labels that begin `B3:`, the lines the format pass B3 adds so that every wording the code holds stands here. The format pass B3 of 2026-10-21 rewrote every draft in the message format F1 to F11 the owner ruled that day, FINAL in DECISIONS: an emoji at the head of every field line, one emoji per field everywhere, by the emoji map below the block; one blank line between the groups, the headline, the account and the time, the money, the limit and the result, the state and the rest; the labels of F2, the limit and the day result each on a line of its own; the time as DD/MM/YYYY HH:MM; money with a comma every three digits and two decimals, and the account currency's sign where an amount carries its currency; durations in seconds under 120 s, in minutes under 120 minutes, and in hours and minutes beyond, with the life sign line reading a moment ago under 5 s; a zero count left out of its line, and a line whose counts are all zero left out; the line of the limit in force removed wherever the limit line shows the same value, which in S1, S1 restarted and the ACTIVE status it always did; the breach lock of F8; and the build line only in S1, S1 restarted, S2, the periodic status and command reply, and S14, which replaces the sentence of item 10 that every message ends with it. The three messages the owner approved as the reference stand verbatim, with their values, as the S1 start, the S4 lock on the daily limit and the periodic status while ACTIVE; every other draft keeps plan 5's example values. The bold headline of F10 is applied by the service at send time and is not written here, so the drafts stay plain text. Its `===` lines are English labels for the owner and are never sent; a draft runs from its label to the next one, and the blank line before the next label is not part of it. Each rendered message equals its draft here byte for byte (TG-S8). Carried from the build of 2026-10-21: a count of 1 takes the Hebrew singular with the word for one, a day result that prints 0.00 reads as a loss, and figures taken under a lock carry the locked wording, now on the limit line.
+The block below carries every draft of plan 5, then the new ones, then, under labels that begin `BUILD:`, the drafts the build of 2026-10-21 adds, and, under labels that begin `B3:`, the lines the format pass B3 adds so that every wording the code holds stands here. The format pass B3 of 2026-10-21 rewrote every draft in the message format F1 to F11 the owner ruled that day, FINAL in DECISIONS: an emoji at the head of every field line, one emoji per field everywhere, by the emoji map below the block; one blank line between the groups, the headline, the account and the time, the money, the limit and the result, the state and the rest; the labels of F2, the limit and the day result each on a line of its own; the time as DD/MM/YYYY HH:MM; money with a comma every three digits and two decimals, and the account currency's sign where an amount carries its currency; durations in seconds under 120 s, in minutes under 120 minutes, and in hours and minutes beyond, with the life sign line reading a moment ago under 5 s; a zero count left out of its line, and a line whose counts are all zero left out; the line of the limit in force removed wherever the limit line shows the same value, which in S1, S1 restarted and the ACTIVE status it always did; the breach lock of F8; and the build line only in S1, S1 restarted, S2, the periodic status and command reply, and S14, which replaces the sentence of item 10 that every message ends with it. Pass B5 of 2026-10-21 applies R3 and R4 of that date, FINAL in DECISIONS, to every draft: the day result line reads the total PNL, signed, with the account currency's sign, U+1F4C8 above zero and U+1F4C9 otherwise, and not computed yet when the result is not computed, in place of the loss and profit labels of F2; and the money group ends with the open trades line after the equity line, the open positions the service counts with `PositionsTotal` when it renders the message, pending orders excluded, reading none at zero, and left out of S4, its daily peak variant and S16, whose sweep line gives the count. The open trades counts of the drafts are illustrative: none where the equity equals the balance, and otherwise one, with two in S8 locked again and three in S9. Read under R3, UNRULED 2026-10-21: the PNL line F8 gives S4 and its daily peak variant is kept as it stands, U+1F4C9 included, R3 naming the labels of F2 it replaces, so the daily peak variant in profit still reads U+1F4C9 with +90.96$. The three messages the owner approved as the reference stand with their values, the S4 lock on the daily limit verbatim, the S1 start and the periodic status while ACTIVE with R3 and R4 applied; every other draft keeps plan 5's example values. The bold headline of F10 is applied by the service at send time and is not written here, so the drafts stay plain text. Its `===` lines are English labels for the owner and are never sent; a draft runs from its label to the next one, and the blank line before the next label is not part of it. Each rendered message equals its draft here byte for byte (TG-S8). Carried from the build of 2026-10-21: a count of 1 takes the Hebrew singular with the word for one, a day result that prints 0.00 takes U+1F4C9 and no sign, and figures taken under a lock carry the locked wording, now on the limit line.
 
 ```text
 === S1 start ===
@@ -435,9 +435,10 @@ The block below carries every draft of plan 5, then the new ones, then, under la
 
 💰 גודל תיק: 2,544.33
 💵 הון: 2,544.33
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 139.94, הנמוך מבין 5.50% מגודל התיק בתחילת היום לבין 200$
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 🔓 נעילה: אין
@@ -453,9 +454,10 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 126.21
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 🔄 סיבת ההפעלה מחדש: הגדרות השומר שונו
@@ -470,9 +472,10 @@ build=TG
 
 💰 גודל תיק: 2,217.06
 💵 הון: 2,217.06
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 126.21
-📈 רווח היום: 45.00
+📈 סה״כ PNL: +45.00$
 
 🛡️ מצב: לא פועל
 📝 סיבה: השומר הוסר מהגרף
@@ -502,7 +505,7 @@ build=TG
 🛡️ מצב: לא פועל
 
 === result not computed yet ===
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 === S3 refused start ===
 ⛔ השומר סירב לפעול
@@ -512,8 +515,9 @@ build=TG
 
 💰 גודל תיק: 2,294.76
 💵 הון: 2,294.76
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: לא פועל
 📝 סיבה: ערך המגבלה היומית אינו מהרשימה המותרת
@@ -529,8 +533,9 @@ build=TG
 
 💰 גודל תיק: 2,133.00
 💵 הון: 2,133.00
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: פעיל
 📝 סיבה: עותק אחר של השומר כבר פועל על החשבון
@@ -544,8 +549,9 @@ build=TG
 
 💰 גודל תיק: 2,133.00
 💵 הון: 2,133.00
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: עצירת בטיחות
 💥 4 הפעלות ברצף הסתיימו בלי עצירה תקינה, בהפרש של עד 5 דקות זו מזו
@@ -560,8 +566,9 @@ build=TG
 
 💰 גודל תיק: 2,133.00
 💵 הון: 2,133.00
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: עצירת בטיחות
 ⏸️ העצירה התחילה בשעה 04/08/2026 16:37
@@ -618,9 +625,10 @@ build=TG
 
 💰 גודל תיק: 2,880.70
 💵 הון: 2,880.70
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 📤 נסגרו: 3 פוזיציות
@@ -636,9 +644,10 @@ build=TG
 
 💰 גודל תיק: 3,138.34
 💵 הון: 3,138.30
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 158.69
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 🎫 מספר הפוזיציה: 781624897
@@ -653,9 +662,10 @@ build=TG
 
 💰 גודל תיק: 2,880.70
 💵 הון: 2,850.10
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 30.60
+📉 סה״כ PNL: -30.60$
 
 🛡️ מצב: נעול
 🎫 מספר הפוזיציה: 753031555
@@ -670,9 +680,10 @@ build=TG
 
 💰 גודל תיק: 2,998.80
 💵 הון: 2,998.80
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 158.69
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 🎫 מספר הפוזיציה: 781624897
@@ -686,9 +697,10 @@ build=TG
 
 💰 גודל תיק: 2,880.62
 💵 הון: 2,880.62
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 0.08
+📉 סה״כ PNL: -0.08$
 
 🛡️ מצב: נעול
 🎫 מספר הפוזיציה: 753338779
@@ -703,9 +715,10 @@ build=TG
 
 💰 גודל תיק: 2,998.84
 💵 הון: 2,998.80
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית: 164.94
-📉 הפסד היום: 0.04
+📉 סה״כ PNL: -0.04$
 
 🛡️ מצב: פעיל
 ⏰ הנעילה הסתיימה בשעה 27/09/2026 01:00
@@ -719,9 +732,10 @@ build=TG
 
 💰 גודל תיק: 2,027.98
 💵 הון: 1,919.14
+📂 עסקאות פתוחות: 2
 
 ⚙️ מגבלה יומית נעולה: 101.40
-📉 הפסד היום: 108.84
+📉 סה״כ PNL: -108.84$
 
 🛡️ מצב: נעול
 ℹ️ ההפסד הפתוח עדיין חוצה את המגבלה של היום החדש
@@ -735,9 +749,10 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,071.09
+📂 עסקאות פתוחות: 3
 
 ⚙️ מגבלה יומית: 126.21
-📉 הפסד היום: 100.97
+📉 סה״כ PNL: -100.97$
 
 🛡️ מצב: פעיל
 🌡️ נוצלו 80 אחוז מהמגבלה
@@ -752,9 +767,10 @@ build=TG
 
 💰 גודל תיק: 2,133.13
 💵 הון: 2,133.13
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 106.66
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 ⏰ החיבור נותק בשעה 18/08/2026 12:08
@@ -770,9 +786,10 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 126.21
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 ⏰ טלגרם לא היה זמין מהשעה 19/10/2026 12:00 עד השעה 19/10/2026 12:20
@@ -787,9 +804,10 @@ build=TG
 
 💰 גודל תיק: 2,805.35
 💵 הון: 2,805.35
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 164.94
-📉 הפסד היום: 193.49
+📉 סה״כ PNL: -193.49$
 
 🛡️ מצב: נעול
 🚧 החסימה: כפתור המסחר האלגוריתמי בטרמינל כבוי
@@ -810,9 +828,10 @@ build=TG
 
 💰 גודל תיק: 2,805.35
 💵 הון: 2,805.36
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 164.94
-📉 הפסד היום: 193.48
+📉 סה״כ PNL: -193.48$
 
 🛡️ מצב: נעול
 👍 השומר יכול שוב לסגור פוזיציות
@@ -828,9 +847,10 @@ build=TG
 
 💰 גודל תיק: 2,140.50
 💵 הון: 2,140.50
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 117.73
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 📅 יום המסחר שהסתיים: 19/10/2026
@@ -847,8 +867,9 @@ build=TG
 
 💰 גודל תיק: 2,133.00
 💵 הון: 2,133.00
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: בסנכרון
 🛠️ קובץ העצירה נמחק ידנית, לפי נוהל החידוש
@@ -863,7 +884,7 @@ build=TG
 💵 הון: 2,879.58
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 1.12
+📉 סה״כ PNL: -1.12$
 
 🛡️ מצב: נעול
 ⏳ נעול עד: 24/09/2026 01:00
@@ -886,9 +907,10 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 126.21
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 📁 הקובץ: קובץ מצב הנעילה
@@ -902,8 +924,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: בסנכרון
 ⌛ השומר לא פעל במשך 28 שניות לפני ההפעלה הזו
@@ -917,9 +940,10 @@ build=TG
 
 💰 גודל תיק: 239.63
 💵 הון: 239.63
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 106.66
-📉 הפסד היום: 1,893.50
+📉 סה״כ PNL: -1,893.50$
 
 🛡️ מצב: נעול
 ✏️ המגבלה שהוזנה: 10.00%
@@ -933,9 +957,10 @@ build=TG
 
 💰 גודל תיק: 2,294.76
 💵 הון: 2,294.76
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 114.74
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 ✏️ המגבלה שהוזנה: 126.21
@@ -949,9 +974,10 @@ build=TG
 
 💰 גודל תיק: 2,003.46
 💵 הון: 2,003.46
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 100.17
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 ⏩ תחילת היום קפצה ב 72 שעות
@@ -965,8 +991,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: בסנכרון
 ℹ️ השומר לא מקבל החלטות נעילה עד שהקריאה תצליח, ומנסה שוב בכל שנייה
@@ -979,8 +1006,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: בסנכרון
 ⌛ השומר בסנכרון כבר 5 דקות
@@ -997,9 +1025,10 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 126.21
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 👥 עותק נוסף של השומר רשם את עצמו כפעיל על אותו חשבון
@@ -1013,9 +1042,10 @@ build=TG
 
 💰 גודל תיק: 2,544.33
 💵 הון: 2,544.33
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 139.94
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: פעיל
 🔓 נעילה: אין
@@ -1030,9 +1060,10 @@ build=TG
 
 💰 גודל תיק: 2,880.70
 💵 הון: 2,880.70
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 ⏳ נעול עד: 24/09/2026 01:00
@@ -1055,8 +1086,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,150.10
+📂 עסקאות פתוחות: 1
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: לא פועל
 💔 השומר לא עדכן את סימן החיים שלו כבר 15 שניות
@@ -1074,8 +1106,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: לא פועל
 ⌛ שירות ההתראות פועל כבר 60 שניות והשומר עדיין לא הופעל
@@ -1089,9 +1122,10 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,150.10
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית: 126.21
-📉 הפסד היום: 21.96
+📉 סה״כ PNL: -21.96$
 
 🛡️ מצב: פעיל
 ⌛ השומר לא הגיב במשך 42 שניות
@@ -1104,9 +1138,10 @@ build=TG
 
 💰 גודל תיק: 2,805.35
 💵 הון: 2,805.35
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית: 164.94
-📈 רווח היום: 12.40
+📈 סה״כ PNL: +12.40$
 
 🛡️ מצב: פעיל
 🚧 החסימה: כפתור המסחר האלגוריתמי בטרמינל כבוי
@@ -1126,9 +1161,10 @@ build=TG
 
 💰 גודל תיק: 3,138.34
 💵 הון: 3,138.30
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 158.69
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 🎫 מספר הפקודה: 781624901
@@ -1143,9 +1179,10 @@ build=TG
 
 💰 גודל תיק: 2,880.70
 💵 הון: 2,850.10
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 30.60
+📉 סה״כ PNL: -30.60$
 
 🛡️ מצב: נעול
 🎫 מספר הפוזיציה: 753031555
@@ -1160,9 +1197,10 @@ build=TG
 
 💰 גודל תיק: 2,880.70
 💵 הון: 2,850.10
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 30.60
+📉 סה״כ PNL: -30.60$
 
 🛡️ מצב: נעול
 🎫 מספר הפקודה: 753031560
@@ -1177,9 +1215,10 @@ build=TG
 
 💰 גודל תיק: 3,138.34
 💵 הון: 3,138.30
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 158.69
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 🎫 מספר הפוזיציה: 781624897
@@ -1194,9 +1233,10 @@ build=TG
 
 💰 גודל תיק: 2,880.70
 💵 הון: 2,850.10
+📂 עסקאות פתוחות: 1
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 30.60
+📉 סה״כ PNL: -30.60$
 
 🛡️ מצב: נעול
 🎫 מספר הפקודה: 753031560
@@ -1211,9 +1251,10 @@ build=TG
 
 💰 גודל תיק: 2,998.80
 💵 הון: 2,998.80
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 158.69
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 🎫 מספר הפקודה: 781624901
@@ -1227,9 +1268,10 @@ build=TG
 
 💰 גודל תיק: 2,880.70
 💵 הון: 2,880.70
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 📤 נסגרה: פוזיציה אחת
@@ -1245,9 +1287,10 @@ build=TG
 
 💰 גודל תיק: 2,880.62
 💵 הון: 2,880.62
+📂 עסקאות פתוחות: אין
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 0.08
+📉 סה״כ PNL: -0.08$
 
 🛡️ מצב: נעול
 🎫 מספר הפוזיציה: 753338779
@@ -1262,8 +1305,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: בסנכרון
 📁 הקובץ: קובץ שיא הרווח הסגור
@@ -1286,15 +1330,16 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: בסנכרון
 🚧 החסימה: המסחר האלגוריתמי כבוי בהגדרות השומר
 
 === BUILD: the day's result while LOCKED and in profit ===
 ⚙️ מגבלה יומית נעולה: 147.54
-📈 רווח היום: 5.00
+📈 סה״כ PNL: +5.00$
 
 === BUILD: S16 restarted in place ===
 🔒 הנעילה שוחזרה בהפעלת השומר
@@ -1306,7 +1351,7 @@ build=TG
 💵 הון: 2,880.70
 
 ⚙️ מגבלה יומית נעולה: 147.54
-📉 הפסד היום: 0.00
+📉 סה״כ PNL: 0.00$
 
 🛡️ מצב: נעול
 🔄 סיבת ההפעלה מחדש: הגדרות השומר שונו
@@ -1321,8 +1366,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: בסנכרון
 💓 סימן חיים: לפני רגע
@@ -1336,8 +1382,9 @@ build=TG
 
 💰 גודל תיק: 2,172.06
 💵 הון: 2,172.06
+📂 עסקאות פתוחות: אין
 
-📉 הפסד היום: עדיין לא חושב
+📉 סה״כ PNL: עדיין לא חושב
 
 🛡️ מצב: לא פועל
 💔 השומר לא עדכן את סימן החיים שלו כבר 75 שניות
@@ -1363,16 +1410,17 @@ build=TG
 🔐 מספר הנעילות ביום שהסתיים: 1
 ```
 
-Emoji map, one emoji per field (F1), each field named by its label or its opening words in the drafts:
+Emoji map, one emoji per field (F1), each field named by its label or its opening words in the drafts; the PNL line takes U+1F4C8 above zero and U+1F4C9 otherwise, a result not computed yet included (R3):
 
 ```text
 👤 מס׳ חשבון
 🕒 זמן
 💰 גודל תיק
 💵 הון
+📂 עסקאות פתוחות
 ⚙️ מגבלה יומית, מגבלה יומית נעולה
-📉 הפסד היום, סה״כ PNL
-📈 רווח היום
+📉 סה״כ PNL
+📈 סה״כ PNL
 🛡️ מצב
 🔓 נעילה: אין
 ⏳ נעול עד
@@ -1434,6 +1482,7 @@ Field map, the new lines:
 | responds again, the gap | from the first stale read to the first fresh one, on the service's local clock |
 | the "not kept" line | the gap in `seq` (1.12) |
 | the "held back" line | the suppressed count of plan 6.4.2 |
+| every message but S4, its daily peak variant and S16, the open trades line (R4) | `PositionsTotal`, read by the service when it renders the message; pending orders are not counted |
 
 ## What this addendum does not do
 
