@@ -2923,3 +2923,23 @@ Status: FINAL
 Decision: (owner ruling 2026-10-20, S12 in ACTIVE, local alerting) As given: "a trade disallowed state in ACTIVE raises the local Alert and the chart banner, in addition to the journal line and the Telegram alert, at the cadence set by the FINAL at LEDGER.md:2387 as at 31ac695. This is alerting only: no new guardian state, and no change to the state machine or to enforcement."
 Reason: Owner's ruling, given in chat on 2026-10-20 and recorded as given at the owner's instruction of 2026-10-21. Executor reading of the reference, not a ruling: the FINAL at LEDGER.md:2387 as at 31ac695 is the Q3/F2 entry on trade disallowed states, whose cadence `docs/SPEC_v0.1.md:99` reads under ENF-14(b). The SPEC amendment this ruling needs is drafted for the owner in the design addendum and is not applied.
 Status: FINAL
+
+Decision: (owner ruling 2026-10-21, TG-14, the command poll interval) (A), as given: "60 s." Option (A) of ruling item TG-14, `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` item 5, reads: "60 s. 1440 polls a day. A reply within about 60 s of the command, plus the send."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-21, TG-15, the schedule anchor of the periodic status message) (A), as given: "the computer's local clock: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00." Option (A) of ruling item TG-15, `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` item 6, reads: "The computer's local clock: 00:00, 04:00, 08:00, 12:00, 16:00 and 20:00, read with `TimeLocal`. Independent of the broker feed and of the day anchor. It never falls on the 01:00 server summary of TG-4 while the server keeps Israel's offset. The slots follow the local clock across a DST change."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-21, TG-16, where the service ex5 lands under the installer's one folder departure) (A), as given: "straight into the existing MQL5\Services, with no folder created." Option (A) of ruling item TG-16, `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` item 11, reads: "`MQL5\Services\AccountGuardianAlerts.ex5`, straight into the existing Services folder. No folder is created beyond the ratified one. Check 4 also requires `MQL5\Services` to exist and stops with a message naming the manual route if it does not; the installer never creates it. Check 6 knows this one file name there and leaves every other file in Services alone. The Navigator lists the service at the top of Services. Removing it by hand is one more file."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-21, the SPEC changes of the Telegram alerts build) As given: "apply the amendment drafted in addendum item 8.1. Also draft and apply every other SPEC line this build touches: the ones item 8.1 names (SPEC:10, :12, :16-26, :30, :35, :137) and any other line the build reaches. Quote every SPEC change verbatim in the report."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given. Executor reading of the reference, not a ruling: item 8.1 is the section "8.1 The SPEC amendment, drafted for the owner and not applied" of `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` at `6a1d3c1`, and the SPEC line numbers are those of `docs/SPEC_v0.1.md` as at `00c7237`; the changes are made in place under this ruling with no A7, the amendment series having closed at A6 by the FINAL of 2026-09-03, R10 build review.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-21, a trade disallowed state in SYNCING or SAFE_HALT) (A), as given: "the journal line and the Telegram event only, as the addendum designs it. If the block still holds when the guardian enters ACTIVE, the ACTIVE entry raises the local Alert and the banner."
+Reason: Owner's ruling, given in chat on 2026-10-21, recorded as given. Executor reading of the reference, not a ruling: the item is the one `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md` item 8 marks RAISED, NOT RULED, which reads: "SYNCING and SAFE_HALT: the journal lines and the Telegram event only. No local Alert and no banner text there, those two states not being ruled. RAISED, NOT RULED."
+Status: FINAL
