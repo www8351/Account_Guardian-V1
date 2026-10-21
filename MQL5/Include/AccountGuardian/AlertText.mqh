@@ -18,6 +18,13 @@
 //| text: the bold headline of F10 is applied by the service at send |
 //| time, through AgTgHtmlBold.                                      |
 //|                                                                  |
+//| THE PNL LINE AND THE OPEN TRADES LINE (R3 and R4 of 2026-10-21): |
+//| the day result line reads the total PNL, signed, with the sign   |
+//| of the account currency, U+1F4C8 above zero and U+1F4C9          |
+//| otherwise; the money group ends with the open trades line, the   |
+//| open positions the service counts when it renders the message,   |
+//| left out of the lock messages whose sweep line gives the count.  |
+//|                                                                  |
 //| THE HEBREW SINGULAR (build requirement of 2026-10-21): a count   |
 //| written with its noun reads "<n> <plural>" and, at 1, the        |
 //| singular noun with the word for one, through AgHeCount alone. A  |
@@ -31,7 +38,8 @@
 //--- includes Persist.mqh, which brings State.mqh and the sweep constants
 #include <AccountGuardian/AlertQueue.mqh>
 
-//--- one message's common lines (plan 5). A simple structure: numbers only.
+//--- one message's common lines (plan 5): numbers, and the sign of the
+//--- account currency, which the service reads when it renders (R3)
 struct AgTgCommon
   {
    long     login;
@@ -42,6 +50,8 @@ struct AgTgCommon
    double   limit;
    int      pnl_mode;   // AG_TG_PNL_*
    int      state;      // ENUM_AG_STATE value, or AG_TG_STATE_NOT_RUNNING
+   long     open_pos;   // R4: the open positions, pending orders not counted
+   string   cur;        // R3: the currency sign the PNL line carries
   };
 
 //--- the TG-8 (B) command, nine code points, compared with == only
@@ -235,54 +245,64 @@ string AgTgLimitLine(const int mode, const double limit)
    return (mode == AG_TG_PNL_LOCKED ? "⚙️ מגבלה יומית נעולה: " : "⚙️ מגבלה יומית: ") + AgTgMoneyText(limit);
   }
 
-//--- the day result line (F2): a result that prints 0.00 reads as a loss
-string AgTgResultLine(const int mode, const double pnl)
+//--- the day result line (R3): the total PNL, signed, with the currency's
+//--- sign; U+1F4C8 above zero and U+1F4C9 otherwise, so a result that
+//--- prints 0.00 and one not computed yet take U+1F4C9
+string AgTgResultLine(const int mode, const double pnl, const string cur)
   {
    if(mode == AG_TG_PNL_NONE)
-      return "📉 הפסד היום: עדיין לא חושב";
+      return "📉 סה״כ PNL: עדיין לא חושב";
    double r = MathRound(pnl * 100.0) / 100.0;
-   if(r > 0.0)
-      return "📈 רווח היום: " + AgTgMoneyText(r);
-   return "📉 הפסד היום: " + AgTgMoneyText(-r);
+   return (r > 0.0 ? "📈 סה״כ PNL: " : "📉 סה״כ PNL: ") + AgTgSignedWithCurrency(r, cur);
   }
 
 //--- the limit and the result group (addendum 1.2); not computed yet, the
 //--- result line alone, there being no limit to show
-string AgTgPnlLine(const int mode, const double pnl, const double limit)
+string AgTgPnlLine(const int mode, const double pnl, const double limit, const string cur)
   {
    if(mode == AG_TG_PNL_NONE)
-      return AgTgResultLine(mode, pnl);
-   return AgTgLimitLine(mode, limit) + "\n" + AgTgResultLine(mode, pnl);
+      return AgTgResultLine(mode, pnl, cur);
+   return AgTgLimitLine(mode, limit) + "\n" + AgTgResultLine(mode, pnl, cur);
   }
 
-//--- the account and the time, then the money
-string AgTgCommonHead(const AgTgCommon &c)
+//--- the open trades line (R4): the open positions, none at zero
+string AgTgOpenLine(const long open_pos)
+  {
+   return "📂 עסקאות פתוחות: " + (open_pos > 0 ? (string)open_pos : "אין");
+  }
+
+//--- the account and the time, then the money, the open trades line last
+//--- unless open_line is false (R4)
+string AgTgCommonHead(const AgTgCommon &c, const bool open_line)
   {
    return "👤 מס׳ חשבון: " + (string)c.login
         + "\n🕒 זמן: " + AgTgStamp(c.server_t)
         + "\n\n💰 גודל תיק: " + AgTgMoneyText(c.balance)
-        + "\n💵 הון: " + AgTgMoneyText(c.equity);
+        + "\n💵 הון: " + AgTgMoneyText(c.equity)
+        + (open_line ? "\n" + AgTgOpenLine(c.open_pos) : "");
   }
 
 //--- the common lines whole: the head, the limit and the result, the state
 string AgTgCommonLines(const AgTgCommon &c)
   {
-   return AgTgCommonHead(c) + "\n\n" + AgTgPnlLine(c.pnl_mode, c.pnl, c.limit)
+   return AgTgCommonHead(c, true) + "\n\n" + AgTgPnlLine(c.pnl_mode, c.pnl, c.limit, c.cur)
         + "\n\n🛡️ מצב: " + AgTgStateWord(c.state);
   }
 
 //--- a headline, the common lines with the limit and result group given,
-//--- then the event lines given
-string AgTgMessageWith(const string headline, const AgTgCommon &c, const string group, const string events)
+//--- then the event lines given; open_line false in the lock messages whose
+//--- sweep line gives the count (R4)
+string AgTgMessageWith(const string headline, const AgTgCommon &c, const string group, const string events,
+                       const bool open_line)
   {
-   return headline + "\n\n" + AgTgCommonHead(c) + "\n\n" + group + "\n\n🛡️ מצב: " + AgTgStateWord(c.state)
+   return headline + "\n\n" + AgTgCommonHead(c, open_line) + "\n\n" + group + "\n\n🛡️ מצב: " + AgTgStateWord(c.state)
         + (events == "" ? "" : "\n" + events);
   }
 
 //--- a headline, the common lines, then the event lines given
 string AgTgMessage(const string headline, const AgTgCommon &c, const string events)
   {
-   return AgTgMessageWith(headline, c, AgTgPnlLine(c.pnl_mode, c.pnl, c.limit), events);
+   return AgTgMessageWith(headline, c, AgTgPnlLine(c.pnl_mode, c.pnl, c.limit, c.cur), events, true);
   }
 
 //+------------------------------------------------------------------+
@@ -360,8 +380,8 @@ string AgTgTextS1(const AgTgCommon &c, const double percent, const double curren
   {
    string group = AgTgLimitLine(c.pnl_mode, c.limit) + ", הנמוך מבין " + AgTgMoney(percent)
                 + "% מגודל התיק בתחילת היום לבין " + AgTgWithCurrency(AgTgNum(currency), cur)
-                + "\n" + AgTgResultLine(c.pnl_mode, c.pnl);
-   return AgTgMessageWith("🟢 השומר הופעל ומגן על החשבון", c, group, "🔓 נעילה: אין");
+                + "\n" + AgTgResultLine(c.pnl_mode, c.pnl, c.cur);
+   return AgTgMessageWith("🟢 השומר הופעל ומגן על החשבון", c, group, "🔓 נעילה: אין", true);
   }
 
 string AgTgTextS1Restarted(const AgTgCommon &c, const int reason)
@@ -426,7 +446,8 @@ string AgTgSweepNow(const long positions, const long pendings)
 
 //--- F8: the crossed limit in its own unit, kind 1 the percent leg, 2 the
 //--- currency leg, 3 the held floor; the signed day result takes the place
-//--- of the day result line, and the message ends with the day done
+//--- of the day result line, and the message ends with the day done; no
+//--- open trades line, the sweep line giving the count (R4)
 string AgTgTextS4(const AgTgCommon &c, const int kind, const datetime until, const double percent,
                   const double currency, const double pnl_at_lock, const long positions,
                   const long pendings, const string cur)
@@ -440,7 +461,7 @@ string AgTgTextS4(const AgTgCommon &c, const int kind, const datetime until, con
                 + "\n🚨 עברת את ההפסד היומי!! " + crossed
                 + "\n📉 סה״כ PNL: " + AgTgSignedWithCurrency(pnl_at_lock, cur);
    string events = AgTgAdd("⏳ נעול עד: " + AgTgStamp(until), AgTgSweepNow(positions, pendings));
-   return AgTgMessageWith("🔒 החשבון ננעל: חריגה מהמגבלה היומית", c, group, events + "\n🏁 סיימנו להיום");
+   return AgTgMessageWith("🔒 החשבון ננעל: חריגה מהמגבלה היומית", c, group, events + "\n🏁 סיימנו להיום", false);
   }
 
 //--- kind 4, the give back from the daily peak, which keeps its own wording
@@ -453,7 +474,7 @@ string AgTgTextS4Peak(const AgTgCommon &c, const datetime until, const double pe
                 + "\n🎯 סף הנעילה: " + AgTgSigned(threshold)
                 + "\n📉 סה״כ PNL: " + AgTgSignedWithCurrency(pnl_at_lock, cur);
    string events = AgTgAdd("⏳ נעול עד: " + AgTgStamp(until), AgTgSweepNow(positions, pendings));
-   return AgTgMessageWith("🔒 החשבון ננעל: ירידה מהשיא היומי", c, group, events + "\n🏁 סיימנו להיום");
+   return AgTgMessageWith("🔒 החשבון ננעל: ירידה מהשיא היומי", c, group, events + "\n🏁 סיימנו להיום", false);
   }
 
 string AgTgTextS6C(const AgTgCommon &c, const long closed, const long deleted, const long attempts,
@@ -590,14 +611,16 @@ string AgTgTextS15(const AgTgCommon &c)
                       "🛠️ קובץ העצירה נמחק ידנית, לפי נוהל החידוש");
   }
 
-//--- restart_reason is the in place stop it merges with, -1 when none
+//--- restart_reason is the in place stop it merges with, -1 when none; no
+//--- open trades line, the sweep line giving the count (R4)
 string AgTgTextS16(const AgTgCommon &c, const datetime until, const int reason, const int mask,
                    const long positions, const long pendings, const int restart_reason)
   {
    string lines = (restart_reason >= 0 ? "🔄 סיבת ההפעלה מחדש: " + AgTgReasonWord(restart_reason) + "\n" : "")
                 + "⏳ נעול עד: " + AgTgStamp(until)
                 + "\n🔎 מקור הנעילה: " + AgTgSourceWord(reason, mask);
-   return AgTgMessage("🔒 הנעילה שוחזרה בהפעלת השומר", c, AgTgAdd(lines, AgTgSweepNow(positions, pendings)));
+   return AgTgMessageWith("🔒 הנעילה שוחזרה בהפעלת השומר", c, AgTgPnlLine(c.pnl_mode, c.pnl, c.limit, c.cur),
+                          AgTgAdd(lines, AgTgSweepNow(positions, pendings)), false);
   }
 
 //--- how 1 a write failed, 2 quarantined at load
