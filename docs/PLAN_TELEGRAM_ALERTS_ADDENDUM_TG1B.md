@@ -424,7 +424,7 @@ Plan rows under TG-1 (B): TG-S1 becomes four compiles; TG-S2 and TG-S3 stand; TG
 
 ## 13. Hebrew drafts
 
-The block below carries every draft of plan 5, then the new ones, then, under labels that begin `BUILD:`, the drafts the build of 2026-10-21 adds, and, under labels that begin `B3:`, the lines the format pass B3 adds so that every wording the code holds stands here. The format pass B3 of 2026-10-21 rewrote every draft in the message format F1 to F11 the owner ruled that day, FINAL in DECISIONS: an emoji at the head of every field line, one emoji per field everywhere, by the emoji map below the block; one blank line between the groups, the headline, the account and the time, the money, the limit and the result, the state and the rest; the labels of F2, the limit and the day result each on a line of its own; the time as DD/MM/YYYY HH:MM; money with a comma every three digits and two decimals, and the account currency's sign where an amount carries its currency; durations in seconds under 120 s, in minutes under 120 minutes, and in hours and minutes beyond, with the life sign line reading a moment ago under 5 s; a zero count left out of its line, and a line whose counts are all zero left out; the line of the limit in force removed wherever the limit line shows the same value, which in S1, S1 restarted and the ACTIVE status it always did; the breach lock of F8; and the build line only in S1, S1 restarted, S2, the periodic status and command reply, and S14, which replaces the sentence of item 10 that every message ends with it. Pass B5 of 2026-10-21 applies R3 and R4 of that date, FINAL in DECISIONS, to every draft: the day result line reads the total PNL, signed, with the account currency's sign, U+1F4C8 above zero and U+1F4C9 otherwise, and not computed yet when the result is not computed, in place of the loss and profit labels of F2; and the money group ends with the open trades line after the equity line, the open positions the service counts with `PositionsTotal` when it renders the message, pending orders excluded, reading none at zero, and left out of S4, its daily peak variant and S16, whose sweep line gives the count. The open trades counts of the drafts are illustrative: none where the equity equals the balance, and otherwise one, with two in S8 locked again and three in S9. Read under R3, UNRULED 2026-10-21: the PNL line F8 gives S4 and its daily peak variant is kept as it stands, U+1F4C9 included, R3 naming the labels of F2 it replaces, so the daily peak variant in profit still reads U+1F4C9 with +90.96$. The three messages the owner approved as the reference stand with their values, the S4 lock on the daily limit verbatim, the S1 start and the periodic status while ACTIVE with R3 and R4 applied; every other draft keeps plan 5's example values. The bold headline of F10 is applied by the service at send time and is not written here, so the drafts stay plain text. Its `===` lines are English labels for the owner and are never sent; a draft runs from its label to the next one, and the blank line before the next label is not part of it. Each rendered message equals its draft here byte for byte (TG-S8). Carried from the build of 2026-10-21: a count of 1 takes the Hebrew singular with the word for one, a day result that prints 0.00 takes U+1F4C9 and no sign, and figures taken under a lock carry the locked wording, now on the limit line.
+The block below carries every draft of plan 5, then the new ones, then, under labels that begin `BUILD:`, the drafts the build of 2026-10-21 adds, and, under labels that begin `B3:`, the lines the format pass B3 adds so that every wording the code holds stands here. The format pass B3 of 2026-10-21 rewrote every draft in the message format F1 to F11 the owner ruled that day, FINAL in DECISIONS: an emoji at the head of every field line, one emoji per field everywhere, by the emoji map below the block; one blank line between the groups, the headline, the account and the time, the money, the limit and the result, the state and the rest; the labels of F2, the limit and the day result each on a line of its own; the time as DD/MM/YYYY HH:MM; money with a comma every three digits and two decimals, and the account currency's sign where an amount carries its currency; durations in seconds under 120 s, in minutes under 120 minutes, and in hours and minutes beyond, with the life sign line reading a moment ago under 5 s; a zero count left out of its line, and a line whose counts are all zero left out; the line of the limit in force removed wherever the limit line shows the same value, which in S1, S1 restarted and the ACTIVE status it always did; the breach lock of F8; and the build line only in S1, S1 restarted, S2, the periodic status and command reply, and S14, which replaces the sentence of item 10 that every message ends with it. Pass B5 of 2026-10-21 applies R3 and R4 of that date, FINAL in DECISIONS, to every draft: the day result line reads the total PNL, signed, with the account currency's sign, U+1F4C8 above zero and U+1F4C9 otherwise, and not computed yet when the result is not computed, in place of the loss and profit labels of F2; and the money group ends with the open trades line after the equity line, the open positions the service counts with `PositionsTotal` when it renders the message, pending orders excluded, reading none at zero, and left out of S4, its daily peak variant and S16, whose sweep line gives the count. The open trades counts of the drafts are illustrative: none where the equity equals the balance, and otherwise one, with two in S8 locked again and three in S9. Read under R3, UNRULED 2026-10-21: the PNL line F8 gives S4 and its daily peak variant is kept as it stands, U+1F4C9 included, R3 naming the labels of F2 it replaces, so the daily peak variant in profit still reads U+1F4C9 with +90.96$. The three messages the owner approved as the reference stand with their values, the S4 lock on the daily limit verbatim, the S1 start and the periodic status while ACTIVE with R3 and R4 applied; every other draft keeps plan 5's example values. The bold headline of F10 is applied by the service at send time and is not written here, so the drafts stay plain text. Its `===` lines are English labels for the owner and are never sent; a draft runs from its label to the next one, and the blank line before the next label is not part of it. Each rendered message equals its draft here byte for byte (TG-S8). Carried from the build of 2026-10-21: a count of 1 takes the Hebrew singular with the word for one, a day result that prints 0.00 takes U+1F4C9 and no sign, and figures taken under a lock carry the locked wording, now on the limit line. The Manual Lockout build of 2026-10-22 (ML-17 (A)) adds, under labels that begin `ML:`, S5 at the engagement (ML-30), S25 at the lockout's own end, its wording list, and the S17 name of the lockout's record, in the format F1 to F11 with R3 and R4: S5 carries the sweep line and leaves the open trades line out, as S4 and S16 do (ML-31); S25 carries no sweep line and keeps it; the result line of a lockout alone reads not computed yet, there being no day result under it.
 
 ```text
 === S1 start ===
@@ -1408,6 +1408,102 @@ build=TG
 === B3: lines a zero count leaves out, here with a count, in order: the failures, the locks of the ended day ===
 ❌ מספר הכשלים: 1
 🔐 מספר הנעילות ביום שהסתיים: 1
+
+=== ML: S5 Manual Lockout engaged, a position open ===
+🔒 נעילה ידנית: החשבון ננעל לבקשתך
+
+👤 מס׳ חשבון: 1200252169
+🕒 זמן: 22/10/2026 14:30
+
+💰 גודל תיק: 2,544.33
+💵 הון: 2,530.10
+
+⚙️ מגבלה יומית: 139.94
+📉 סה״כ PNL: -14.23$
+
+🛡️ מצב: נעול
+⏳ נעול עד: 22/10/2026 15:00
+⌛ משך: 30 דקות
+🧹 סוגר עכשיו פוזיציה אחת
+❗ אי אפשר לבטל או לקצר את הנעילה
+ℹ️ השומר סוגר עכשיו את העסקאות הפתוחות, ולכן החשבון יישאר נעול עד תחילת יום המסחר הבא
+
+=== ML: S5 Manual Lockout engaged, nothing open ===
+🔒 נעילה ידנית: החשבון ננעל לבקשתך
+
+👤 מס׳ חשבון: 1200252169
+🕒 זמן: 22/10/2026 14:30
+
+💰 גודל תיק: 2,544.33
+💵 הון: 2,544.33
+
+⚙️ מגבלה יומית: 139.94
+📉 סה״כ PNL: 0.00$
+
+🛡️ מצב: נעול
+⏳ נעול עד: 22/10/2026 15:30
+⌛ משך: 60 דקות
+❗ אי אפשר לבטל או לקצר את הנעילה
+ℹ️ אם השומר יסגור עסקה בזמן הנעילה, החשבון יישאר נעול עד תחילת יום המסחר הבא
+
+=== ML: S5 Manual Lockout until the next daily anchor ===
+🔒 נעילה ידנית: החשבון ננעל לבקשתך
+
+👤 מס׳ חשבון: 1200252169
+🕒 זמן: 22/10/2026 14:30
+
+💰 גודל תיק: 2,544.33
+💵 הון: 2,544.33
+
+⚙️ מגבלה יומית: 139.94
+📉 סה״כ PNL: 0.00$
+
+🛡️ מצב: נעול
+⏳ נעול עד: 23/10/2026 01:00
+⌛ משך: 10 שעות ו 29 דקות
+❗ אי אפשר לבטל או לקצר את הנעילה
+
+=== ML: S25 Manual Lockout ended ===
+🔓 הנעילה הידנית הסתיימה
+
+👤 מס׳ חשבון: 1200252169
+🕒 זמן: 22/10/2026 15:00
+
+💰 גודל תיק: 2,544.33
+💵 הון: 2,544.33
+📂 עסקאות פתוחות: אין
+
+⚙️ מגבלה יומית: 139.94
+📉 סה״כ PNL: 0.00$
+
+🛡️ מצב: פעיל
+⏰ הנעילה הסתיימה בשעה 22/10/2026 15:00
+
+=== ML: S25 Manual Lockout ended, the account stays locked ===
+🔒 הנעילה הידנית הסתיימה, החשבון נשאר נעול
+
+👤 מס׳ חשבון: 1200252169
+🕒 זמן: 22/10/2026 15:00
+
+💰 גודל תיק: 2,530.10
+💵 הון: 2,530.10
+📂 עסקאות פתוחות: אין
+
+⚙️ מגבלה יומית נעולה: 139.94
+📉 סה״כ PNL: -14.23$
+
+🛡️ מצב: נעול
+⏰ הנעילה הסתיימה בשעה 22/10/2026 15:00
+ℹ️ השומר סגר עסקה בזמן הנעילה הידנית, ולכן החשבון נעול עד תחילת יום המסחר הבא
+⏳ נעול עד: 23/10/2026 01:00
+
+=== ML: S25 why the account stays locked, in order: a close by the guardian, the daily loss, a corrupt state file ===
+ℹ️ השומר סגר עסקה בזמן הנעילה הידנית, ולכן החשבון נעול עד תחילת יום המסחר הבא
+ℹ️ ההפסד של היום חוצה את המגבלה היומית
+ℹ️ קובץ מצב הנעילה פגום, הנעילה נמשכת עד תחילת יום המסחר הבא
+
+=== ML: S17 the name of the lockout's record ===
+📁 הקובץ: קובץ הנעילה הידנית
 ```
 
 Emoji map, one emoji per field (F1), each field named by its label or its opening words in the drafts; the PNL line takes U+1F4C8 above zero and U+1F4C9 otherwise, a result not computed yet included (R3):
