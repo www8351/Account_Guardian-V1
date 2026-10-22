@@ -2,13 +2,13 @@
 
 Date of the request: 2026-10-22. Written: 2026-10-22. Plan only. This document authorizes no code, no build, no deploy and no change under any MetaTrader terminal data folder. The build follows section 11 and starts only on the owner's instruction.
 
-Branch `feature/manual-lockout`, cut from main at `cce862a` ("evidence: ledger-compaction.md quotes the owner's authorization of 2026-10-22 ..."), worktree `.claude/worktrees/feature-manual-lockout`. LEDGER.md was read in full before any other step, 600 lines, md5 `02A03154AE3F04BBE16CCF7B3BBA7567`, equal in the main checkout and in this branch's worktree. The owner rulings ML-1 to ML-27 of 2026-10-22 stand FINAL in DECISIONS at `7d2bf10`, `LEDGER.md:581-608` as at that commit, and are cited by name. The owner rulings ML-28 to ML-33 of the same date, on the six points section 12 raised, stand FINAL at `bcb71cc`, `LEDGER.md:616-632` as at that commit, and ML-34 to ML-36, on the two gaps ML-30 left and on the reach of ML-29, at `e1a931a`, `LEDGER.md:634-641` as at that commit.
+Branch `feature/manual-lockout`, cut from main at `cce862a` ("evidence: ledger-compaction.md quotes the owner's authorization of 2026-10-22 ..."), worktree `.claude/worktrees/feature-manual-lockout`. LEDGER.md was read in full before any other step, 600 lines, md5 `02A03154AE3F04BBE16CCF7B3BBA7567`, equal in the main checkout and in this branch's worktree. The owner rulings ML-1 to ML-27 of 2026-10-22 stand FINAL in DECISIONS at `7d2bf10`, `LEDGER.md:581-608` as at that commit, and are cited by name. The owner rulings ML-28 to ML-33 of the same date, on the six points section 12 raised, stand FINAL at `bcb71cc`, `LEDGER.md:616-632` as at that commit, and ML-34 to ML-36, on the two gaps ML-30 left and on the reach of ML-29, at `e1a931a`, `LEDGER.md:634-641` as at that commit. ML-37, on the S3 silence the plan had chosen under ML-35 (1), stands FINAL at `dd46b03`, `LEDGER.md:645-646` as at that commit.
 
 Citations. `LEDGER.md:<n>` is a line as at `cce862a` unless a commit is named. `EA:<n>` is `MQL5/Experts/AccountGuardian/AccountGuardian.mq5`; `State.mqh:<n>`, `Clock.mqh:<n>`, `Log.mqh:<n>`, `Persist.mqh:<n>`, `Pnl.mqh:<n>`, `Sweep.mqh:<n>`, `SweepPolicy.mqh:<n>`, `AlertQueue.mqh:<n>` and `AlertText.mqh:<n>` are the includes under `MQL5/Include/AccountGuardian/`; `SVC:<n>` is `MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5`; `VEC:<n>` is `MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5`; `SPEC:<n>` is `docs/SPEC_v0.1.md`; `TGPLAN:<n>` is `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md`; `ADD:<n>` is `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md`; `ROWS:<n>` is `scripts/rows/static_rows.py`; `GEN:<n>` is `scripts/rows/gen_vectors.py`. Every file under `MQL5/`, `scripts/` and `docs/` is as at `cce862a`.
 
 This session changed no source, include, script, vector, preset or installer file, compiled nothing, and read or wrote nothing under any terminal data folder. No merge, no push, no branch or worktree deleted.
 
-Section 11 was checked without a build. Its steps B1 to B10 and B12 were applied, from this document's own code blocks, to scratch copies outside the repository, and the anchors of B13 and B14 were looked up: every old text and anchor occurs exactly once. The repository's `gen_vectors.py` and `tg_s7.py`, run on the scratch copy, give `TG-S7 HOLDS`, all 9 Manual Lockout templates equal to their drafts character for character and 94 new vector checks, as rerun after the plan was amended to ML-28 to ML-36. The source checks of ML-S4, ML-S5, ML-S8 to ML-S11 and ML-S14 to ML-S16 hold on the scratch EA and the two new includes. Nothing was compiled, so ML-S1 stays open until the build.
+Section 11 was checked without a build. Its steps B1 to B10 and B12 were applied, from this document's own code blocks, to scratch copies outside the repository, and the anchors of B13 and B14 were looked up: every old text and anchor occurs exactly once. The repository's `gen_vectors.py` and `tg_s7.py`, run on the scratch copy, give `TG-S7 HOLDS`, all 9 Manual Lockout templates equal to their drafts character for character and 97 new vector checks, as rerun after the plan was amended to ML-37. The source checks of ML-S4, ML-S5, ML-S8 to ML-S11 and ML-S14 to ML-S18 hold on the scratch EA, the scratch service and the scratch includes. Nothing was compiled, so ML-S1 stays open until the build.
 
 ## 1. The request and the rulings
 
@@ -29,6 +29,7 @@ The owner's instruction of 2026-10-22: "new AccountGuardian feature, Manual Lock
 - ML-9 to ML-27 (`:607`): option (A) of the ruling sheet, each item shown in section 9 with the owner's choice.
 - ML-28 to ML-33, FINAL at `bcb71cc`: the owner's answers to the six points of section 12, each shown there as given.
 - ML-34 to ML-36, FINAL at `e1a931a`: the two gaps ML-30 left and the reach of ML-29, shown in section 12 as given. ML-35 (1) supersedes TG-13 (B) (`LEDGER.md:536`) for deinit reason 3 only.
+- ML-37, FINAL at `dd46b03`: the owner's ruling on the S3 silence the plan had chosen under ML-35 (1), shown in section 12 as given.
 
 The daily anchor is 01:00:00 server time, every day including Saturday and Sunday: `AG_DAY_ANCHOR_OFFSET_SECONDS 3600` (`Clock.mqh:26`), `AgNextDayAnchor` (`Clock.mqh:45`), Q1 of 2026-08-08 (`LEDGER.md:287`), the weekend clause of 2026-09-01 (`LEDGER.md:187`). "The start of the next server day" in ML-4 is that anchor, as its own parenthetical says, and never server midnight, which the base ruling of 2026-08-05 replaced (`LEDGER.md:284`). Every bound below comes from `AgNextDayAnchor` alone, one clock (element SIX, `LEDGER.md:373`), so the scheduled revisit of Q1 after the 2026-10-25 to 2026-11-01 harvest (`LEDGER.md:9-11`, `:287-288`) carries through with no change here.
 
@@ -134,7 +135,7 @@ F6, the static row TG-S15 (`ROWS:85-110`) reads CHANGED for `AgEvaluateLocked` o
 
 ## 4. Design
 
-Every behavior here is fixed by a ruling or a FINAL entry cited in place. The four readings section 12 raised as points 3 to 6 are ruled by ML-30 to ML-33, and the two gaps ML-30 left by ML-34 and ML-35. The names, constants and formats the executor chose are fixed in section 11.
+Every behavior here is fixed by a ruling or a FINAL entry cited in place. The four readings section 12 raised as points 3 to 6 are ruled by ML-30 to ML-33, the two gaps ML-30 left by ML-34 and ML-35, and the reach of the reason 3 silence over S3 by ML-37. The names, constants and formats the executor chose are fixed in section 11.
 
 ### 4.1 Two lock components, one LOCKED state
 
@@ -236,7 +237,8 @@ The error paths reuse the existing shapes: a failed record write raises the stat
 ### 4.8 Telegram (ML-17 (A))
 
 - S5, "Locked on demand", the catalog's own row (`TGPLAN:187`): at the engagement only, with the engaging pass's limit and result (ML-30). No S5 at a restore at start and none at an extension. So a start into a lockout alone sends no start message, and the lockout shows in the next periodic status, the command reply, or S25 at its end (ML-34 (A)). An in place stop before such a start, which waits for an S1 or S16 to merge with (`SVC:531-555`), goes out alone when its 60 s hold ends (ML-35 (2), option (A)), for every in place reason but 3.
-- ML-35 (1), a chart timeframe or symbol change, deinit reason 3, sends no Telegram message in any state: no stop, no start, no merged restart message. One pure helper, `AgTgSilentReason` in `AlertQueue.mqh`, true for reason 3 alone, is shared by the EA, the service and the vectors. OnDeinit queues no S2 for that reason and still writes the queue, so nothing pending is lost. It sets `g_ag_tgp_quiet_start` from the same helper for every reason, so any other reason clears it. An in place re-init keeps the program's globals (measured on reasons 3 and 5, `LEDGER.md:13-15`) and a fresh image starts the flag false. `AgTgInitReset` leaves it alone, and the producer reads it once, at the first SYNCING exit or the first SAFE_HALT tick of that init: no S1, no S16 and no S3 then, none for a lockout alone already (ML-34), and the flag cleared. Events that report a condition the init finds are not the change's own and send as at any init: S15, S17, S18, S21, S22, S24, S12, a breach, a lock, a release. The service, for a queue an earlier build wrote, acknowledges an S2 of reason 3 without a message, and with it, inside its hold, the S1 or S16 it would have merged with. S14 counts no lock for that start, there being no S16. A reason 3 change that falls inside the SYNCING window of an attach or a terminal start, before that start's S1 or S16 went out, leaves that start untold as well. TG-13 (B) stands for every other reason, its hold and merge unchanged for reasons 2, 5, 6 and 7.
+- ML-35 (1), a chart timeframe or symbol change, deinit reason 3, sends no Telegram message in any state: no stop, no start, no merged restart message. One pure helper, `AgTgSilentReason` in `AlertQueue.mqh`, true for reason 3 alone, is shared by the EA, the service and the vectors. OnDeinit queues no S2 for that reason and still writes the queue, so nothing pending is lost. It sets `g_ag_tgp_quiet_start` from the same helper for every reason, so any other reason clears it. An in place re-init keeps the program's globals (measured on reasons 3 and 5, `LEDGER.md:13-15`) and a fresh image starts the flag false. `AgTgInitReset` leaves it alone, and the producer reads it once, at the first SYNCING exit or the first SAFE_HALT tick of that init: no S1 and no S16 then, none for a lockout alone already (ML-34), S3 only as ML-37 below allows, and the flag cleared. Events that report a condition the init finds are not the change's own and send as at any init: S15, S17, S18, S21, S22, S24, S12, a breach, a lock, a release. The service, for a queue an earlier build wrote, acknowledges an S2 of reason 3 without a message, and with it, inside its hold, the S1 or S16 it would have merged with. S14 counts no lock for that start, there being no S16. A reason 3 change that falls inside the SYNCING window of an attach or a terminal start, before that start's S1 or S16 went out, leaves that start untold as well. TG-13 (B) stands for every other reason, its hold and merge unchanged for reasons 2, 5, 6 and 7.
+- ML-37 narrows that silence for S3: after a reason 3 change, S3 is silenced only when the same SAFE_HALT was already announced before the change, and a SAFE_HALT new at the init after the change always sends S3. A SAFE_HALT is known by its halt time, `g_ag_halt_time`: the halt file carries it (`Persist.mqh:170`) and every init reads it back (`Persist.mqh:249`), so the same halt keeps its time across the change, while a chain trip at the init after it takes a new one (`Persist.mqh:329`). A SAFE_HALT counts as announced once a queue write that carried its S3 has succeeded. The EA makes no network call (TG-1 (B)); writing the queue is how it announces, and the written queue survives the in place re-init, so the service sends that S3 whether the change came before the send or after it (TG-5 (B)). The record is one global, `g_ag_tgp_s3_announced`: the halt time of the last S3 among the events a successful write in `AgTgQueueWrite` carried, read by the pure helper `AgTgS3HaltTimeIn`, and kept as it was by a write that carries no S3. Like the quiet flag it survives the in place re-init, a second change in a row included, and `AgTgInitReset` leaves it alone; a fresh image starts it at 0, which announces nothing. At the first SAFE_HALT tick the producer asks the pure helper `AgTgS3Silenced`, true only after a reason 3 change with a halt time on record equal to this init's. So a reason 3 change never queues the S3 of a halt a second time, and the init after it sends S3 for a new halt and for one whose S3 never reached the file: pushed but not written, forgotten by the queue's bound, or not yet pushed because the change came before the first SAFE_HALT tick. A queue quarantined at the load after the change loses its unacknowledged events, such an S3 among them, as at any load, and S17 kind 5 reports it. A SAFE_HALT new at the init after a reason 3 change needs that change's own halt file write to fail: its OnDeinit marks the session clean and writes the halt file from memory (`EA:2176-2180`, `Persist.mqh:319-323`), which ends any unclean chain and overwrites a halt flag set by hand. It is not produced on demand, so static row ML-S18 and three vectors of B9 prove it.
 - S25, the lockout's own end: kind 1 released, at the first completed ACTIVE pass after the release, as S8 released is; kind 2 locked again, at the SYNCING exit that relocks, with the new lock's end and reason, or at once when the lockout ends under a loss lock.
 - S4, S8 and S16 never describe a lockout: the producer pushes S5 in place of S4 when the lock is a lockout alone, nothing in place of S16 (ML-30), and S25 in place of S8 for a lockout's end. S16 still describes a loss lock found at a boot where a lockout also holds.
 - S17 gains kind 6, the lockout's record. S14 counts S5 as a lock, as it counts S4 and S16; S25 is not counted, as S8 locked again is not.
@@ -343,10 +345,11 @@ Static rows, at the build, by the executor:
 - ML-S14. The EA and both new includes ASCII after any byte order mark (ML-22).
 - ML-S15. The manifest lists both new includes; `scripts/secrecy-patterns.txt` finds nothing in any shipped file (IN-22 (b)).
 - ML-S16. `AgManualApplyPending` holds a request while `g_ag_breach_deferred_once` is set in ACTIVE (Q9). A breach and a click on the same tick are not producible on demand, so this row reads the source.
-- ML-S17. ML-35 (1), the reason 3 silence: in OnDeinit the S2 push stands under `if(!AgTgSilentReason(reason))` and `g_ag_tgp_quiet_start` is set from the same helper; the flag is named only in its declaration, OnDeinit and `AgTgProduce`, never in `AgTgInitReset`; in `AgTgProduce` it guards the S1, the S16 and the S3 of the first start; in the service `AgSvcConvertOne` and `AgSvcMerge` call `AgTgSilentReason`. That the helper is true for reason 3 alone is the vector `ml_tg_silent_reason_is_reason_3_alone` of B9.
+- ML-S17. ML-35 (1), the reason 3 silence: in OnDeinit the S2 push stands under `if(!AgTgSilentReason(reason))` and `g_ag_tgp_quiet_start` is set from the same helper; the flag is named only in its declaration, OnDeinit and `AgTgProduce`, never in `AgTgInitReset`; in `AgTgProduce` it guards the S1 and the S16 of the first start, and the S3 through the helper of ML-37 (ML-S18); in the service `AgSvcConvertOne` and `AgSvcMerge` call `AgTgSilentReason`. That the helper is true for reason 3 alone is the vector `ml_tg_silent_reason_is_reason_3_alone` of B9.
+- ML-S18. ML-37, a SAFE_HALT new at the init after a reason 3 change sends S3: in `AgTgProduce` the one S3 push of the EA stands under `if(!AgTgS3Silenced(g_ag_tgp_quiet_start, g_ag_tgp_s3_announced, g_ag_halt_time))`; `g_ag_tgp_s3_announced` is assigned at one site, the successful write of `AgTgQueueWrite`, from `AgTgS3HaltTimeIn` over the events that write carried, and is named only in its declaration, `AgTgQueueWrite` and `AgTgProduce`, never in `AgTgInitReset`; both helpers are defined once, in `AlertQueue.mqh`. That the decision sends S3 for a new SAFE_HALT and for one with no halt time on record, silences it for the same SAFE_HALT after reason 3 alone, and that the record is the last S3 a write carried, are the vectors `ml_tg_s3_a_new_safe_halt_after_reason_3_is_sent`, `ml_tg_s3_the_same_safe_halt_announced_is_silenced_after_reason_3_only` and `ml_tg_s3_the_record_is_the_last_s3_a_write_carried` of B9. A static row, since such a SAFE_HALT is not produced on demand (section 4.8).
 
 Vectors and deploy, by the owner at dictation:
-- ML-0. `AgPhase2StateVectors` on the demo terminal: `AGVEC|SUMMARY|616/616`, the 522 of `LEDGER.md:6`, the 84 checks of B9 and the 10 of B10.
+- ML-0. `AgPhase2StateVectors` on the demo terminal: `AGVEC|SUMMARY|619/619`, the 522 of `LEDGER.md:6`, the 87 checks of B9 and the 10 of B10.
 - ML-D. `scripts/deploy-ml.ps1`, run by the owner: the service first, then the EA, then the vectors script, each landed md5 pasted. After the owner reports the run, the executor verifies each landed file with a plain `Get-FileHash`, read only (`LEDGER.md:171`, RULE B), against B15's record. Before any restart the attach gives `init|build=ML`, `limits accepted|...` and `manual lockout GV mirror at init|raw=1970.01.01 00:00:00|weighed by the boot witness at the SYNCING exit`, a missing record writing no line, and no ALERT between them (`LEDGER.md:174`).
 
 Live rows, stage 1, on the demo terminal (TG-10 (A)). The run order, by server day. A lockout during which the guardian closes a position leaves the account locked to the next anchor after its end (ML-8), and a lockout until End of session holds it there too. So each server day first runs the rows whose lockouts close nothing, engaged with nothing open: ML-L2, ML-L3, ML-L5 with ML-L19, ML-L7, ML-L11, ML-L12, ML-L13, ML-L15, ML-L16 and ML-L17, each walked forward to the ACTIVE state it leaves (`LEDGER.md:91`). Then exactly one row that ends the day: ML-L4 with ML-L8, its refusals in the hour before 01:00 server and End of session accepted last; or ML-L1 with ML-L9; or ML-L6; or ML-L10 with ML-L18. ML-L14 collects the Telegram messages of all of them. The open TG rows of R2 (`LEDGER.md:5-7`) share this terminal and may close on the ML binaries (ML-28), as the ENF-31 precedent allowed (`LEDGER.md:434`). TG-SV-L2 (`ADD:411`) reads a reason 3 restarted message, which ML-35 (1) withdraws: on the ML binaries a chart period change sends nothing, so that row as written closes on the TG binaries only.
@@ -429,7 +432,7 @@ Differences, each from a ruling or a FINAL entry that stands:
 
 ## 11. Build section, for a lighter executor
 
-UNRULED 2026-10-22 until the owner's build instruction adopts this section; the marker covers no ML item. It covers what the executor chose to carry out ML-1 to ML-36: the names, the constants, the record format, the journal and ALERT wording inside the shapes of section 4.7, the Hebrew drafts and the code below. Every behavior the code implements is ruled and cited in sections 4 to 7. The four readings section 12 raised as points 3 to 6 are ruled by ML-30 to ML-33, and the code follows them: S5 at the engagement only (B5.11 (b) and (d), B6, B7), the open trades line left out of S5 (B6, the helper of B10), S8 alone when both locks end on one tick (B5.11), and no journal line for a click on the greyed Extend (B3). The two gaps ML-30 left are ruled by ML-34 (A) and ML-35 (2), which the code follows as written: no start message for a start into a lockout alone, and an in place stop before it sent alone after the hold. ML-35 (1), the reason 3 silence, is carried by B1, B5.3, B5.11, B5.17, B7, B9, B11 and B13.
+UNRULED 2026-10-22 until the owner's build instruction adopts this section; the marker covers no ML item. It covers what the executor chose to carry out ML-1 to ML-37: the names, the constants, the record format, the journal and ALERT wording inside the shapes of section 4.7, the Hebrew drafts and the code below. Every behavior the code implements is ruled and cited in sections 4 to 7. The four readings section 12 raised as points 3 to 6 are ruled by ML-30 to ML-33, and the code follows them: S5 at the engagement only (B5.11 (b) and (d), B6, B7), the open trades line left out of S5 (B6, the helper of B10), S8 alone when both locks end on one tick (B5.11), and no journal line for a click on the greyed Extend (B3). The two gaps ML-30 left are ruled by ML-34 (A) and ML-35 (2), which the code follows as written: no start message for a start into a lockout alone, and an in place stop before it sent alone after the hold. ML-35 (1), the reason 3 silence, is carried by B1, B5.3, B5.11, B5.17, B7, B9, B11 and B13. ML-37, which keeps S3 out of that silence unless the same SAFE_HALT was already announced, is carried by B1, B5.3, B5.9, B5.11, B5.17, B9 and B11.
 
 ### 11.1 How to read a step
 
@@ -446,9 +449,9 @@ Rules for the whole build:
 ### B0. Preconditions
 
 - File: none. Change: none.
-- Check: `git rev-parse --abbrev-ref HEAD` prints `feature/manual-lockout`; `git status --porcelain` prints nothing; `git log --oneline cce862a..HEAD` lists this plan's three commits and nothing the owner did not order; `LEDGER.md` is read in full; the owner's build instruction is quoted verbatim in the session's first report.
+- Check: `git rev-parse --abbrev-ref HEAD` prints `feature/manual-lockout`; `git status --porcelain` prints nothing; `git diff --name-only cce862a HEAD` prints exactly two lines, `LEDGER.md` and `docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md`, so no source, script, vector or installer file has changed since the base; `git log --oneline --reverse cce862a..HEAD` lists ten commits and no merge, the first seven `7d2bf10`, `be15da2`, `7740b3f`, `bcb71cc`, `e1a931a`, `2f0282b` and `eddfc99`, then three whose subjects begin `ledger:`, `docs:` and `ledger:`, the last of them HEAD, which carries this plan's ledger entry, and the one before it the commit that last changed this plan (`git log -1 --format=%H -- docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md` equals `git rev-parse HEAD~1`); `LEDGER.md` is read in full; the owner's build instruction is quoted verbatim in the session's first report.
 
-### B1. AlertQueue.mqh: the codes S5 and S25, and the reason 3 silence
+### B1. AlertQueue.mqh: the codes S5 and S25, the reason 3 silence, and its S3 under ML-37
 
 File `MQL5/Include/AccountGuardian/AlertQueue.mqh`; the code defines (`AlertQueue.mqh:31-51`), `AgTgCodeKnown` (`:128-141`) and the comment line after it (`:143`).
 
@@ -492,10 +495,30 @@ with
 //--- share this one definition.
 bool AgTgSilentReason(const int reason) { return reason == REASON_CHARTCHANGE; }
 
+//--- ML-37: after such a change, S3 is silenced only for the same SAFE_HALT
+//--- an S3 already announced, known by its halt time on record; a SAFE_HALT
+//--- new at that init, or no halt time on record (0), always sends S3
+bool AgTgS3Silenced(const bool quiet_start, const datetime announced, const datetime halt_time)
+  {
+   return quiet_start && announced != 0 && announced == halt_time;
+  }
+
+//--- ML-37: the halt time, x[1], of the last S3 among the events, or none
+//--- when no S3 is among them; the EA reads it over the events a successful
+//--- queue write carried
+datetime AgTgS3HaltTimeIn(const AgTgEvent &events[], const int count, const datetime none)
+  {
+   datetime t = none;
+   for(int i = 0; i < count; i++)
+      if(events[i].code == AG_TG_S3)
+         t = (datetime)(long)events[i].x[1];
+   return t;
+  }
+
 //--- digits only, with an optional leading minus
 ```
-- Check: each new define occurs once; `AgTgCodeKnown` names both; `AgTgSilentReason` is defined once; the compiles of B5 and B7 pass.
-- Commit: `queue: event codes S5 and S25 of the Manual Lockout, known to the parser, and AgTgSilentReason for ML-35 (1)`
+- Check: each new define occurs once; `AgTgCodeKnown` names both; `AgTgSilentReason`, `AgTgS3Silenced` and `AgTgS3HaltTimeIn` are defined once each; the compiles of B5 and B7 pass.
+- Commit: `queue: event codes S5 and S25 of the Manual Lockout, known to the parser, AgTgSilentReason for ML-35 (1), and AgTgS3Silenced and AgTgS3HaltTimeIn for ML-37`
 
 ### B2. ManualLockout.mqh, new
 
@@ -1735,8 +1758,14 @@ datetime g_ag_tgp_s25_end         = 0;
 //--- ML-35 (1): set by OnDeinit, true after a chart timeframe or symbol
 //--- change, reason 3. An in place re-init keeps it, a fresh image starts it
 //--- false, AgTgInitReset leaves it alone, and the producer clears it at the
-//--- first start of the init, which it silences.
+//--- first start of the init, which it silences: no S1 or S16, and S3 only
+//--- as ML-37 allows.
 bool     g_ag_tgp_quiet_start     = false;
+//--- ML-37: the halt time of the SAFE_HALT whose S3 last reached the queue
+//--- file, set by each successful queue write that carried an S3. Kept like
+//--- the quiet flag: an in place re-init keeps it, a fresh image starts it at
+//--- 0, which announces nothing, and AgTgInitReset leaves it alone.
+datetime g_ag_tgp_s3_announced    = 0;
 ```
 Replace
 ```
@@ -2015,13 +2044,26 @@ with
    if(g_ag_state == AG_STATE_LOCKED && g_ag_lock_reason != AG_LOCK_NONE && g_ag_state_limit_snap > 0.0)
 ```
 
-B5.9, `AgTgSnapshotNow` (`EA:1229`, ML-16). Replace
+B5.9, `AgTgSnapshotNow` (`EA:1229`, ML-16) and `AgTgQueueWrite` (`EA:1254-1260`, ML-37), two changes. Replace
 ```
    s.locked_until     = (long)g_ag_locked_until;
 ```
 with
 ```
    s.locked_until     = (long)AgManualEffectiveEnd(g_ag_locked_until, g_ag_ml_active, g_ag_ml_end);   // ML-16
+```
+and replace, in the successful write of `AgTgQueueWrite`,
+```
+      g_ag_tgq_deferred   = 0;
+      return;
+```
+with
+```
+      g_ag_tgq_deferred   = 0;
+      //--- ML-37: the file now holds every event of the model, so the last S3
+      //--- among them has reached it; a write that carries none keeps the record
+      g_ag_tgp_s3_announced = AgTgS3HaltTimeIn(g_ag_tgq_events, g_ag_tgq_count, g_ag_tgp_s3_announced);
+      return;
 ```
 
 B5.10, `AgTgFileKind` (`EA:1375-1383`). Replace
@@ -2044,7 +2086,7 @@ with
    return 0;
 ```
 
-B5.11, `AgTgProduce` (`EA:1477-1679`, ML-17 (A), ML-35 (1)), five changes.
+B5.11, `AgTgProduce` (`EA:1477-1679`, ML-17 (A), ML-35 (1), ML-37), five changes.
 
 (a) Replace
 ```
@@ -2068,12 +2110,14 @@ and replace (`EA:1491-1497`)
 ```
 with
 ```
-   //--- S3, SAFE_HALT: once per init, on its first tick, and none after a
-   //--- chart timeframe or symbol change (ML-35 (1))
+   //--- S3, SAFE_HALT: once per init, on its first tick. After a chart
+   //--- timeframe or symbol change none for the same SAFE_HALT an earlier S3
+   //--- already announced; a SAFE_HALT new at this init always sends it
+   //--- (ML-35 (1), ML-37)
    if(st == AG_STATE_SAFE_HALT && !g_ag_tgp_s3_sent)
      {
       g_ag_tgp_s3_sent = true;
-      if(!g_ag_tgp_quiet_start)
+      if(!AgTgS3Silenced(g_ag_tgp_quiet_start, g_ag_tgp_s3_announced, g_ag_halt_time))
          AgTgPush(AG_TG_S3, g_ag_tg_halt_kind, (double)(long)g_ag_halt_time, g_ag_tg_halt_chain,
                   AG_CRASH_LOOP_WINDOW_SECONDS);
       g_ag_tgp_quiet_start = false;
@@ -2253,7 +2297,7 @@ with
    g_ag_tgp_s25_pending     = false;
    g_ag_tgp_s25_end         = 0;
 ```
-`g_ag_tgp_quiet_start` stays out of this reset on purpose (ML-35 (1)): OnDeinit sets it and the init that follows reads it.
+`g_ag_tgp_quiet_start` stays out of this reset on purpose (ML-35 (1)): OnDeinit sets it and the init that follows reads it. So does `g_ag_tgp_s3_announced` (ML-37): a successful queue write sets it and the init after a reason 3 change reads it.
 
 B5.13, `AgTgInitEvents` (`EA:1740`). Replace
 ```
@@ -2481,8 +2525,10 @@ with
       AgTgQueueWrite(true);
      }
    //--- ML-35 (1): the init that follows a reason 3 change sends no start
-   //--- message. An in place re-init keeps this global, a fresh image starts
-   //--- it false, and every other reason clears it here.
+   //--- message, and under ML-37 no S3 for a SAFE_HALT whose S3 a queue write,
+   //--- the one above included, already carried. An in place re-init keeps
+   //--- this global, a fresh image starts it false, and every other reason
+   //--- clears it here.
    g_ag_tgp_quiet_start = AgTgSilentReason(reason);
 ```
 and replace (`EA:2206`)
@@ -2500,7 +2546,7 @@ with
 ```
 
 - Check: `python -I scripts/rows/compile.py MQL5/Experts/AccountGuardian/AccountGuardian.mq5 ml-ea <log folder>`, the log folder being the build session's job temporary folder, outside the repository, prints `Result: 0 errors, 0 warnings`, no including line outside the worktree, and the ex5 FRESH (standing rule 6). The EA stays ASCII after its byte order mark.
-- Commit: `ea: the Manual Lockout, a second lock component applied in OnTimer, its boot witness, its own end before the one expiry path, the panel, S5 and S25 in the producer, no Telegram message for a reason 3 change, label ML`
+- Commit: `ea: the Manual Lockout, a second lock component applied in OnTimer, its boot witness, its own end before the one expiry path, the panel, S5 and S25 in the producer, no Telegram message for a reason 3 change and S3 after it only for a SAFE_HALT not yet announced, label ML`
 
 ### B6. AlertText.mqh: the file word of kind 6, S5 and S25
 
@@ -2717,8 +2763,8 @@ one blank line and then this text, which lies above the generated block of TG-S8
    //--- 2026-10-22, plan docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md section 11):
    //--- the bounds, the two parsers, the record and its file family on the
    //--- synthetic logins 990000031 and 990000039, the boot witness, every
-   //--- line and ALERT shape of ML-21, and the reason 3 silence of ML-35 (1).
-   //--- No GV is touched.
+   //--- line and ALERT shape of ML-21, the reason 3 silence of ML-35 (1) and
+   //--- its S3 under ML-37. No GV is touched.
    //================================================================
    datetime ml_t0  = D'2026.10.22 14:30:05';
    datetime ml_anc = D'2026.10.23 01:00:00';
@@ -3004,9 +3050,37 @@ one blank line and then this text, which lies above the generated block of TG-S8
               AgTgSilentReason(3) && !AgTgSilentReason(0) && !AgTgSilentReason(1) && !AgTgSilentReason(2)
               && !AgTgSilentReason(4) && !AgTgSilentReason(5) && !AgTgSilentReason(6) && !AgTgSilentReason(7)
               && !AgTgSilentReason(8) && !AgTgSilentReason(9), "silent reason");
+   //--- ML-37: after a reason 3 change S3 is silenced only for the same
+   //--- SAFE_HALT already announced, known by its halt time; a SAFE_HALT new
+   //--- at that init, or no halt time on record, sends S3
+   datetime ml_halt_a = D'2026.10.22 14:00:00';
+   datetime ml_halt_b = D'2026.10.22 14:05:00';
+   AgVecCheck("ml_tg_s3_a_new_safe_halt_after_reason_3_is_sent",
+              !AgTgS3Silenced(true, ml_halt_a, ml_halt_b) && !AgTgS3Silenced(true, 0, ml_halt_b)
+              && !AgTgS3Silenced(true, 0, 0), "silenced");
+   AgVecCheck("ml_tg_s3_the_same_safe_halt_announced_is_silenced_after_reason_3_only",
+              AgTgS3Silenced(true, ml_halt_a, ml_halt_a) && !AgTgS3Silenced(false, ml_halt_a, ml_halt_a),
+              "same halt");
+   //--- the record: the halt time of the last S3 among the events a write
+   //--- carried, kept as it was when none is among them
+   AgTgEvent ml_ev;
+   ZeroMemory(ml_ev);
+   AgTgEvent ml_q[];
+   ArrayResize(ml_q, 3);
+   ml_q[0] = ml_ev;
+   ml_q[1] = ml_ev;
+   ml_q[2] = ml_ev;
+   ml_q[0].code = AG_TG_S1;
+   ml_q[1].code = AG_TG_S3;
+   ml_q[1].x[1] = (double)(long)ml_halt_a;
+   ml_q[2].code = AG_TG_S3;
+   ml_q[2].x[1] = (double)(long)ml_halt_b;
+   AgVecCheck("ml_tg_s3_the_record_is_the_last_s3_a_write_carried",
+              AgTgS3HaltTimeIn(ml_q, 3, 0) == ml_halt_b && AgTgS3HaltTimeIn(ml_q, 2, 0) == ml_halt_a
+              && AgTgS3HaltTimeIn(ml_q, 1, ml_halt_a) == ml_halt_a && AgTgS3HaltTimeIn(ml_q, 0, 0) == 0, "record");
 ```
-- Check: the block adds 84 checks, each name beginning `ml_`; no `GlobalVariable` call in it; it lies above the TG-S8 head comment.
-- Commit: `vectors: the Manual Lockout block, 84 checks on the bounds, the parsers, the record family, the boot witness, the line shapes and the reason 3 silence`
+- Check: the block adds 87 checks, each name beginning `ml_`; no `GlobalVariable` call in it; it lies above the TG-S8 head comment.
+- Commit: `vectors: the Manual Lockout block, 87 checks on the bounds, the parsers, the record family, the boot witness, the line shapes, the reason 3 silence and its S3 under ML-37`
 
 ### B10. gen_vectors.py, and the vectors regenerated
 
@@ -3090,15 +3164,15 @@ sys.stdout.buffer.write(("render vectors %d, helper vectors %d, of which pass B5
                             len(helpers_ml), unused)).encode("utf-8"))
 ```
 Then run `python -I scripts/rows/gen_vectors.py` from the repository root.
-- Check: the run prints the Manual Lockout build count as 1, and its list of drafts not rendered names no `ML:` label; `git diff --stat` on the vectors file shows the generated block only; `python -I scripts/rows/tg_s7.py` exits 0 with `TG-S7 HOLDS`, and every per template line of a `tg_text_ml_` case ends `identical`; `python -I scripts/rows/compile.py MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5 ml-vec2 <log folder>` and the same for `MQL5/Scripts/AccountGuardian/AgPhase1ClockVectors.mq5` with tag `ml-vec1` print `Result: 0 errors, 0 warnings`, no including line outside the worktree, and fresh ex5 files. The vectors script now carries 616 checks: the 522 of `LEDGER.md:6`, the 84 of B9, and the 10 of this step (9 render cases and 1 helper).
-- Commit: `vectors: TG-S8 regenerated with the Manual Lockout drafts, 616 checks`
+- Check: the run prints the Manual Lockout build count as 1, and its list of drafts not rendered names no `ML:` label; `git diff --stat` on the vectors file shows the generated block only; `python -I scripts/rows/tg_s7.py` exits 0 with `TG-S7 HOLDS`, and every per template line of a `tg_text_ml_` case ends `identical`; `python -I scripts/rows/compile.py MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5 ml-vec2 <log folder>` and the same for `MQL5/Scripts/AccountGuardian/AgPhase1ClockVectors.mq5` with tag `ml-vec1` print `Result: 0 errors, 0 warnings`, no including line outside the worktree, and fresh ex5 files. The vectors script now carries 619 checks: the 522 of `LEDGER.md:6`, the 87 of B9, and the 10 of this step (9 render cases and 1 helper).
+- Commit: `vectors: TG-S8 regenerated with the Manual Lockout drafts, 619 checks`
 
 ### B11. scripts/rows/ml_rows.py, new
 
 File `scripts/rows/ml_rows.py`, new, this text:
 
 ```
-# Static rows ML-S2 to ML-S17 of the Manual Lockout build, plan
+# Static rows ML-S2 to ML-S18 of the Manual Lockout build, plan
 # docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md section 8, measured on the committed
 # tree at HEAD against cce862a, the commit the plan was cut from. ML-S1 is the
 # compiles of compile.py. ML-S12 runs static_rows.py; ML-S13 runs
@@ -3380,10 +3454,9 @@ named = sorted(set(where[n] for n, l in enumerate(ea.split("\n"), 1)
 check("ML-S17 the quiet flag named only in its declaration, OnDeinit and AgTgProduce",
       named == ["-", "AgTgProduce", "OnDeinit"], str(named))
 body = func(ea, "void AgTgProduce(")
-check("ML-S17 the S1, the S16 and the S3 of the first start wait on the quiet flag",
+check("ML-S17 the S1 and the S16 of the first start wait on the quiet flag",
       body is not None and "g_ag_tgp_s1_pending      = !g_ag_tgp_quiet_start;" in body
-      and "if(!ml_only && !g_ag_tgp_quiet_start)" in body
-      and re.search(r"if\(!g_ag_tgp_quiet_start\)\s*\n\s*AgTgPush\(AG_TG_S3,", body) is not None)
+      and "if(!ml_only && !g_ag_tgp_quiet_start)" in body)
 svc = now(SVC)
 check("ML-S17 the service acknowledges a reason 3 stop and its start without a message",
       all(f is not None and "AgTgSilentReason(" in f
@@ -3392,13 +3465,41 @@ check("ML-S17 AgTgSilentReason defined once, true for reason 3 alone",
       now(INC + "AlertQueue.mqh").count(
           "bool AgTgSilentReason(const int reason) { return reason == REASON_CHARTCHANGE; }") == 1)
 
+# ---- ML-S18: ML-37, S3 after a reason 3 change unless the same SAFE_HALT was announced
+body = func(ea, "void AgTgProduce(")
+check("ML-S18 the S3 push waits on AgTgS3Silenced with the quiet flag, the record and the halt time",
+      body is not None
+      and re.search(r"if\(!AgTgS3Silenced\(g_ag_tgp_quiet_start, g_ag_tgp_s3_announced, g_ag_halt_time\)\)\s*\n"
+                    r"\s*AgTgPush\(AG_TG_S3,", body) is not None)
+h = hits(r"\bAgTgPush\s*\(\s*AG_TG_S3\b", [EA])
+check("ML-S18 one S3 push in the EA", len(h) == 1, str(h))
+wq = func(ea, "void AgTgQueueWrite(")
+check("ML-S18 the successful queue write sets the record from the S3 it carried",
+      wq is not None
+      and re.search(r"if\(AgAtomicWrite\(AgTgQueuePath\(g_ag_login\), text, true\)\)\s*\n\s*\{[^}]*"
+                    r"g_ag_tgp_s3_announced = AgTgS3HaltTimeIn\(g_ag_tgq_events, g_ag_tgq_count, "
+                    r"g_ag_tgp_s3_announced\);[^}]*\}", wq) is not None)
+named = sorted(set(where[n] for n, l in enumerate(ea.split("\n"), 1)
+                   if re.search(r"\bg_ag_tgp_s3_announced\b", code_only(l))))
+assigned = sorted(set(where[n] for n, l in enumerate(ea.split("\n"), 1)
+                      if re.search(r"\bg_ag_tgp_s3_announced\s*=(?!=)", code_only(l))))
+check("ML-S18 the record named only in its declaration, AgTgQueueWrite and AgTgProduce, assigned in AgTgQueueWrite alone",
+      named == ["-", "AgTgProduce", "AgTgQueueWrite"] and assigned == ["-", "AgTgQueueWrite"],
+      "named %s, assigned %s" % (named, assigned))
+defs = [f for f in files for l in now(f).split("\n")
+        if l.startswith("bool AgTgS3Silenced(") or l.startswith("datetime AgTgS3HaltTimeIn(")]
+check("ML-S18 AgTgS3Silenced and AgTgS3HaltTimeIn defined once each, in AlertQueue.mqh",
+      defs == [INC + "AlertQueue.mqh"] * 2
+      and "   return quiet_start && announced != 0 && announced == halt_time;" in now(INC + "AlertQueue.mqh"),
+      str(defs))
+
 out.append("")
 out.append("ML static rows " + ("HOLD" if not bad else "DO NOT HOLD: " + ", ".join(bad)))
 sys.stdout.buffer.write(("\n".join(out) + "\n").encode("utf-8"))
 sys.exit(1 if bad else 0)
 ```
 - Check: `python -I -c "import ast; ast.parse(open('scripts/rows/ml_rows.py', encoding='utf-8').read())"` prints nothing and writes no file; the script itself runs at B17.
-- Commit: `scripts: rows/ml_rows.py, the static rows ML-S2 to ML-S17 of the Manual Lockout build`
+- Commit: `scripts: rows/ml_rows.py, the static rows ML-S2 to ML-S18 of the Manual Lockout build`
 
 ### B12. The installer manifest (ML-23 (A), ML-27 (A))
 
@@ -3512,7 +3613,7 @@ Get-FileHash -Algorithm MD5 -LiteralPath 'C:\Users\www83\AppData\Roaming\MetaQuo
 
 Run `python -I scripts/rows/ml_rows.py` from the repository root.
 - Check: it prints `ML static rows HOLD` and exits 0; ML-S1 is B15's four compile results. Any FAIL stops the build under rule 4.
-- LEDGER: one ACTIONS entry of at most 1,500 characters for the build, with its commits and the ML-S results; the ISSUES entry of this plan replaced by one naming the next acts in this order: the owner stops the service and runs `scripts/deploy-ml.ps1` (ML-D); the executor verifies each landed file with a plain `Get-FileHash`, read only; the owner starts the service, attaches or lets the EA reload, and pastes the init lines; the owner runs the vectors (ML-0, `AGVEC|SUMMARY|616/616`); then the live rows of stage 1 in section 8's run order, then stage 2 on the live account's computer, and only then the release of ML-27 (A). Commit `ledger: the Manual Lockout build recorded, the owner's deploy and acceptance rows named in ISSUES`.
+- LEDGER: one ACTIONS entry of at most 1,500 characters for the build, with its commits and the ML-S results; the ISSUES entry of this plan replaced by one naming the next acts in this order: the owner stops the service and runs `scripts/deploy-ml.ps1` (ML-D); the executor verifies each landed file with a plain `Get-FileHash`, read only; the owner starts the service, attaches or lets the EA reload, and pastes the init lines; the owner runs the vectors (ML-0, `AGVEC|SUMMARY|619/619`); then the live rows of stage 1 in section 8's run order, then stage 2 on the live account's computer, and only then the release of ML-27 (A). Commit `ledger: the Manual Lockout build recorded, the owner's deploy and acceptance rows named in ISSUES`.
 - STOP. No deploy, no live row, no push, no merge: those are the owner's.
 
 ## 12. What this plan does not do
@@ -3543,6 +3644,8 @@ ML-35. An in place stop before such a start, reasons 2, 3, 5, 6 and 7 (`SVC:460-
 - (A) As written: S2 alone after the 60 s hold, its restart reason read as a stop, the events behind it delayed those 60 s. The message says the guardian stopped while it runs and holds the lockout.
 - (B) The merge takes the start message ML-34 chooses, as "S2+S1" and "S2+S16" merge today. Open only with ML-34 (B); under ML-34 (C) the start comes after the hold, so the stop still goes alone.
 - (C) S2 sent alone after the hold with a lock line from the queue's snapshot, the effective end of B5.9 when the snapshot reads LOCKED. A new line in S2's draft in addendum item 13 and a render change in the service; the line is only as fresh as the snapshot the EA wrote before the hold ended.
-- Ruled, ML-35: "(1) A chart timeframe or symbol change, deinit reason 3, sends no Telegram message in any state: no stop, no start, no merged restart message. This supersedes, for reason 3 only, the earlier Telegram ruling that sends the in place restart message. (2) For the other in place reasons during a lockout alone, S2 goes out alone after the hold, option (A)." The earlier ruling is TG-13 (B) (`LEDGER.md:536`), read under TG-1 (B) at `ADD:288` as the in place stop held up to 60 s and merged into one "restarted" message; it stands for every other reason. Part (2) is the code as written. Part (1) is designed in section 4.8 and carried by B1, B5.3, B5.11, B5.17, B7, B9, B11 and B13, with the static row ML-S17 and the live rows ML-L17 to ML-L19. No draft changes: no text is added, and the reason words and drafts left unused stay in place, no check requiring their removal.
+- Ruled, ML-35: "(1) A chart timeframe or symbol change, deinit reason 3, sends no Telegram message in any state: no stop, no start, no merged restart message. This supersedes, for reason 3 only, the earlier Telegram ruling that sends the in place restart message. (2) For the other in place reasons during a lockout alone, S2 goes out alone after the hold, option (A)." The earlier ruling is TG-13 (B) (`LEDGER.md:536`), read under TG-1 (B) at `ADD:288` as the in place stop held up to 60 s and merged into one "restarted" message; it stands for every other reason. Part (2) is the code as written. Part (1) is designed in section 4.8 and carried by B1, B5.3, B5.11, B5.17, B7, B9, B11 and B13, with the static row ML-S17 and the live rows ML-L17 to ML-L19. No draft changes: no text is added, and the reason words and drafts left unused stay in place, no check requiring their removal. Its reach over S3 is ruled by ML-37 below.
 
 ML-36, on the reach of ML-29 (point 2), as given: "ML-29 is a narrow exception for the one compile log line. RULE A and its wording stay as they are." Rule 3 of section 11.1 follows it.
+
+ML-37, on the S3 silence the plan had chosen under ML-35 (1), ruled by the owner on 2026-10-22, FINAL at `dd46b03` (`LEDGER.md:645-646` as at that commit), as given: "After a chart timeframe or symbol change, S3 is silenced only when the same SAFE_HALT was already announced before the change. A SAFE_HALT that is new at the init after the change always sends S3." With it, as given: "It replaces the plan's reading that silenced every S3 after reason 3." That reading stood in section 4.8 and in B5.11 (a), which pushed no S3 at the first SAFE_HALT tick after any reason 3 change. Section 4.8 now designs the ruling: a SAFE_HALT is known by its halt time, and it counts as announced once a queue write that carried its S3 has succeeded, recorded in a global the in place re-init keeps. B1, B5.3, B5.9, B5.11, B5.17, B9 and B11 carry it, with the static row ML-S18 and three vectors of B9; a SAFE_HALT new at the init after a reason 3 change is not produced on demand, so no live row is added. No further decision was needed: the EA announces only by writing the queue (TG-1 (B)), and the written queue is delivered across the in place re-init (TG-5 (B)).
