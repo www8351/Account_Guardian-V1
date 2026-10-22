@@ -2,13 +2,13 @@
 
 Date of the request: 2026-10-22. Written: 2026-10-22. Plan only. This document authorizes no code, no build, no deploy and no change under any MetaTrader terminal data folder. The build follows section 11 and starts only on the owner's instruction.
 
-Branch `feature/manual-lockout`, cut from main at `cce862a` ("evidence: ledger-compaction.md quotes the owner's authorization of 2026-10-22 ..."), worktree `.claude/worktrees/feature-manual-lockout`. LEDGER.md was read in full before any other step, 600 lines, md5 `02A03154AE3F04BBE16CCF7B3BBA7567`, equal in the main checkout and in this branch's worktree. The owner rulings ML-1 to ML-27 of 2026-10-22 stand FINAL in DECISIONS at `7d2bf10`, `LEDGER.md:581-608` as at that commit, and are cited by name.
+Branch `feature/manual-lockout`, cut from main at `cce862a` ("evidence: ledger-compaction.md quotes the owner's authorization of 2026-10-22 ..."), worktree `.claude/worktrees/feature-manual-lockout`. LEDGER.md was read in full before any other step, 600 lines, md5 `02A03154AE3F04BBE16CCF7B3BBA7567`, equal in the main checkout and in this branch's worktree. The owner rulings ML-1 to ML-27 of 2026-10-22 stand FINAL in DECISIONS at `7d2bf10`, `LEDGER.md:581-608` as at that commit, and are cited by name. The owner rulings ML-28 to ML-33 of the same date, on the six points section 12 raised, stand FINAL at `bcb71cc`, `LEDGER.md:616-632` as at that commit, and ML-34 to ML-36, on the two gaps ML-30 left and on the reach of ML-29, at `e1a931a`, `LEDGER.md:634-641` as at that commit.
 
 Citations. `LEDGER.md:<n>` is a line as at `cce862a` unless a commit is named. `EA:<n>` is `MQL5/Experts/AccountGuardian/AccountGuardian.mq5`; `State.mqh:<n>`, `Clock.mqh:<n>`, `Log.mqh:<n>`, `Persist.mqh:<n>`, `Pnl.mqh:<n>`, `Sweep.mqh:<n>`, `SweepPolicy.mqh:<n>`, `AlertQueue.mqh:<n>` and `AlertText.mqh:<n>` are the includes under `MQL5/Include/AccountGuardian/`; `SVC:<n>` is `MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5`; `VEC:<n>` is `MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5`; `SPEC:<n>` is `docs/SPEC_v0.1.md`; `TGPLAN:<n>` is `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md`; `ADD:<n>` is `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md`; `ROWS:<n>` is `scripts/rows/static_rows.py`; `GEN:<n>` is `scripts/rows/gen_vectors.py`. Every file under `MQL5/`, `scripts/` and `docs/` is as at `cce862a`.
 
 This session changed no source, include, script, vector, preset or installer file, compiled nothing, and read or wrote nothing under any terminal data folder. No merge, no push, no branch or worktree deleted.
 
-Section 11 was checked without a build. Its steps B1 to B10 and B12 were applied, from this document's own code blocks, to scratch copies outside the repository, and the anchors of B13 and B14 were looked up: every old text and anchor occurs exactly once. The repository's `gen_vectors.py` and `tg_s7.py`, run on the scratch copy, give `TG-S7 HOLDS`, all 12 Manual Lockout templates equal to their drafts character for character and 96 new vector checks. The source checks of ML-S4, ML-S5, ML-S8 to ML-S11 and ML-S14 to ML-S16 hold on the scratch EA and the two new includes. Nothing was compiled, so ML-S1 stays open until the build.
+Section 11 was checked without a build. Its steps B1 to B10 and B12 were applied, from this document's own code blocks, to scratch copies outside the repository, and the anchors of B13 and B14 were looked up: every old text and anchor occurs exactly once. The repository's `gen_vectors.py` and `tg_s7.py`, run on the scratch copy, give `TG-S7 HOLDS`, all 9 Manual Lockout templates equal to their drafts character for character and 94 new vector checks, as rerun after the plan was amended to ML-28 to ML-36. The source checks of ML-S4, ML-S5, ML-S8 to ML-S11 and ML-S14 to ML-S16 hold on the scratch EA and the two new includes. Nothing was compiled, so ML-S1 stays open until the build.
 
 ## 1. The request and the rulings
 
@@ -27,6 +27,8 @@ The owner's instruction of 2026-10-22: "new AccountGuardian feature, Manual Lock
 - ML-7 (`:601`): "When a loss lock and a Manual Lockout are active together, the later end time governs."
 - ML-8 (`:604`): "The stricter governs. If the guardian closes a position during a Manual Lockout and that close locks the account to the next daily anchor, that lock applies."
 - ML-9 to ML-27 (`:607`): option (A) of the ruling sheet, each item shown in section 9 with the owner's choice.
+- ML-28 to ML-33, FINAL at `bcb71cc`: the owner's answers to the six points of section 12, each shown there as given.
+- ML-34 to ML-36, FINAL at `e1a931a`: the two gaps ML-30 left and the reach of ML-29, shown in section 12 as given. ML-35 (1) supersedes TG-13 (B) (`LEDGER.md:536`) for deinit reason 3 only.
 
 The daily anchor is 01:00:00 server time, every day including Saturday and Sunday: `AG_DAY_ANCHOR_OFFSET_SECONDS 3600` (`Clock.mqh:26`), `AgNextDayAnchor` (`Clock.mqh:45`), Q1 of 2026-08-08 (`LEDGER.md:287`), the weekend clause of 2026-09-01 (`LEDGER.md:187`). "The start of the next server day" in ML-4 is that anchor, as its own parenthetical says, and never server midnight, which the base ruling of 2026-08-05 replaced (`LEDGER.md:284`). Every bound below comes from `AgNextDayAnchor` alone, one clock (element SIX, `LEDGER.md:373`), so the scheduled revisit of Q1 after the 2026-10-25 to 2026-11-01 harvest (`LEDGER.md:9-11`, `:287-288`) carries through with no change here.
 
@@ -72,6 +74,7 @@ Every FINAL and REVISIT entry of DECISIONS was read and checked against ML-1 to 
 | Q4, a deal on the anchor second | `:290` | counts to the new day (section 3.2, F1) |
 | Reseed on reload | `:222` | an input change during a lockout reinitializes the EA; the lockout returns from its record |
 | TG-1 (B), TG-4 (B), TG-5 (B), TG-10 (A), F1 to F11, R3, R4 | `:503`, `:518`, `:521`, `:533`, `:566`, `:575`, `:578` | the new messages follow F1 to F11 and R3, R4; the queue format and the snapshot line stay as they are |
+| TG-13 (B), superseded for deinit reason 3 alone by ML-35 (1) | `:536` | S2 for every other reason as before, an in place re-init held and merged; for reason 3 no stop, no start and no merged message |
 | S12 in every state | `:542`, `:545`, `:563` | the lockout reads no `g_ag_tp_*` global |
 | RULE A and RULE B, the deploy hand rulings | `:159`, `:156`, `:171`, `:174` | the owner performs every copy and every drill act under the terminal folder |
 | Evidence rules, R1 | `:75`, `:96`, `:102`, `:111`, `:114` | every live row closes on an artifact file and line, or in the deployment phase on the owner's attestation; standing rules 6 and 7 for compiles and identity |
@@ -112,7 +115,7 @@ Every FINAL and REVISIT entry of DECISIONS was read and checked against ML-1 to 
 
 F1, the SWEEP witness, ruled by ML-8. Every guardian close carries `AG_SWEEP_MAGIC` (`SweepPolicy.mqh:58`, ENF-19(a)). A lockout's release goes through SYNCING (shape A), and the SYNCING exit runs `AgBootDerivation`, whose SWEEP witness fires on any such deal since today's anchor (`Pnl.mqh:208-214`, `EA:508-521`) and locks until the next anchor after it (`Pnl.mqh:297-300`). So a lockout during which the guardian closed a position, the flatten at the engagement included, is followed at its end, and at any restart or in place reinit that day, by a SWEEP_WITNESS lock to the next daily anchor. ML-8 rules that this lock applies. With ML-4 the lockout itself never passes the anchor, so the account is held to that anchor at most, with one edge: a close stamped on the anchor second counts to the new day (Q4, `LEDGER.md:290`; vector `VEC:1242-1243`), and its SWEEP lock then runs to the following anchor, which ML-8 also lets apply. A lockout that ends exactly at the anchor is therefore not promised to be the last lock of the night. Pending deletions make no deals.
 
-F2, the producer. S4 fires on any ACTIVE to LOCKED edge (`EA:1583-1596`) and would announce a lockout as a breach; S16's source word would read server deal history for a lockout (`AlertText.mqh:344-357`); S8's release text says a new trading day (`AlertText.mqh:540-545`); the status message reads the snapshot's `locked_until` (`EA:1229`, `SVC:796`), which a lockout alone leaves at 0, shown as 01/01/1970 00:00; S17 knows five file kinds (`EA:1376-1383`, `AlertText.mqh:360-371`); S14 counts S4 and S16 only (`SVC:478-483`); and an in place stop waits for an S1 or S16 to merge with (`SVC:531-555`), which a restart into a lockout alone would never send, so the stop message would go out alone and say the guardian stopped. ML-17 (A) settles each (section 4.8).
+F2, the producer. S4 fires on any ACTIVE to LOCKED edge (`EA:1583-1596`) and would announce a lockout as a breach; S16's source word would read server deal history for a lockout (`AlertText.mqh:344-357`); S8's release text says a new trading day (`AlertText.mqh:540-545`); the status message reads the snapshot's `locked_until` (`EA:1229`, `SVC:796`), which a lockout alone leaves at 0, shown as 01/01/1970 00:00; S17 knows five file kinds (`EA:1376-1383`, `AlertText.mqh:360-371`); S14 counts S4 and S16 only (`SVC:478-483`); and an in place stop waits for an S1 or S16 to merge with (`SVC:531-555`), which a restart into a lockout alone would never send, so the stop message would go out alone and say the guardian stopped. ML-17 (A), with ML-30 to ML-32, settles each but the last and the start before it: under ML-30 a start into a lockout alone sends no start message, so an in place stop finds nothing to merge with. ML-34 and ML-35 rule those two (section 4.8).
 
 F3, the store. The lockout's end lives outside `g_ag_locked_until`, the state file and `AG_LOCK_<login>`: ruling FOUR's floor (`Clock.mqh:139-143`) would lift a 15 minute lockout to the next anchor once the latch is seeded, which any ACTIVE pass does and an in place reinit keeps; and `AgEnterLockFromBoot` writes DAILY_BREACH into the state file (`EA:659-684`, `Persist.mqh:425`), which the next boot would read as a breach that never happened. Under ML-4 the clamp of 2026-07-30 would not cut a lockout read back on its own day, its ceiling being the same anchor; the floor still would, so the separate store stands (ML-9, ML-18).
 
@@ -131,7 +134,7 @@ F6, the static row TG-S15 (`ROWS:85-110`) reads CHANGED for `AgEvaluateLocked` o
 
 ## 4. Design
 
-Every behavior here is fixed by a ruling or a FINAL entry cited in place, except four readings section 12 lists for the owner (points 3 to 6), each marked UNRULED 2026-10-22 where it stands. The names, constants and formats the executor chose are fixed in section 11.
+Every behavior here is fixed by a ruling or a FINAL entry cited in place. The four readings section 12 raised as points 3 to 6 are ruled by ML-30 to ML-33, and the two gaps ML-30 left by ML-34 and ML-35. The names, constants and formats the executor chose are fixed in section 11.
 
 ### 4.1 Two lock components, one LOCKED state
 
@@ -221,7 +224,7 @@ manual lockout record rewritten|why=<missing|differs>
 the LOCKED LIFE field |manual_end=<t>
 ```
 
-`<f>` is `duration`, `end_of_session` or `end_time`, or `none` when a click names no end, as a click on the greyed Extend does, its `requested_end` then reading 1970.01.01 00:00:00 (UNRULED 2026-10-22, section 12, point 6). `<why>` is `past the next daily anchor`, `too soon`, `not later than the current lock`, `not available in this state`, `entry not understood` or `record not loaded`. `<state>` is the guardian's state name, or `-` for a refusal at the panel. Times are `YYYY.MM.DD HH:MM:SS` server time.
+`<f>` is `duration`, `end_of_session` or `end_time`. A click on the greyed Extend writes no journal line; the panel note alone states its refusal (ML-33). `<why>` is `past the next daily anchor`, `too soon`, `not later than the current lock`, `not available in this state`, `entry not understood` or `record not loaded`. `<state>` is the guardian's state name, or `-` for a refusal at the panel. Times are `YYYY.MM.DD HH:MM:SS` server time.
 
 The ALERTs:
 - engage: `MANUAL_LOCKOUT: account LOCKED until <t>. Flattening <n> positions and deleting <m> pending orders.`
@@ -232,13 +235,14 @@ The error paths reuse the existing shapes: a failed record write raises the stat
 
 ### 4.8 Telegram (ML-17 (A))
 
-- S5, "Locked on demand", the catalog's own row (`TGPLAN:187`): kind 1 at the engagement, with the engaging pass's limit and result; kind 2 when a lockout alone is restored at a start, which is also the start event an in place stop waits for, merged as "S2+S5" the way "S2+S16" merges (`SVC:531-555`); kind 3 at an extension. ML-17 (A)'s "S5 at engage" is read as covering these three starts of a lockout (UNRULED 2026-10-22, section 12, point 3).
+- S5, "Locked on demand", the catalog's own row (`TGPLAN:187`): at the engagement only, with the engaging pass's limit and result (ML-30). No S5 at a restore at start and none at an extension. So a start into a lockout alone sends no start message, and the lockout shows in the next periodic status, the command reply, or S25 at its end (ML-34 (A)). An in place stop before such a start, which waits for an S1 or S16 to merge with (`SVC:531-555`), goes out alone when its 60 s hold ends (ML-35 (2), option (A)), for every in place reason but 3.
+- ML-35 (1), a chart timeframe or symbol change, deinit reason 3, sends no Telegram message in any state: no stop, no start, no merged restart message. One pure helper, `AgTgSilentReason` in `AlertQueue.mqh`, true for reason 3 alone, is shared by the EA, the service and the vectors. OnDeinit queues no S2 for that reason and still writes the queue, so nothing pending is lost. It sets `g_ag_tgp_quiet_start` from the same helper for every reason, so any other reason clears it. An in place re-init keeps the program's globals (measured on reasons 3 and 5, `LEDGER.md:13-15`) and a fresh image starts the flag false. `AgTgInitReset` leaves it alone, and the producer reads it once, at the first SYNCING exit or the first SAFE_HALT tick of that init: no S1, no S16 and no S3 then, none for a lockout alone already (ML-34), and the flag cleared. Events that report a condition the init finds are not the change's own and send as at any init: S15, S17, S18, S21, S22, S24, S12, a breach, a lock, a release. The service, for a queue an earlier build wrote, acknowledges an S2 of reason 3 without a message, and with it, inside its hold, the S1 or S16 it would have merged with. S14 counts no lock for that start, there being no S16. A reason 3 change that falls inside the SYNCING window of an attach or a terminal start, before that start's S1 or S16 went out, leaves that start untold as well. TG-13 (B) stands for every other reason, its hold and merge unchanged for reasons 2, 5, 6 and 7.
 - S25, the lockout's own end: kind 1 released, at the first completed ACTIVE pass after the release, as S8 released is; kind 2 locked again, at the SYNCING exit that relocks, with the new lock's end and reason, or at once when the lockout ends under a loss lock.
-- S4, S8 and S16 never describe a lockout: the producer pushes S5 in place of S4 and S16 when the lock is a lockout alone, and S25 in place of S8 for a lockout's end. S16 still describes a loss lock found at a boot where a lockout also holds.
-- S17 gains kind 6, the lockout's record. S14 counts S5 kinds 1 and 2 as locks, as it counts S4 and S16; S25 is not counted, as S8 locked again is not.
-- The result line uses a breach snapshot only while a loss lock holds. While a lockout alone holds, the result line of the status, S6, S7, S12 and S17 reads "not computed yet" (R3); S5 kind 1 carries the last ACTIVE pass's figures.
-- When the lockout and a loss lock end on the same tick, S8 describes the release, the loss lock having governed, and no S25 is sent (UNRULED 2026-10-22, section 12, point 5).
-- The drafts are in section 11, B4, under F1 to F11 and R3, R4. R4 leaves the open trades line out of the lock messages that carry the sweep line; S5 at the engagement and at a restore carry it and so leave the open trades line out, as S4 and S16 do, while S5 at an extension and S25 carry no sweep line and keep it (UNRULED 2026-10-22, section 12, point 4). Neither S5 nor S25 carries the build line (F9); no Latin text but PNL and the currency sign (F11).
+- S4, S8 and S16 never describe a lockout: the producer pushes S5 in place of S4 when the lock is a lockout alone, nothing in place of S16 (ML-30), and S25 in place of S8 for a lockout's end. S16 still describes a loss lock found at a boot where a lockout also holds.
+- S17 gains kind 6, the lockout's record. S14 counts S5 as a lock, as it counts S4 and S16; S25 is not counted, as S8 locked again is not.
+- The result line uses a breach snapshot only while a loss lock holds. While a lockout alone holds, the result line of the status, S6, S7, S12 and S17 reads "not computed yet" (R3); S5 carries the last ACTIVE pass's figures.
+- When the lockout and a loss lock end on the same tick, S8 alone is sent (ML-32): it describes the release, the loss lock having governed, and no S25 follows.
+- The drafts are in section 11, B4, under F1 to F11 and R3, R4. S5 carries the sweep line and leaves the open trades line out, as S4 and S16 do (ML-31); S25 carries no sweep line and keeps it (R4). Neither S5 nor S25 carries the build line (F9); no Latin text but PNL and the currency sign (F11).
 
 ### 4.9 Code layout and build mechanics (ML-22 to ML-27)
 
@@ -275,7 +279,7 @@ In the upper right corner, clear of the Comment banner in the upper left. Its st
 - REVIEW (ML-15): the account number, `Lock until <YYYY.MM.DD HH:MM:SS> server`, `Length <h:mm:ss> from now`, the positions to close and the pending orders to delete, `This lockout cannot be cancelled or shortened.`, the ML-8 line when the end comes before the anchor, then Lock Account and Back. It cancels itself after 60 timer ticks (`AG_MANUAL_REVIEW_TICKS`), counted in OnTimer: TimeCurrent would never count it out in a frozen feed, and no other clock is needed.
 - WAIT: one tick, until OnTimer applies the request.
 - LOCKED: `Manual Lockout until <t> server` or `Locked until <t> server (<reason>)`, `<h:mm:ss> left`, and Extend while a lockout alone holds, the trader is eligible, and its end is before the next anchor.
-- UNAVAILABLE: `Manual Lockout unavailable: <why>` in BOOT, SYNCING, SAFE_HALT, during RESYNC, while disconnected, or with the record not loaded (ML-12 (A)), all outside LOCKED. While LOCKED the panel keeps the lock's lines and greys Extend, a click on it refused with the reason.
+- UNAVAILABLE: `Manual Lockout unavailable: <why>` in BOOT, SYNCING, SAFE_HALT, during RESYNC, while disconnected, or with the record not loaded (ML-12 (A)), all outside LOCKED. While LOCKED the panel keeps the lock's lines and greys Extend, a click on it refused with the reason in the panel note and no journal line (ML-33).
 
 Stage changes run in OnChartEvent: they are the panel's own presentation and decide nothing for the guardian, while the engagement itself runs in OnTimer. The two fields are read only when their buttons are clicked, in OnChartEvent, never in OnTimer, so OnTimer makes no synchronous chart read and never writes into a field the trader is typing in. No mouse move events are enabled. The two parsers read character codes only, so no entry can index an array or divide: a critical runtime error would stop the program, and with it the timer, the sweep and the mutex heartbeat.
 
@@ -289,7 +293,7 @@ ML-4 keeps every lockout inside one server day, so no case below crosses the anc
 
 - Terminal restart, clean, by a hard kill, or by an OS shutdown. The record was written at the engagement and the mirror is flushed every tick, so the boot witness restores the lockout with its own end (`boot witness MANUAL fired`). Time while the terminal was down counts toward the end, an absolute server time. A trade opened from the mobile app meanwhile is swept at the first LOCKED pass, and ML-8 then holds the account to the anchor.
 - EA removed and attached again. OnDeinit releases the mutex and deletes the panel; the record and the mirror stay; the attach restores the lockout. While the EA is off nothing enforces, kill equivalent as SPEC 7 lists.
-- In place reinit (reasons 3 and 5). The model is loaded again in OnInit, so no in memory value survives into a decision; SYNCING may exit on its first poll (the OPEN issue); the restore follows. An input change during a lockout takes effect after it: the reseed on reload ruling recaptures the inputs, and nothing about the lockout reads them.
+- In place reinit (reasons 3 and 5). The model is loaded again in OnInit, so no in memory value survives into a decision; SYNCING may exit on its first poll (the OPEN issue); the restore follows. An input change during a lockout takes effect after it: the reseed on reload ruling recaptures the inputs, and nothing about the lockout reads them. On Telegram a reason 3 change sends nothing (ML-35 (1)); a reason 5 change during a lockout alone sends S2 alone after the 60 s hold (ML-35 (2)) and no start message (ML-34).
 - Account switch (reason 6). The record is per login: the other account sees no lockout, and switching back restores it if its end has not passed.
 - Reconnect. While disconnected the LOCKED LIFE line carries DEGRADED, the sweep sends nothing, the panel greys Extend and refuses it as not available in this state, and the release waits on TimeCurrent, frozen meanwhile. On reconnect the sweep resumes with `sweep resumed|gap=...` (ENF-20(a)); a request in flight across a disconnect is refused at the apply.
 - The server day rollover. A lockout ends at or before 01:00 server. The End of session preset ends exactly there and is released by its own end; the rollover line, the ratchet reseed and the peak reset come at the first ACTIVE pass after it. ML-8's anchor second edge (F1) can relock one more server day.
@@ -339,28 +343,32 @@ Static rows, at the build, by the executor:
 - ML-S14. The EA and both new includes ASCII after any byte order mark (ML-22).
 - ML-S15. The manifest lists both new includes; `scripts/secrecy-patterns.txt` finds nothing in any shipped file (IN-22 (b)).
 - ML-S16. `AgManualApplyPending` holds a request while `g_ag_breach_deferred_once` is set in ACTIVE (Q9). A breach and a click on the same tick are not producible on demand, so this row reads the source.
+- ML-S17. ML-35 (1), the reason 3 silence: in OnDeinit the S2 push stands under `if(!AgTgSilentReason(reason))` and `g_ag_tgp_quiet_start` is set from the same helper; the flag is named only in its declaration, OnDeinit and `AgTgProduce`, never in `AgTgInitReset`; in `AgTgProduce` it guards the S1, the S16 and the S3 of the first start; in the service `AgSvcConvertOne` and `AgSvcMerge` call `AgTgSilentReason`. That the helper is true for reason 3 alone is the vector `ml_tg_silent_reason_is_reason_3_alone` of B9.
 
 Vectors and deploy, by the owner at dictation:
-- ML-0. `AgPhase2StateVectors` on the demo terminal: `AGVEC|SUMMARY|618/618`, the 522 of `LEDGER.md:6`, the 83 checks of B9 and the 13 of B10.
+- ML-0. `AgPhase2StateVectors` on the demo terminal: `AGVEC|SUMMARY|616/616`, the 522 of `LEDGER.md:6`, the 84 checks of B9 and the 10 of B10.
 - ML-D. `scripts/deploy-ml.ps1`, run by the owner: the service first, then the EA, then the vectors script, each landed md5 pasted. After the owner reports the run, the executor verifies each landed file with a plain `Get-FileHash`, read only (`LEDGER.md:171`, RULE B), against B15's record. Before any restart the attach gives `init|build=ML`, `limits accepted|...` and `manual lockout GV mirror at init|raw=1970.01.01 00:00:00|weighed by the boot witness at the SYNCING exit`, a missing record writing no line, and no ALERT between them (`LEDGER.md:174`).
 
-Live rows, stage 1, on the demo terminal (TG-10 (A)). The run order, by server day. A lockout during which the guardian closes a position leaves the account locked to the next anchor after its end (ML-8), and a lockout until End of session holds it there too. So each server day first runs the rows whose lockouts close nothing, engaged with nothing open: ML-L2, ML-L3, ML-L5, ML-L7, ML-L11, ML-L12, ML-L13, ML-L15 and ML-L16, each walked forward to the ACTIVE state it leaves (`LEDGER.md:91`). Then exactly one row that ends the day: ML-L4 with ML-L8, its refusals in the hour before 01:00 server and End of session accepted last; or ML-L1 with ML-L9; or ML-L6; or ML-L10. ML-L14 collects the Telegram messages of all of them. The open TG rows of R2 (`LEDGER.md:5-7`) share this terminal; whether they run before the ML deploy or may close on the ML binaries is point 1 of section 12, the ENF-31 precedent at `LEDGER.md:434`.
+Live rows, stage 1, on the demo terminal (TG-10 (A)). The run order, by server day. A lockout during which the guardian closes a position leaves the account locked to the next anchor after its end (ML-8), and a lockout until End of session holds it there too. So each server day first runs the rows whose lockouts close nothing, engaged with nothing open: ML-L2, ML-L3, ML-L5 with ML-L19, ML-L7, ML-L11, ML-L12, ML-L13, ML-L15, ML-L16 and ML-L17, each walked forward to the ACTIVE state it leaves (`LEDGER.md:91`). Then exactly one row that ends the day: ML-L4 with ML-L8, its refusals in the hour before 01:00 server and End of session accepted last; or ML-L1 with ML-L9; or ML-L6; or ML-L10 with ML-L18. ML-L14 collects the Telegram messages of all of them. The open TG rows of R2 (`LEDGER.md:5-7`) share this terminal and may close on the ML binaries (ML-28), as the ENF-31 precedent allowed (`LEDGER.md:434`). TG-SV-L2 (`ADD:411`) reads a reason 3 restarted message, which ML-35 (1) withdraws: on the ML binaries a chart period change sends nothing, so that row as written closes on the TG binaries only.
 - ML-L1. Engage a preset from ACTIVE with one open position and one pending order: `manual lockout engaged|form=duration|minutes=15|...|positions=1|pendings=1`, `TRANSITION|ACTIVE->LOCKED|MANUAL_LOCKOUT|manual_end=<t>`, the engage ALERT, then `sweep close|...`, `sweep delete|...` and `sweep complete|...`; a LOCKED LIFE line whose numbers group ends `|sweep=<o>/<h>|manual_end=<t>`, before its `|server=` and `|local=` fields. At its end: `manual lockout expired`, `lock expired|locked_until=<t>`, `LOCKED->SYNCING`, `boot witness SWEEP fired|...|bounded=<the next 01:00>` and `SYNCING->LOCKED|boot derivation: SWEEP_WITNESS|...`. This proves ML-8.
 - ML-L2. The confirmation step: Back from the review, and a review left 60 timer ticks: `manual lockout panel|review|...` and `manual lockout panel|review timed out|...`, no engaged line, the next LIFE line `state=ACTIVE`.
 - ML-L3. Engage by an end time HH:MM with nothing open: `form=end_time`, the end the first such instant after the click; at the end `manual lockout expired`, `LOCKED->SYNCING` and `SYNCING->ACTIVE|history stable|...`: released by its own end, nothing following.
 - ML-L4. THE NEXT ANCHOR BOUND: custom minutes ending past the next anchor; 1 hour clicked within the hour before 01:00 server; an HH:MM past 01:00 server; an HH:MM under 60 s ahead. Each gives `manual lockout refused|why=past the next daily anchor|at=panel|...` or `why=too soon`, and no engaged line. Then End of session is accepted with `end=<the next 01:00>`.
 - ML-L5. Irreversibility: during a lockout, every panel control tried; a chart timeframe change (reason 3), a parameter change (reason 5), the EA removed and attached again (reason 1). Each time: `manual lockout record loaded|active=1|end=<same>`, `boot witness MANUAL fired|source=file+gv|...|end=<same>` and `TRANSITION|...->LOCKED|boot derivation: MANUAL_LOCKOUT|manual_end=<same>`.
 - ML-L6. A clean terminal close and reopen, then a hard kill and relaunch, during one lockout, with a mobile trade opened only during the second downtime: after each start the lines of ML-L5, and after the relaunch `sweep close|...` at the first LOCKED pass. That close holds the account to the next anchor after the lockout's end (ML-8), so this row ends the server day.
-- ML-L7. Network off for at least 60 s during a lockout: LOCKED LIFE lines with `DEGRADED|`; the panel keeps the lockout's lines and greys Extend, a click on it giving `manual lockout refused|why=not available in this state|at=panel|...`; `sweep resumed|gap=...` on reconnect; the release at the lockout's own end.
+- ML-L7. Network off for at least 60 s during a lockout: LOCKED LIFE lines with `DEGRADED|`; the panel keeps the lockout's lines and greys Extend, a click on it giving the panel note `Refused: not available in this state` and no journal line (ML-33), a screenshot with the LIFE line of the same second; `sweep resumed|gap=...` on reconnect; the release at the lockout's own end.
 - ML-L8. ML-6: a lockout engaged with End of session: LOCKED LIFE lines up to 01:00 server with `manual_end=<01:00>`; at 01:00 `manual lockout expired|end=<01:00>|...`, `lock expired|locked_until=<01:00>|...`, `LOCKED->SYNCING` and `SYNCING->ACTIVE`, then `day rollover|...` on the first ACTIVE pass. The rollover released nothing; the lockout's own end did.
 - ML-L9. ML-7 at a boot: during the ML-L1 lockout, before its end, a terminal restart: `boot witness SWEEP fired|...|bounded=<01:00>`, `boot witness MANUAL fired|...|end=<t>`, `manual lockout holds with the boot lock|end=<t>|locked_until=<01:00>|governing=loss lock`, the banner reading SWEEP_WITNESS until 01:00; at the lockout's end `manual lockout ended, the loss lock holds|...`; the release at 01:00.
-- ML-L10. ML-10 during a loss lock: a demo position past the limit gives DAILY_BREACH until 01:00; every lockout attempt is refused, `why=not later than the current lock` or `why=past the next daily anchor`.
+- ML-L10. ML-10 during a loss lock: a demo position past the limit gives DAILY_BREACH until 01:00; Extend stays greyed, and a click on it gives the panel note `Refused: not later than the current lock` and no journal line (ML-33), a screenshot with the LIFE line of the same second, and no `manual lockout engaged` line follows.
 - ML-L11. Extension: during a lockout alone, Extend to a later end: `manual lockout extended|from=<t1>|to=<t2>|...`, its ALERT, `manual_end` moving on the LIFE line; an equal or earlier end refused with `why=not later than the current lock`.
 - ML-L12. Self heal: the mirror cleared in the F3 dialog during a lockout is back within one tick, read by the F3 protocol of standing rule (2) (`LEDGER.md:96`); the record moved aside by the owner is back within 30 ticks: `manual lockout record rewritten|why=missing`.
 - ML-L13. A corrupt record at load, ML-19 (A): with the EA stopped, the owner puts a corrupt copy in place at dictation. At the attach: the quarantine WARN and S17 kind 6; then, with the mirror holding the end, `boot witness MANUAL fired|source=gv|...`; with the mirror also cleared, no lockout.
-- ML-L14. Telegram, ML-17 (A): S5 kind 1 (ML-L1), S5 kind 2 after ML-L6, "S2+S5" after the reason 3 reinit of ML-L5, S5 kind 3 (ML-L11), S25 kind 1 (ML-L3), S25 kind 2 (ML-L1 and ML-L9). Each received text pasted with its `alerts sent|seq=<n>|class=<S>|http=200|...` line; no S4, S8 or S16 for any lockout.
+- ML-L14. Telegram, ML-17 (A), ML-30, ML-34 and ML-35: S5 (ML-L1), S25 kind 1 (ML-L3), S25 kind 2 (ML-L1 and ML-L9). Each received text pasted with its `alerts sent|seq=<n>|class=<S>|http=200|...` line; no S4, S8 or S16 for any lockout, and no S5 at the restores of ML-L5 and ML-L6 or at the extension of ML-L11. At those restores no start message (ML-34); the reason 5 change of ML-L5 sends S2 alone after the 60 s hold, `class=S2` (ML-35 (2)); its reason 1 removal sends S2 at once; its reason 3 change sends nothing (ML-L19).
 - ML-L15. ML-16: a screenshot of the panel and the banner during a lockout with the LIFE line of the same second: the reason, the effective end and the remaining time agree.
 - ML-L16. ML-12: the panel unavailable in SYNCING after an attach, during RESYNC after a reconnect, and while disconnected, each a screenshot with the LIFE line of the same second. SAFE_HALT is not produced on demand and rests on ML-S10 and the source.
+- ML-L17. ML-35 (1) in ACTIVE: a chart timeframe change with no lock: `deinit|reason=3|...`, `init|build=ML|...` and `SYNCING->ACTIVE|...`, then no `alerts sent|...` line in the service's journal from the deinit to 120 s after that exit, a window clear of a TG-15 slot, and nothing received in the chat over it. Then a parameter change (reason 5): one restarted message, `alerts sent|...|class=S2+S1|http=200|...`, so the channel ran across the window and the hold and merge stand for the other in place reasons.
+- ML-L18. ML-35 (1) in a loss lock: during the DAILY_BREACH of ML-L10, a chart timeframe change: `deinit|reason=3|...`, `init|build=ML|...` and `SYNCING->LOCKED|boot derivation: DAILY_BREACH|...`, then no `alerts sent|...` line over the same window and nothing received: no S2, no S16 and no merged message.
+- ML-L19. ML-35 (1) in a lockout: the chart timeframe change of ML-L5: its lines there, then no `alerts sent|...` line over the same window and nothing received: no S2 and no start message (ML-34).
 
 Live rows, stage 2, after stage 1 closes: the live account's computer, by the installer from an export of the build commit (`scripts/export-release.ps1`), for the rows that need no lock (TG-10 (A), `LEDGER.md:533`). No lockout is engaged there.
 - ML-I1. The installer's check 9 passes with 16 files, and both compiles finish with no errors.
@@ -421,7 +429,7 @@ Differences, each from a ruling or a FINAL entry that stands:
 
 ## 11. Build section, for a lighter executor
 
-UNRULED 2026-10-22 until the owner's build instruction adopts this section; the marker covers no ML item. It covers what the executor chose to carry out ML-1 to ML-27: the names, the constants, the record format, the journal and ALERT wording inside the shapes of section 4.7, the Hebrew drafts and the code below. Every behavior the code implements is ruled and cited in sections 4 to 7, except the four readings of section 12, points 3 to 6, which the code carries under this same marker: S5 at a restore and at an extension (B5.11 (b) and (d), B6, the S2+S5 merge of B7), the open trades line left out of S5 (B6, the helper of B10), S8 alone when both locks end on one tick (B5.11), and `form=none` on a refusal that names no end (B3).
+UNRULED 2026-10-22 until the owner's build instruction adopts this section; the marker covers no ML item. It covers what the executor chose to carry out ML-1 to ML-36: the names, the constants, the record format, the journal and ALERT wording inside the shapes of section 4.7, the Hebrew drafts and the code below. Every behavior the code implements is ruled and cited in sections 4 to 7. The four readings section 12 raised as points 3 to 6 are ruled by ML-30 to ML-33, and the code follows them: S5 at the engagement only (B5.11 (b) and (d), B6, B7), the open trades line left out of S5 (B6, the helper of B10), S8 alone when both locks end on one tick (B5.11), and no journal line for a click on the greyed Extend (B3). The two gaps ML-30 left are ruled by ML-34 (A) and ML-35 (2), which the code follows as written: no start message for a start into a lockout alone, and an in place stop before it sent alone after the hold. ML-35 (1), the reason 3 silence, is carried by B1, B5.3, B5.11, B5.17, B7, B9, B11 and B13.
 
 ### 11.1 How to read a step
 
@@ -430,7 +438,7 @@ Each step names the file, the place (a function, or an anchor line), the exact c
 Rules for the whole build:
 1. Work on branch `feature/manual-lockout`, at the commit that carries this plan's ledger entry, in the worktree the owner's build instruction names.
 2. Commit after each step with the message the step gives, written to a file and passed with `git commit -F`, with no trailer of any kind.
-3. Write, move or delete nothing under any terminal data folder (RULE A, `LEDGER.md:159`); a read there is a plain read only cmdlet under RULE B, and the build itself needs none. The owner runs `scripts/deploy-ml.ps1` and every live row. One side effect of the compiles is measured and is not the executor's own write: MetaEditor appends one `Compile` line per compile to `logs\metaeditor.log` of the data folder `D0E8209F77C8CF37AD8BF550E51FF075`, whatever `/log` names (`docs/evidence/tg-b5.md:76`). Every compile report states it. Whether the build compiles this way is point 2 of section 12: the first compile, at B5, waits until the owner's build instruction answers it.
+3. Write, move or delete nothing under any terminal data folder (RULE A, `LEDGER.md:159`); a read there is a plain read only cmdlet under RULE B, and the build itself needs none. The owner runs `scripts/deploy-ml.ps1` and every live row. Compiling through `scripts/rows/compile.py` is allowed (ML-29). The one `Compile` line MetaEditor appends per compile to `logs\metaeditor.log` of the data folder `D0E8209F77C8CF37AD8BF550E51FF075`, whatever `/log` names (`docs/evidence/tg-b5.md:76`), is an accepted side effect, stated in every compile report. No other write there. ML-29 is a narrow exception for that one compile log line; RULE A and its wording stay as they are (ML-36).
 4. Stop at the first compile error, failed check or old text not found: report the step and the exact output, and change nothing further. A typo that changes no behavior may be fixed and reported; anything else waits for the owner.
 5. Run the steps in order and skip none. B12 runs again after any later change to a shipped file.
 6. Comments follow the repository's style rules: no em dash, no hyphen used as a separator, and in a shipped file none of the patterns of `scripts/secrecy-patterns.txt`, the two words "owner ruling" side by side included. Comments cite "rulings ML-1 to ML-27" or an ML number. No comment names a trade API word of the TG-S2 pattern (`OrderSend`, `CTrade`, `PositionClose`, `OrderDelete`, `Trade.mqh`, `TRADE_ACTION_`), since that row reads comments too.
@@ -440,9 +448,9 @@ Rules for the whole build:
 - File: none. Change: none.
 - Check: `git rev-parse --abbrev-ref HEAD` prints `feature/manual-lockout`; `git status --porcelain` prints nothing; `git log --oneline cce862a..HEAD` lists this plan's three commits and nothing the owner did not order; `LEDGER.md` is read in full; the owner's build instruction is quoted verbatim in the session's first report.
 
-### B1. AlertQueue.mqh: the codes S5 and S25
+### B1. AlertQueue.mqh: the codes S5 and S25, and the reason 3 silence
 
-File `MQL5/Include/AccountGuardian/AlertQueue.mqh`; the code defines (`AlertQueue.mqh:31-51`) and `AgTgCodeKnown` (`:128-141`).
+File `MQL5/Include/AccountGuardian/AlertQueue.mqh`; the code defines (`AlertQueue.mqh:31-51`), `AgTgCodeKnown` (`:128-141`) and the comment line after it (`:143`).
 
 Replace
 ```
@@ -451,7 +459,7 @@ Replace
 with
 ```
 #define AG_TG_S4    4
-#define AG_TG_S5    5    // Manual Lockout engaged, restored or extended (ML-17 (A))
+#define AG_TG_S5    5    // Manual Lockout engaged, at the engagement only (ML-17 (A), ML-30)
 ```
 Replace
 ```
@@ -472,8 +480,22 @@ with
       case AG_TG_S6F: case AG_TG_S5:  case AG_TG_S25:
          return true;
 ```
-- Check: each new define occurs once; `AgTgCodeKnown` names both; the compiles of B5 and B7 pass.
-- Commit: `queue: event codes S5 and S25 of the Manual Lockout, known to the parser`
+Replace
+```
+//--- digits only, with an optional leading minus
+```
+with
+```
+//--- ML-35 (1): the deinit reasons that send no Telegram message of their
+//--- own, no stop, no start and no merged restart message: a chart timeframe
+//--- or symbol change, reason 3, alone. The EA, the service and the vectors
+//--- share this one definition.
+bool AgTgSilentReason(const int reason) { return reason == REASON_CHARTCHANGE; }
+
+//--- digits only, with an optional leading minus
+```
+- Check: each new define occurs once; `AgTgCodeKnown` names both; `AgTgSilentReason` is defined once; the compiles of B5 and B7 pass.
+- Commit: `queue: event codes S5 and S25 of the Manual Lockout, known to the parser, and AgTgSilentReason for ML-35 (1)`
 
 ### B2. ManualLockout.mqh, new
 
@@ -1424,7 +1446,7 @@ void AgPanelOnEvent(const int id, const long &lparam, const double &dparam, cons
          g_ag_panel_stage = AG_PANEL_CHOOSE;
         }
       else
-         AgPanelRefuse(g_ag_panel_extend_why, AG_ML_FORM_NONE, 0, now);
+         g_ag_panel_note = "Refused: " + g_ag_panel_extend_why;   // ML-33: the note only, no journal line
      }
    else if(stage == AG_PANEL_CHOOSE)
      {
@@ -1555,7 +1577,7 @@ and figures taken under a lock carry the locked wording, now on the limit line.
 ```
 with
 ```
-and figures taken under a lock carry the locked wording, now on the limit line. The Manual Lockout build of 2026-10-22 (ML-17 (A)) adds, under labels that begin `ML:`, S5 at its three starts, S25 at the lockout's own end, its wording list, and the S17 name of the lockout's record, in the format F1 to F11 with R3 and R4: S5 at the engagement and at a restore carry the sweep line and leave the open trades line out, as S4 and S16 do; S5 at an extension and S25 carry no sweep line and keep it; the result line of a lockout alone reads not computed yet, there being no day result under it.
+and figures taken under a lock carry the locked wording, now on the limit line. The Manual Lockout build of 2026-10-22 (ML-17 (A)) adds, under labels that begin `ML:`, S5 at the engagement (ML-30), S25 at the lockout's own end, its wording list, and the S17 name of the lockout's record, in the format F1 to F11 with R3 and R4: S5 carries the sweep line and leaves the open trades line out, as S4 and S16 do (ML-31); S25 carries no sweep line and keeps it; the result line of a lockout alone reads not computed yet, there being no day result under it.
 ```
 Insert after the line `🔐 מספר הנעילות ביום שהסתיים: 1` (`ADD:1410`, the last line of the block, just before its closing fence) one blank line and then this text:
 ```
@@ -1611,55 +1633,6 @@ Insert after the line `🔐 מספר הנעילות ביום שהסתיים: 1` 
 🛡️ מצב: נעול
 ⏳ נעול עד: 23/10/2026 01:00
 ⌛ משך: 10 שעות ו 29 דקות
-❗ אי אפשר לבטל או לקצר את הנעילה
-
-=== ML: S5 Manual Lockout restored at start ===
-🔒 הנעילה הידנית שוחזרה בהפעלת השומר
-
-👤 מס׳ חשבון: 1200252169
-🕒 זמן: 22/10/2026 14:41
-
-💰 גודל תיק: 2,530.10
-💵 הון: 2,530.10
-
-📉 סה״כ PNL: עדיין לא חושב
-
-🛡️ מצב: נעול
-⏳ נעול עד: 22/10/2026 15:00
-❗ אי אפשר לבטל או לקצר את הנעילה
-ℹ️ אם השומר יסגור עסקה בזמן הנעילה, החשבון יישאר נעול עד תחילת יום המסחר הבא
-
-=== ML: S5 Manual Lockout restarted in place ===
-🔒 הנעילה הידנית שוחזרה בהפעלת השומר
-
-👤 מס׳ חשבון: 1200252169
-🕒 זמן: 22/10/2026 14:41
-
-💰 גודל תיק: 2,530.10
-💵 הון: 2,530.10
-
-📉 סה״כ PNL: עדיין לא חושב
-
-🛡️ מצב: נעול
-🔄 סיבת ההפעלה מחדש: סמל הגרף או מסגרת הזמן שלו שונו
-⏳ נעול עד: 22/10/2026 15:00
-❗ אי אפשר לבטל או לקצר את הנעילה
-ℹ️ אם השומר יסגור עסקה בזמן הנעילה, החשבון יישאר נעול עד תחילת יום המסחר הבא
-
-=== ML: S5 Manual Lockout extended ===
-🔒 הנעילה הידנית הוארכה
-
-👤 מס׳ חשבון: 1200252169
-🕒 זמן: 22/10/2026 14:45
-
-💰 גודל תיק: 2,530.10
-💵 הון: 2,530.10
-📂 עסקאות פתוחות: אין
-
-📉 סה״כ PNL: עדיין לא חושב
-
-🛡️ מצב: נעול
-⏳ נעול עד: 22/10/2026 16:00
 ❗ אי אפשר לבטל או לקצר את הנעילה
 
 === ML: S25 Manual Lockout ended ===
@@ -1759,6 +1732,11 @@ datetime g_ag_tgp_prev_ml_end     = 0;
 bool     g_ag_tgp_prev_ml_only    = false;  // LOCKED by the lockout alone on the last tick
 bool     g_ag_tgp_s25_pending     = false;
 datetime g_ag_tgp_s25_end         = 0;
+//--- ML-35 (1): set by OnDeinit, true after a chart timeframe or symbol
+//--- change, reason 3. An in place re-init keeps it, a fresh image starts it
+//--- false, AgTgInitReset leaves it alone, and the producer clears it at the
+//--- first start of the init, which it silences.
+bool     g_ag_tgp_quiet_start     = false;
 ```
 Replace
 ```
@@ -2066,7 +2044,7 @@ with
    return 0;
 ```
 
-B5.11, `AgTgProduce` (`EA:1477-1679`, ML-17 (A)), five changes.
+B5.11, `AgTgProduce` (`EA:1477-1679`, ML-17 (A), ML-35 (1)), five changes.
 
 (a) Replace
 ```
@@ -2077,6 +2055,29 @@ with
                          && g_ag_history_fail_count == g_ag_tgp_dispatch_fails;
    //--- Manual Lockout (ML-17 (A)): LOCKED by the lockout alone, no loss lock reason
    bool ml_only = (st == AG_STATE_LOCKED && g_ag_lock_reason == AG_LOCK_NONE && g_ag_ml_active);
+```
+and replace (`EA:1491-1497`)
+```
+   //--- S3, SAFE_HALT: once per init, on its first tick
+   if(st == AG_STATE_SAFE_HALT && !g_ag_tgp_s3_sent)
+     {
+      g_ag_tgp_s3_sent = true;
+      AgTgPush(AG_TG_S3, g_ag_tg_halt_kind, (double)(long)g_ag_halt_time, g_ag_tg_halt_chain,
+               AG_CRASH_LOOP_WINDOW_SECONDS);
+     }
+```
+with
+```
+   //--- S3, SAFE_HALT: once per init, on its first tick, and none after a
+   //--- chart timeframe or symbol change (ML-35 (1))
+   if(st == AG_STATE_SAFE_HALT && !g_ag_tgp_s3_sent)
+     {
+      g_ag_tgp_s3_sent = true;
+      if(!g_ag_tgp_quiet_start)
+         AgTgPush(AG_TG_S3, g_ag_tg_halt_kind, (double)(long)g_ag_halt_time, g_ag_tg_halt_chain,
+                  AG_CRASH_LOOP_WINDOW_SECONDS);
+      g_ag_tgp_quiet_start = false;
+     }
 ```
 
 (b) Replace `EA:1499-1525`,
@@ -2111,13 +2112,15 @@ with
 ```
 with
 ```
-   //--- the SYNCING exits: the first after this init is S1, S16 or, for a
-   //--- Manual Lockout alone, S5; an exit after an expiry is S8, or S25 after
-   //--- a lockout's own end (ML-17 (A))
+   //--- the SYNCING exits: the first after this init is S1 or S16, none into
+   //--- a Manual Lockout alone (ML-30, ML-34) and none after a chart timeframe
+   //--- or symbol change (ML-35 (1)); an exit after an expiry is S8, or S25
+   //--- after a lockout's own end (ML-17 (A))
    if(prev == AG_STATE_SYNCING && st == AG_STATE_ACTIVE && !g_ag_tgp_first_exit_done)
      {
       g_ag_tgp_first_exit_done = true;
-      g_ag_tgp_s1_pending      = true;   // the figures come with the first completed pass
+      g_ag_tgp_s1_pending      = !g_ag_tgp_quiet_start;   // the figures come with the first completed pass
+      g_ag_tgp_quiet_start     = false;
      }
    if(prev == AG_STATE_SYNCING && st == AG_STATE_LOCKED)
      {
@@ -2135,15 +2138,13 @@ with
       else
         {
          g_ag_tgp_first_exit_done = true;
-         if(ml_only)
-            AgTgPush(AG_TG_S5, 2, (double)(long)g_ag_ml_end, (double)(long)AgNextDayAnchor(g_ag_ml_engaged), 0,
-                     PositionsTotal(), AgSweepCountPendings());
-         else
+         if(!ml_only && !g_ag_tgp_quiet_start)
            {
             int mask = (g_ag_tg_init_source_mask != 0) ? g_ag_tg_init_source_mask : 4;
             AgTgPush(AG_TG_S16, (int)g_ag_lock_reason, (double)(long)g_ag_locked_until, mask,
                      g_ag_state_limit_snap, PositionsTotal(), AgSweepCountPendings());
            }
+         g_ag_tgp_quiet_start = false;
         }
      }
    if(prev == AG_STATE_LOCKED && st == AG_STATE_SYNCING)
@@ -2194,14 +2195,14 @@ with
 ```
 with
 ```
-   //--- of the two legs. A Manual Lockout alone is S5 kind 1 instead, with
-   //--- the engaging pass's figures (ML-17 (A)).
+   //--- of the two legs. A Manual Lockout alone is S5 instead, with the
+   //--- engaging pass's figures, sent at the engagement only (ML-17 (A), ML-30).
    if(prev == AG_STATE_ACTIVE && st == AG_STATE_LOCKED && ml_only)
      {
       double ml_enforced = AgFloorEffectiveLimit(g_ag_last_limit, g_ag_last_anchor);
       AgTgPushFull(AG_TG_S5, g_ag_have_pnl_numbers ? AG_TG_PNL_ACTIVE : AG_TG_PNL_NONE,
                    g_ag_have_pnl_numbers ? g_ag_last_pnl : 0.0, g_ag_have_pnl_numbers ? ml_enforced : 0.0,
-                   1, (double)(long)g_ag_ml_end, (double)(long)AgNextDayAnchor(g_ag_ml_engaged),
+                   (double)(long)g_ag_ml_end, (double)(long)AgNextDayAnchor(g_ag_ml_engaged),
                    (double)((long)g_ag_ml_end - (long)g_ag_ml_engaged), PositionsTotal(), AgSweepCountPendings());
      }
    else if(prev == AG_STATE_ACTIVE && st == AG_STATE_LOCKED)
@@ -2216,17 +2217,11 @@ with
 ```
                    g_ag_peak_currency, PositionsTotal(), AgSweepCountPendings());
      }
-   //--- ML-17 (A): a lockout extended, and a lockout that ended while a loss
-   //--- lock holds the account
-   if(prev == AG_STATE_LOCKED && st == AG_STATE_LOCKED)
-     {
-      if(g_ag_ml_active && g_ag_tgp_prev_ml_active && g_ag_ml_end > g_ag_tgp_prev_ml_end)
-         AgTgPush(AG_TG_S5, 3, (double)(long)g_ag_ml_end, (double)(long)AgNextDayAnchor(g_ag_ml_engaged), 0,
-                  PositionsTotal(), AgSweepCountPendings());
-      else if(!g_ag_ml_active && g_ag_tgp_prev_ml_active)
-         AgTgPush(AG_TG_S25, 2, (double)(long)g_ag_tgp_prev_ml_end, (double)(long)g_ag_locked_until,
-                  (int)g_ag_lock_reason);
-     }
+   //--- ML-17 (A): a lockout that ended while a loss lock holds the account;
+   //--- an extension sends nothing (ML-30)
+   if(prev == AG_STATE_LOCKED && st == AG_STATE_LOCKED && !g_ag_ml_active && g_ag_tgp_prev_ml_active)
+      AgTgPush(AG_TG_S25, 2, (double)(long)g_ag_tgp_prev_ml_end, (double)(long)g_ag_locked_until,
+               (int)g_ag_lock_reason);
 ```
 
 (e) Replace
@@ -2258,6 +2253,7 @@ with
    g_ag_tgp_s25_pending     = false;
    g_ag_tgp_s25_end         = 0;
 ```
+`g_ag_tgp_quiet_start` stays out of this reset on purpose (ML-35 (1)): OnDeinit sets it and the init that follows reads it.
 
 B5.13, `AgTgInitEvents` (`EA:1740`). Replace
 ```
@@ -2468,7 +2464,28 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
   }
 ```
 
-B5.17, `OnDeinit` (`EA:2206`). Replace
+B5.17, `OnDeinit`, two changes. Replace (`EA:2193-2196`)
+```
+      AgTgAckRead();
+      AgTgPush(AG_TG_S2, reason);
+      AgTgQueueWrite(true);
+     }
+```
+with
+```
+      AgTgAckRead();
+      //--- ML-35 (1): a chart timeframe or symbol change, reason 3, sends no
+      //--- stop; the queue is still written, so nothing pending is lost
+      if(!AgTgSilentReason(reason))
+         AgTgPush(AG_TG_S2, reason);
+      AgTgQueueWrite(true);
+     }
+   //--- ML-35 (1): the init that follows a reason 3 change sends no start
+   //--- message. An in place re-init keeps this global, a fresh image starts
+   //--- it false, and every other reason clears it here.
+   g_ag_tgp_quiet_start = AgTgSilentReason(reason);
+```
+and replace (`EA:2206`)
 ```
    if(g_init_refused)
       AgInfo("deinit|banner NOT cleared: init was refused, dated REFUSED banner stays on the chart");
@@ -2483,7 +2500,7 @@ with
 ```
 
 - Check: `python -I scripts/rows/compile.py MQL5/Experts/AccountGuardian/AccountGuardian.mq5 ml-ea <log folder>`, the log folder being the build session's job temporary folder, outside the repository, prints `Result: 0 errors, 0 warnings`, no including line outside the worktree, and the ex5 FRESH (standing rule 6). The EA stays ASCII after its byte order mark.
-- Commit: `ea: the Manual Lockout, a second lock component applied in OnTimer, its boot witness, its own end before the one expiry path, the panel, S5 and S25 in the producer, label ML`
+- Commit: `ea: the Manual Lockout, a second lock component applied in OnTimer, its boot witness, its own end before the one expiry path, the panel, S5 and S25 in the producer, no Telegram message for a reason 3 change, label ML`
 
 ### B6. AlertText.mqh: the file word of kind 6, S5 and S25
 
@@ -2512,27 +2529,18 @@ string AgTgManualNote(const datetime end, const datetime anchor, const long posi
    return "ℹ️ אם השומר יסגור עסקה בזמן הנעילה, החשבון יישאר נעול עד תחילת יום המסחר הבא";
   }
 
-//--- S5, the Manual Lockout (ML-17 (A)): kind 1 engaged, 2 restored at a
-//--- start, 3 extended; restart_reason is the in place stop it merges with,
-//--- -1 when none. Kinds 1 and 2 carry the sweep line and leave the open
-//--- trades line out, as S4 and S16 do (R4); kind 3 carries no sweep line
-//--- and keeps it.
-string AgTgTextS5(const AgTgCommon &c, const int kind, const datetime end, const datetime anchor,
-                  const long length, const long positions, const long pendings, const int restart_reason)
+//--- S5, the Manual Lockout engaged (ML-17 (A)), sent at the engagement only
+//--- (ML-30). It carries the sweep line and leaves the open trades line out,
+//--- as S4 and S16 do (R4, ML-31).
+string AgTgTextS5(const AgTgCommon &c, const datetime end, const datetime anchor, const long length,
+                  const long positions, const long pendings)
   {
-   if(kind == 3)
-      return AgTgMessage("🔒 הנעילה הידנית הוארכה", c,
-                         "⏳ נעול עד: " + AgTgStamp(end)
-                         + "\n❗ אי אפשר לבטל או לקצר את הנעילה");
-   string lines = (restart_reason >= 0 ? "🔄 סיבת ההפעלה מחדש: " + AgTgReasonWord(restart_reason) + "\n" : "")
-                + "⏳ נעול עד: " + AgTgStamp(end);
-   if(kind == 1)
-      lines += "\n⌛ משך: " + AgTgDuration(length);
+   string lines = "⏳ נעול עד: " + AgTgStamp(end) + "\n⌛ משך: " + AgTgDuration(length);
    lines = AgTgAdd(lines, AgTgSweepNow(positions, pendings));
    lines += "\n❗ אי אפשר לבטל או לקצר את הנעילה";
    lines = AgTgAdd(lines, AgTgManualNote(end, anchor, positions));
-   return AgTgMessageWith(kind == 1 ? "🔒 נעילה ידנית: החשבון ננעל לבקשתך" : "🔒 הנעילה הידנית שוחזרה בהפעלת השומר",
-                          c, AgTgPnlLine(c.pnl_mode, c.pnl, c.limit, c.cur), lines, false);
+   return AgTgMessageWith("🔒 נעילה ידנית: החשבון ננעל לבקשתך", c, AgTgPnlLine(c.pnl_mode, c.pnl, c.limit, c.cur),
+                          lines, false);
   }
 
 ```
@@ -2574,7 +2582,7 @@ string AgTgTextS25(const AgTgCommon &c, const int outcome, const datetime end, c
 
 ### B7. The alerts service
 
-File `MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5`, six changes (ML-17 (A), ML-24 (A)).
+File `MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5`, six changes (ML-17 (A), ML-24 (A), ML-30, ML-35).
 
 Replace (`SVC:40`)
 ```
@@ -2592,8 +2600,8 @@ In `AgSvcRender` (`SVC:393-457`), replace
 with
 ```
       case AG_TG_S5:
-         return AgTgTextS5(c, (int)e.x[0], (datetime)(long)e.x[1], (datetime)(long)e.x[2], (long)e.x[3],
-                           (long)e.x[4], (long)e.x[5], -1);
+         return AgTgTextS5(c, (datetime)(long)e.x[0], (datetime)(long)e.x[1], (long)e.x[2], (long)e.x[3],
+                           (long)e.x[4]);
       case AG_TG_S6C:
          return AgTgTextS6C(
 ```
@@ -2609,46 +2617,53 @@ with
       case AG_TG_S25:
          return AgTgTextS25(c, (int)e.x[0], (datetime)(long)e.x[1], (datetime)(long)e.x[2], (int)e.x[3]);
 ```
-In `AgSvcConvertOne` (`SVC:478`), the S14 lock count, replace
+In `AgSvcConvertOne` (`SVC:469-478`), two changes. ML-35 (1), replace (`SVC:471`)
+```
+   string cls = AgTgCodeText(e.code);
+```
+with
+```
+   //--- ML-35 (1): a stop for a chart timeframe or symbol change, reason 3,
+   //--- is acknowledged and sends nothing; this build's EA queues none, a
+   //--- queue an earlier build wrote may hold one
+   if(e.code == AG_TG_S2 && AgTgSilentReason((int)e.x[0]))
+     {
+      AgSvcAdvance(e.seq);
+      return;
+     }
+   string cls = AgTgCodeText(e.code);
+```
+and the S14 lock count, replace (`SVC:478`)
 ```
    if(e.code == AG_TG_S4 || e.code == AG_TG_S16)
 ```
 with
 ```
-   if(e.code == AG_TG_S4 || e.code == AG_TG_S16 || (e.code == AG_TG_S5 && (int)e.x[0] != 3))
+   if(e.code == AG_TG_S4 || e.code == AG_TG_S16 || e.code == AG_TG_S5)
 ```
-In `AgSvcMerge` (`SVC:499-501`), replace
+In `AgSvcMerge` (`SVC:488-490`), ML-35 (1), replace
 ```
-   else
-     {
-      text = AgTgTextS16(c, (datetime)(long)start.x[1], (int)start.x[0], (int)start.x[2],
+void AgSvcMerge(const AgTgEvent &stop, const AgTgEvent &start)
+  {
+   AgTgCommon c;
 ```
 with
 ```
-   else if(start.code == AG_TG_S5)
+void AgSvcMerge(const AgTgEvent &stop, const AgTgEvent &start)
+  {
+   //--- ML-35 (1): a reason 3 stop merges into nothing; the stop and its
+   //--- start are both acknowledged without a message, and no lock is counted
+   if(AgTgSilentReason((int)stop.x[0]))
      {
-      text = AgTgTextS5(c, 2, (datetime)(long)start.x[1], (datetime)(long)start.x[2], 0,
-                        (long)start.x[4], (long)start.x[5], (int)stop.x[0]);
-      cls  = "S2+S5";
-      ArrayResize(g_svc_lock_times, g_svc_lock_count + 1);
-      g_svc_lock_times[g_svc_lock_count] = start.server_t;
-      g_svc_lock_count++;
+      AgSvcAdvance(stop.seq);
+      AgSvcConsume(start.seq);
+      return;
      }
-   else
-     {
-      text = AgTgTextS16(c, (datetime)(long)start.x[1], (int)start.x[0], (int)start.x[2],
+   AgTgCommon c;
 ```
-In `AgSvcConvert` (`SVC:535`), the start an in place stop waits for, replace
-```
-            if(g_svc_events[j].code == AG_TG_S1 || g_svc_events[j].code == AG_TG_S16)
-```
-with
-```
-            if(g_svc_events[j].code == AG_TG_S1 || g_svc_events[j].code == AG_TG_S16
-               || (g_svc_events[j].code == AG_TG_S5 && (int)g_svc_events[j].x[0] == 2))
-```
-- Check: `python -I scripts/rows/compile.py MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5 ml-svc <log folder>` prints `Result: 0 errors, 0 warnings`, no including line outside the worktree, the ex5 FRESH. `AgTgCarriesBuild` is unchanged, so S5, S25 and S2+S5 carry no build line (F9).
-- Commit: `service: S5 and S25 rendered, S2+S5 merged for an in place restart into a lockout, S5 counted as a lock in S14, label ML`
+`AgSvcConvert` and `AgSvcInPlace` stay as they are. An in place stop still merges with an S1 or an S16 only, and during a lockout alone the stop of every other in place reason goes out alone after the hold (ML-30, ML-35 (2)). Reason 3 stays among the in place reasons, so a reason 3 stop an earlier build queued is held for its start, and both are then acknowledged without a message.
+- Check: `python -I scripts/rows/compile.py MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5 ml-svc <log folder>` prints `Result: 0 errors, 0 warnings`, no including line outside the worktree, the ex5 FRESH. `AgTgCarriesBuild` is unchanged, so S5 and S25 carry no build line (F9).
+- Commit: `service: S5 and S25 rendered, S5 counted as a lock in S14, a reason 3 stop and its start acknowledged without a message, label ML`
 
 ### B8. The vectors: the include and the queue's code list
 
@@ -2701,8 +2716,9 @@ one blank line and then this text, which lies above the generated block of TG-S8
    //--- ML, the Manual Lockout build (rulings ML-1 to ML-27 of
    //--- 2026-10-22, plan docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md section 11):
    //--- the bounds, the two parsers, the record and its file family on the
-   //--- synthetic logins 990000031 and 990000039, the boot witness, and every
-   //--- line and ALERT shape of ML-21. No GV is touched.
+   //--- synthetic logins 990000031 and 990000039, the boot witness, every
+   //--- line and ALERT shape of ML-21, and the reason 3 silence of ML-35 (1).
+   //--- No GV is touched.
    //================================================================
    datetime ml_t0  = D'2026.10.22 14:30:05';
    datetime ml_anc = D'2026.10.23 01:00:00';
@@ -2983,9 +2999,14 @@ one blank line and then this text, which lies above the generated block of TG-S8
    AgVecCheck("ml_remaining_time",
               AgManualHms(0) == "0:00:00" && AgManualHms(1800) == "0:30:00" && AgManualHms(37795) == "10:29:55"
               && AgManualHms(-5) == "0:00:00", "");
+   //--- ML-35 (1): the one deinit reason that sends no Telegram message
+   AgVecCheck("ml_tg_silent_reason_is_reason_3_alone",
+              AgTgSilentReason(3) && !AgTgSilentReason(0) && !AgTgSilentReason(1) && !AgTgSilentReason(2)
+              && !AgTgSilentReason(4) && !AgTgSilentReason(5) && !AgTgSilentReason(6) && !AgTgSilentReason(7)
+              && !AgTgSilentReason(8) && !AgTgSilentReason(9), "silent reason");
 ```
-- Check: the block adds 83 checks, each name beginning `ml_`; no `GlobalVariable` call in it; it lies above the TG-S8 head comment.
-- Commit: `vectors: the Manual Lockout block, 83 checks on the bounds, the parsers, the record family, the boot witness and the line shapes`
+- Check: the block adds 84 checks, each name beginning `ml_`; no `GlobalVariable` call in it; it lies above the TG-S8 head comment.
+- Commit: `vectors: the Manual Lockout block, 84 checks on the bounds, the parsers, the record family, the boot witness, the line shapes and the reason 3 silence`
 
 ### B10. gen_vectors.py, and the vectors regenerated
 
@@ -3000,32 +3021,24 @@ with
 # helpers gain the PNL line and the open trades line.
 #
 # The Manual Lockout build of 2026-10-22 (ML-17 (A)): the drafts under labels
-# that begin "ML:", S5 at its three starts, S25 at the lockout's own end, its
-# wording list and the S17 name of the lockout's record; and one helper, the
-# R4 reading for S5.
+# that begin "ML:", S5 at the engagement (ML-30), S25 at the lockout's own end,
+# its wording list and the S17 name of the lockout's record; and one helper,
+# R4 and ML-31 for S5.
 ```
 Insert before the line `def esc_html(s):`:
 ```
-# the Manual Lockout build: S5 kinds 1 to 3, S25 outcomes 1 and 2, the S25
-# wording list and the S17 file name of kind 6
+# the Manual Lockout build: S5 at the engagement, S25 outcomes 1 and 2, the
+# S25 wording list and the S17 file name of kind 6
 s5c = C("2026.10.22 14:30:05", "2544.33", "2544.33", "0.0", A, "139.94", SL)
-s5r = C("2026.10.22 14:41:10", "2530.10", "2530.10", "0.0", N, "0.0", SL)
 s25a = C("2026.10.22 15:00:10", "2530.10", "2530.10", "-14.23", L, "139.94", SL)
 cases += [
  ("ml_s5_engaged", "ML: S5 Manual Lockout engaged, a position open", None,
   C("2026.10.22 14:30:05", "2544.33", "2530.10", "-14.23", A, "139.94", SL, 1),
-  NOB % "AgTgTextS5(c, 1, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 1, 0, -1)"),
+  NOB % "AgTgTextS5(c, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 1, 0)"),
  ("ml_s5_engaged_flat", "ML: S5 Manual Lockout engaged, nothing open", None, s5c,
-  NOB % "AgTgTextS5(c, 1, D'2026.10.22 15:30:05', D'2026.10.23 01:00:00', 3600, 0, 0, -1)"),
+  NOB % "AgTgTextS5(c, D'2026.10.22 15:30:05', D'2026.10.23 01:00:00', 3600, 0, 0)"),
  ("ml_s5_until_the_anchor", "ML: S5 Manual Lockout until the next daily anchor", None, s5c,
-  NOB % "AgTgTextS5(c, 1, D'2026.10.23 01:00:00', D'2026.10.23 01:00:00', 37795, 0, 0, -1)"),
- ("ml_s5_restored", "ML: S5 Manual Lockout restored at start", None, s5r,
-  NOB % "AgTgTextS5(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 0, 0, 0, -1)"),
- ("ml_s5_restarted", "ML: S5 Manual Lockout restarted in place", None, s5r,
-  NOB % "AgTgTextS5(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 0, 0, 0, 3)"),
- ("ml_s5_extended", "ML: S5 Manual Lockout extended", None,
-  C("2026.10.22 14:45:00", "2530.10", "2530.10", "0.0", N, "0.0", SL),
-  NOB % "AgTgTextS5(c, 3, D'2026.10.22 16:00:00', D'2026.10.23 01:00:00', 0, 0, 0, -1)"),
+  NOB % "AgTgTextS5(c, D'2026.10.23 01:00:00', D'2026.10.23 01:00:00', 37795, 0, 0)"),
  ("ml_s25_released", "ML: S25 Manual Lockout ended", None,
   C("2026.10.22 15:00:10", "2544.33", "2544.33", "0.0", A, "139.94", SA),
   NOB % "AgTgTextS25(c, 1, D'2026.10.22 15:00:05', 0, 0)"),
@@ -3042,14 +3055,11 @@ cases.append(("ml_s17_file_6", "ML: S17 the name of the lockout's record", 0, s1
 ```
 Insert before the line `def mql_str(s):`:
 ```
-# the Manual Lockout build, R4: S5 at the engagement and at a restore leave the
-# open trades line out, their sweep line giving the count; S5 at an extension
-# and S25 keep it
+# the Manual Lockout build, R4 and ML-31: S5 leaves the open trades line out,
+# its sweep line giving the count; S25 keeps it
 helpers_ml = [
  ("ml_fmt_open_line_left_out_of_s5_with_its_sweep_line", "truec",
-  "StringFind(AgTgTextS5(c, 1, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 3, 0, -1), AgTgOpenLine(3)) < 0"
-  " && StringFind(AgTgTextS5(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 0, 3, 0, -1), AgTgOpenLine(3)) < 0"
-  " && StringFind(AgTgTextS5(c, 3, D'2026.10.22 16:00:00', D'2026.10.23 01:00:00', 0, 3, 0, -1), AgTgOpenLine(3)) > 0"
+  "StringFind(AgTgTextS5(c, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 3, 0), AgTgOpenLine(3)) < 0"
   " && StringFind(AgTgTextS25(c, 1, D'2026.10.22 15:00:05', 0, 0), AgTgOpenLine(3)) > 0", s4c),
 ]
 
@@ -3063,8 +3073,8 @@ with
 ```
 emit(helpers_b5)
 code.append("")
-code.append("   //--- the Manual Lockout build, R4: the open trades line left out of S5")
-code.append("   //--- where its sweep line counts, kept in S5 extended and in S25")
+code.append("   //--- the Manual Lockout build, R4 and ML-31: the open trades line left")
+code.append("   //--- out of S5, whose sweep line counts, and kept in S25")
 emit(helpers_ml)
 ```
 Replace
@@ -3080,15 +3090,15 @@ sys.stdout.buffer.write(("render vectors %d, helper vectors %d, of which pass B5
                             len(helpers_ml), unused)).encode("utf-8"))
 ```
 Then run `python -I scripts/rows/gen_vectors.py` from the repository root.
-- Check: the run prints the Manual Lockout build count as 1, and its list of drafts not rendered names no `ML:` label; `git diff --stat` on the vectors file shows the generated block only; `python -I scripts/rows/tg_s7.py` exits 0 with `TG-S7 HOLDS`, and every per template line of a `tg_text_ml_` case ends `identical`; `python -I scripts/rows/compile.py MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5 ml-vec2 <log folder>` and the same for `MQL5/Scripts/AccountGuardian/AgPhase1ClockVectors.mq5` with tag `ml-vec1` print `Result: 0 errors, 0 warnings`, no including line outside the worktree, and fresh ex5 files. The vectors script now carries 618 checks: the 522 of `LEDGER.md:6`, the 83 of B9, and the 13 of this step (12 render cases and 1 helper).
-- Commit: `vectors: TG-S8 regenerated with the Manual Lockout drafts, 618 checks`
+- Check: the run prints the Manual Lockout build count as 1, and its list of drafts not rendered names no `ML:` label; `git diff --stat` on the vectors file shows the generated block only; `python -I scripts/rows/tg_s7.py` exits 0 with `TG-S7 HOLDS`, and every per template line of a `tg_text_ml_` case ends `identical`; `python -I scripts/rows/compile.py MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5 ml-vec2 <log folder>` and the same for `MQL5/Scripts/AccountGuardian/AgPhase1ClockVectors.mq5` with tag `ml-vec1` print `Result: 0 errors, 0 warnings`, no including line outside the worktree, and fresh ex5 files. The vectors script now carries 616 checks: the 522 of `LEDGER.md:6`, the 84 of B9, and the 10 of this step (9 render cases and 1 helper).
+- Commit: `vectors: TG-S8 regenerated with the Manual Lockout drafts, 616 checks`
 
 ### B11. scripts/rows/ml_rows.py, new
 
 File `scripts/rows/ml_rows.py`, new, this text:
 
 ```
-# Static rows ML-S2 to ML-S16 of the Manual Lockout build, plan
+# Static rows ML-S2 to ML-S17 of the Manual Lockout build, plan
 # docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md section 8, measured on the committed
 # tree at HEAD against cce862a, the commit the plan was cut from. ML-S1 is the
 # compiles of compile.py. ML-S12 runs static_rows.py; ML-S13 runs
@@ -3334,7 +3344,7 @@ ttext = t.stdout.decode("utf-8", "replace")
 check("ML-S13 TG-S7 holds", t.returncode == 0 and "TG-S7 HOLDS" in ttext)
 ml_lines = [l for l in ttext.splitlines() if " tg_text_ml_" in l]
 check("ML-S13 every Manual Lockout template renders its draft character for character",
-      len(ml_lines) == 12 and all(l.rstrip().endswith("identical") for l in ml_lines),
+      len(ml_lines) == 9 and all(l.rstrip().endswith("identical") for l in ml_lines),
       "%d lines: %s" % (len(ml_lines), [l for l in ml_lines if not l.rstrip().endswith("identical")]))
 
 # ---- ML-S14: the EA and the two new includes ASCII after any byte order mark; the new ones carry none
@@ -3359,13 +3369,36 @@ check("ML-S16 a request waits while ACTIVE holds a deferred breach",
       body is not None and re.search(r"if\(g_ag_state == AG_STATE_ACTIVE && g_ag_breach_deferred_once\)\s*\n\s*return;",
                                      body) is not None)
 
+# ---- ML-S17: ML-35 (1), the reason 3 silence
+body = func(ea, "void OnDeinit(")
+check("ML-S17 OnDeinit queues S2 only for a reason that is not silent, and sets the quiet flag from the same helper",
+      body is not None
+      and re.search(r"if\(!AgTgSilentReason\(reason\)\)\s*\n\s*AgTgPush\(AG_TG_S2, reason\);", body) is not None
+      and "g_ag_tgp_quiet_start = AgTgSilentReason(reason);" in body)
+named = sorted(set(where[n] for n, l in enumerate(ea.split("\n"), 1)
+                   if re.search(r"\bg_ag_tgp_quiet_start\b", code_only(l))))
+check("ML-S17 the quiet flag named only in its declaration, OnDeinit and AgTgProduce",
+      named == ["-", "AgTgProduce", "OnDeinit"], str(named))
+body = func(ea, "void AgTgProduce(")
+check("ML-S17 the S1, the S16 and the S3 of the first start wait on the quiet flag",
+      body is not None and "g_ag_tgp_s1_pending      = !g_ag_tgp_quiet_start;" in body
+      and "if(!ml_only && !g_ag_tgp_quiet_start)" in body
+      and re.search(r"if\(!g_ag_tgp_quiet_start\)\s*\n\s*AgTgPush\(AG_TG_S3,", body) is not None)
+svc = now(SVC)
+check("ML-S17 the service acknowledges a reason 3 stop and its start without a message",
+      all(f is not None and "AgTgSilentReason(" in f
+          for f in (func(svc, "void AgSvcConvertOne("), func(svc, "void AgSvcMerge("))))
+check("ML-S17 AgTgSilentReason defined once, true for reason 3 alone",
+      now(INC + "AlertQueue.mqh").count(
+          "bool AgTgSilentReason(const int reason) { return reason == REASON_CHARTCHANGE; }") == 1)
+
 out.append("")
 out.append("ML static rows " + ("HOLD" if not bad else "DO NOT HOLD: " + ", ".join(bad)))
 sys.stdout.buffer.write(("\n".join(out) + "\n").encode("utf-8"))
 sys.exit(1 if bad else 0)
 ```
 - Check: `python -I -c "import ast; ast.parse(open('scripts/rows/ml_rows.py', encoding='utf-8').read())"` prints nothing and writes no file; the script itself runs at B17.
-- Commit: `scripts: rows/ml_rows.py, the static rows ML-S2 to ML-S16 of the Manual Lockout build`
+- Commit: `scripts: rows/ml_rows.py, the static rows ML-S2 to ML-S17 of the Manual Lockout build`
 
 ### B12. The installer manifest (ML-23 (A), ML-27 (A))
 
@@ -3392,7 +3425,7 @@ File `docs/SPEC_v0.1.md`. Sixteen changes; "append" adds the text, after one spa
 2. Insert after the line beginning `MQL5/Include/AccountGuardian/AlertText.mqh` the two lines `MQL5/Include/AccountGuardian/ManualLockout.mqh     the Manual Lockout: model, record, bounds, parsers, line formats` and `MQL5/Include/AccountGuardian/LockoutPanel.mqh      the Manual Lockout panel on the EA's chart, chart objects only`, each description starting in the column the others start in.
 3. Insert after the line beginning `MQL5/Files/AccountGuardian/tgqueue_<login>.dat` the line `MQL5/Files/AccountGuardian/manual_<login>.dat      the Manual Lockout's own record`, its description in the same column.
 4. Append to the line beginning `- OnTimer at 1 s:`: `The Manual Lockout's request, its boot witness and its own end are decided here too (ML-1 to ML-27).`
-5. Insert after the line `- OnTick: unused.` the line `- OnChartEvent: the Manual Lockout panel only. A click changes the panel's own stage or records one request, which OnTimer applies after the state dispatch; nothing here decides, writes a file or a GV, or reaches the sweep (F13 read onto the panel, rulings ML-1 to ML-27 of 2026-10-22, SPEC changes of the Manual Lockout build).`
+5. Insert after the line `- OnTick: unused.` the line `- OnChartEvent: the Manual Lockout panel only. A click changes the panel's own stage or records one request, which OnTimer applies after the state dispatch; nothing here decides, writes a file or a GV, or reaches the sweep (F13 read onto the panel, rulings ML-1 to ML-27 of 2026-10-22, SPEC changes of the Manual Lockout build).`; and append to the line beginning `- OnDeinit:`: `A chart timeframe or symbol change, deinit reason 3, writes no stop event, the queue still written, and the init that follows sends no start message: reason 3 sends no Telegram message in any state (ML-35 (1), which supersedes TG-13 (B) for that reason alone).`
 6. Append to the line beginning `Static-structure rule, checkable without running`: `ManualLockout.mqh and LockoutPanel.mqh contain no trade calls either (static row ML-S5).`
 7. Append to the line beginning `lock_reason in {DAILY_BREACH, CORRUPT_STATE, SWEEP_WITNESS}.`: `The Manual Lockout is a second lock component beside lock_reason, never a lock_reason value: the account is LOCKED while either holds, the later end governs (ML-7), and the banner names it MANUAL_LOCKOUT while it governs.`
 8. Replace the table row `| SYNCING | LOCKED | state file, GV mirror, or derived breach (4.6) says locked | adopt strictest witness |` with `| SYNCING | LOCKED | state file, GV mirror, or derived breach (4.6) says locked, or the Manual Lockout's record or GV mirror holds an end after now | adopt strictest witness; the lockout's end, cut to the next day anchor of now, is held beside it |`.
@@ -3446,7 +3479,7 @@ with
 ### B15. The build identity (standing rules 6 and 7, ML-S1)
 
 No file changes. At HEAD, with every source committed, run the four compiles: `python -I scripts/rows/compile.py <source> <tag> <log folder>` for `MQL5/Experts/AccountGuardian/AccountGuardian.mq5` (`ml-ea`), `MQL5/Services/AccountGuardian/AccountGuardianAlerts.mq5` (`ml-svc`), `MQL5/Scripts/AccountGuardian/AgPhase2StateVectors.mq5` (`ml-vec2`) and `MQL5/Scripts/AccountGuardian/AgPhase1ClockVectors.mq5` (`ml-vec1`).
-- Check: each prints `Result: 0 errors, 0 warnings`, no including line outside the worktree, and its ex5 FRESH; the report states the `metaeditor.log` side effect of rule 3. Record for the report: HEAD's full hash as the source commit; the md5 of the EA, the service, both vectors sources and every include under `MQL5/Include/AccountGuardian/`, each against its HEAD blob; each ex5's md5, bytes and timestamp, the md5 recorded and not identity.
+- Check: each prints `Result: 0 errors, 0 warnings`, no including line outside the worktree, and its ex5 FRESH; the report states the `metaeditor.log` side effect of rule 3, as ML-29 requires of every compile report. Record for the report: HEAD's full hash as the source commit; the md5 of the EA, the service, both vectors sources and every include under `MQL5/Include/AccountGuardian/`, each against its HEAD blob; each ex5's md5, bytes and timestamp, the md5 recorded and not identity.
 
 ### B16. scripts/deploy-ml.ps1, new (ML-25 (A))
 
@@ -3479,7 +3512,7 @@ Get-FileHash -Algorithm MD5 -LiteralPath 'C:\Users\www83\AppData\Roaming\MetaQuo
 
 Run `python -I scripts/rows/ml_rows.py` from the repository root.
 - Check: it prints `ML static rows HOLD` and exits 0; ML-S1 is B15's four compile results. Any FAIL stops the build under rule 4.
-- LEDGER: one ACTIONS entry of at most 1,500 characters for the build, with its commits and the ML-S results; the ISSUES entry of this plan replaced by one naming the next acts in this order: the owner stops the service and runs `scripts/deploy-ml.ps1` (ML-D); the executor verifies each landed file with a plain `Get-FileHash`, read only; the owner starts the service, attaches or lets the EA reload, and pastes the init lines; the owner runs the vectors (ML-0, `AGVEC|SUMMARY|618/618`); then the live rows of stage 1 in section 8's run order, then stage 2 on the live account's computer, and only then the release of ML-27 (A). Commit `ledger: the Manual Lockout build recorded, the owner's deploy and acceptance rows named in ISSUES`.
+- LEDGER: one ACTIONS entry of at most 1,500 characters for the build, with its commits and the ML-S results; the ISSUES entry of this plan replaced by one naming the next acts in this order: the owner stops the service and runs `scripts/deploy-ml.ps1` (ML-D); the executor verifies each landed file with a plain `Get-FileHash`, read only; the owner starts the service, attaches or lets the EA reload, and pastes the init lines; the owner runs the vectors (ML-0, `AGVEC|SUMMARY|616/616`); then the live rows of stage 1 in section 8's run order, then stage 2 on the live account's computer, and only then the release of ML-27 (A). Commit `ledger: the Manual Lockout build recorded, the owner's deploy and acceptance rows named in ISSUES`.
 - STOP. No deploy, no live row, no push, no merge: those are the owner's.
 
 ## 12. What this plan does not do
@@ -3490,10 +3523,26 @@ Run `python -I scripts/rows/ml_rows.py` from the repository root.
 - No merge, no push, no branch or worktree deleted.
 - No ruling added: section 9 shows the owner's rulings; the executor's details of section 11 are marked as such.
 
-Points for the owner, raised and not ruled:
-1. The open TG rows of R2 (`LEDGER.md:5-7`) run on the same demo terminal: whether they close before the ML deploy or may close on the ML binaries, as the ENF-31 precedent allowed (`LEDGER.md:434`).
-2. RULE A and the compiles. Every compile by `scripts/rows/compile.py` makes MetaEditor append one `Compile` line to `logs\metaeditor.log` of the data folder `D0E8209F77C8CF37AD8BF550E51FF075`, whatever `/log` names, measured and disclosed at `docs/evidence/tg-b5.md:76`; the executor writes nothing there itself. RULE A forbids any write under that folder by any means (`LEDGER.md:159`), and the 2026-09-06 hand forbids invoking anything that writes there (`LEDGER.md:171`). Whether the build may compile this way is the owner's call; rule 3 of section 11.1 holds the first compile until the build instruction answers it.
-3. ML-17 (A) says S5 "at engage". Section 4.8 reads it as covering the three starts of a lockout: the engagement (kind 1), a restore at a start, which is also what an in place stop merges with (kind 2), and an extension (kind 3). UNRULED 2026-10-22.
-4. R4 leaves the open trades line out of "the lock messages that carry the sweep line (S4, its daily peak variant, and S16)". Section 4.8 reads the class, not the list: S5 at the engagement and at a restore carry the sweep line and leave the open trades line out. UNRULED 2026-10-22.
-5. When a lockout and a loss lock end on the same tick, S8 alone describes the release (section 4.8). UNRULED 2026-10-22.
-6. A click on the greyed Extend journals `manual lockout refused` with `form=none` and `requested_end=1970.01.01 00:00:00`, a form value beside the three of section 4.7, there being no end chosen. UNRULED 2026-10-22.
+Points for the owner, raised on 2026-10-22 and ruled the same day, ML-28 to ML-33, FINAL at `bcb71cc` (`LEDGER.md:616-632` as at that commit), each ruling as given:
+1. The open TG rows of R2 (`LEDGER.md:5-7`) run on the same demo terminal: whether they close before the ML deploy or may close on the ML binaries, as the ENF-31 precedent allowed (`LEDGER.md:434`). ML-28: "Section 12 point 1: the open TG rows of R2 may close on the ML binaries, as the ENF-31 precedent allowed." The run order note of section 8 follows it.
+2. RULE A and the compiles. Every compile by `scripts/rows/compile.py` makes MetaEditor append one `Compile` line to `logs\metaeditor.log` of the data folder `D0E8209F77C8CF37AD8BF550E51FF075`, whatever `/log` names, measured and disclosed at `docs/evidence/tg-b5.md:76`; the executor writes nothing there itself. RULE A forbids any write under that folder by any means (`LEDGER.md:159`), and the 2026-09-06 hand forbids invoking anything that writes there (`LEDGER.md:171`). ML-29: "Section 12 point 2: compiling through scripts/rows/compile.py is allowed. The one Compile line MetaEditor appends to logs\metaeditor.log in the terminal data folder is an accepted side effect, stated in every compile report. No other write there." Rule 3 of section 11.1 and B15 follow it; the first compile no longer waits.
+3. ML-17 (A) says S5 "at engage". The plan had read it as covering three starts of a lockout: the engagement, a restore at a start, and an extension. ML-30: "Section 12 point 3: S5 is sent at the engagement only. No S5 at a restore at start and none at an extension." Sections 4.8, 8 and 11 follow it. It leaves two gaps, ML-34 and ML-35 below.
+4. R4 leaves the open trades line out of "the lock messages that carry the sweep line (S4, its daily peak variant, and S16)". ML-31: "Section 12 point 4: every S5 that carries the sweep line leaves the open trades line out, as S4 and S16 do." Under ML-30 that is every S5 (B6, the helper of B10).
+5. When a lockout and a loss lock end on the same tick, which message describes the release. ML-32: "Section 12 point 5: when a lockout and a loss lock end on the same tick, S8 alone is sent." Section 4.8 and B5.11 follow it.
+6. A click on the greyed Extend journaled `manual lockout refused` with `form=none`, there being no end chosen. ML-33: "Section 12 point 6: a click on the greyed Extend writes no journal line." The panel note stays (B3); section 4.7 names no form `none`; ML-L7 and ML-L10 read the note.
+
+Gaps ML-30 left, raised 2026-10-22 and ruled the same day, ML-34 and ML-35, FINAL at `e1a931a` (`LEDGER.md:634-641` as at that commit), each ruling as given below its options, which stay for the record.
+
+ML-34. A start into a lockout alone: a terminal restart, a hard kill, the EA removed and attached again, or an in place reinit, while a lockout alone holds. At the first SYNCING exit after an init the producer sends S1 into ACTIVE and S16 into a loss lock (`EA:1499-1525`). S16 never describes a lockout (ML-17 (A)) and no S5 is sent at a restore (ML-30), so this start sends nothing.
+- (A) Nothing at such a start. No new text and no new code. Telegram says nothing of the start until the next periodic status slot, at most four hours (TG-15 (A)), the command reply, or S25 at the lockout's end; the status and the reply carry the lockout's effective end (B5.9). A stop for reasons 1, 4 and 9 still sends S2 (TG-13 (B)), so a stop can stand with no start after it until then.
+- (B) A start message for this case: a new S1 form whose lock line gives the lockout's end, where S1's reads none today (`AlertText.mqh:384`). A new Hebrew draft added to addendum item 13 first, under F1 to F11 (ML-17 (A)), a new render, its vector case, and a producer push at the first SYNCING exit into a lockout alone. S1 is none of S4, S8 and S16, so ML-17 (A) and ML-30 hold; the build line follows F9 as for S1.
+- (C) S1 deferred to the lockout's release: the start told at the first completed ACTIVE pass after it, beside S25 released. No new text; the producer leaves the first exit open across a start into a lockout alone. Telegram says nothing of the start until the lockout ends; if ML-8 relocks at that release, the open first exit takes the relock as the start, so S16 goes out in place of S25 locked again.
+- Ruled, ML-34: "Option (A): a start into a lockout alone sends no start message. The lockout shows in the next periodic status, the command reply, or S25 at its end." Sections 4.8, 8 and 11 follow it as written.
+
+ML-35. An in place stop before such a start, reasons 2, 3, 5, 6 and 7 (`SVC:460-466`). The service holds the stop up to `AG_SVC_HOLD_SECONDS`, 60 s, with every event behind it, for an S1 or S16 to merge with (`SVC:531-555`). None comes, so the stop goes out alone when the hold ends.
+- (A) As written: S2 alone after the 60 s hold, its restart reason read as a stop, the events behind it delayed those 60 s. The message says the guardian stopped while it runs and holds the lockout.
+- (B) The merge takes the start message ML-34 chooses, as "S2+S1" and "S2+S16" merge today. Open only with ML-34 (B); under ML-34 (C) the start comes after the hold, so the stop still goes alone.
+- (C) S2 sent alone after the hold with a lock line from the queue's snapshot, the effective end of B5.9 when the snapshot reads LOCKED. A new line in S2's draft in addendum item 13 and a render change in the service; the line is only as fresh as the snapshot the EA wrote before the hold ended.
+- Ruled, ML-35: "(1) A chart timeframe or symbol change, deinit reason 3, sends no Telegram message in any state: no stop, no start, no merged restart message. This supersedes, for reason 3 only, the earlier Telegram ruling that sends the in place restart message. (2) For the other in place reasons during a lockout alone, S2 goes out alone after the hold, option (A)." The earlier ruling is TG-13 (B) (`LEDGER.md:536`), read under TG-1 (B) at `ADD:288` as the in place stop held up to 60 s and merged into one "restarted" message; it stands for every other reason. Part (2) is the code as written. Part (1) is designed in section 4.8 and carried by B1, B5.3, B5.11, B5.17, B7, B9, B11 and B13, with the static row ML-S17 and the live rows ML-L17 to ML-L19. No draft changes: no text is added, and the reason words and drafts left unused stay in place, no check requiring their removal.
+
+ML-36, on the reach of ML-29 (point 2), as given: "ML-29 is a narrow exception for the one compile log line. RULE A and its wording stay as they are." Rule 3 of section 11.1 follows it.
