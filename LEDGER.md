@@ -642,6 +642,9 @@ Status: FINAL
 Decision: (owner ruling 2026-10-22, ML-36) As given: "ML-29 is a narrow exception for the one compile log line. RULE A and its wording stay as they are."
 Status: FINAL
 
+Decision: (owner ruling 2026-10-22, ML-37) As given: "After a chart timeframe or symbol change, S3 is silenced only when the same SAFE_HALT was already announced before the change. A SAFE_HALT that is new at the init after the change always sends S3." With it, as given: "It replaces the plan's reading that silenced every S3 after reason 3."
+Status: FINAL
+
 ### Owner rulings of the compaction
 
 Decision: (owner ruling given in chat on 2026-10-21, C1, the one-time compaction of the ledger) As given: "The ledger is compacted once. One-time decisions are deleted outright: acceptance passes, attestations of a row, merges, owner statements, and records of what a session did. Superseded and void decisions are deleted outright. Only standing rules in force stay. No archive file is made; git history holds every earlier version, and the owner keeps his own copy outside the repository. This overrides "append only" for ACTIONS, for this compaction only."
