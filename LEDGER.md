@@ -631,6 +631,15 @@ Status: FINAL
 Decision: (owner ruling 2026-10-22, ML-33) As given: "Section 12 point 6: a click on the greyed Extend writes no journal line."
 Status: FINAL
 
+Decision: (owner ruling 2026-10-22, ML-34) As given: "Option (A): a start into a lockout alone sends no start message. The lockout shows in the next periodic status, the command reply, or S25 at its end."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-35) As given: "(1) A chart timeframe or symbol change, deinit reason 3, sends no Telegram message in any state: no stop, no start, no merged restart message. This supersedes, for reason 3 only, the earlier Telegram ruling that sends the in place restart message. (2) For the other in place reasons during a lockout alone, S2 goes out alone after the hold, option (A)." What this entry supersedes, by name and exactly how far: TG-13 (B), the entry "(owner ruling 2026-10-20, TG-13, sends at a stop and at a refused start, S2 and S3)" under the Telegram alerts heading, FOR DEINIT REASON 3 ONLY. Its clause "Queue only for every other reason", read under TG-1 (B) at `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md:288` as the stop event of an in place re-init held up to 60 s and merged with the S1 or S16 that follows into one "restarted" message (plan 6.4.3 of `docs/PLAN_TELEGRAM_ALERTS_2026-10-19.md`), no longer applies to reason 3. TG-13 (B) stands unchanged for every other reason, and that entry is not edited.
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-36) As given: "ML-29 is a narrow exception for the one compile log line. RULE A and its wording stay as they are."
+Status: FINAL
+
 ### Owner rulings of the compaction
 
 Decision: (owner ruling given in chat on 2026-10-21, C1, the one-time compaction of the ledger) As given: "The ledger is compacted once. One-time decisions are deleted outright: acceptance passes, attestations of a row, merges, owner statements, and records of what a session did. Superseded and void decisions are deleted outright. Only standing rules in force stay. No archive file is made; git history holds every earlier version, and the owner keeps his own copy outside the repository. This overrides "append only" for ACTIONS, for this compaction only."
