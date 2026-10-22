@@ -37,7 +37,7 @@ input string TelegramChatId      = "";   // Telegram chat id (empty: Telegram of
 input string NetworkHeartbeatUrl = "";   // Hosted check ping URL (empty: network heartbeat off)
 
 //--- compile time constants, never inputs (the AG_MUTEX_STALE precedent)
-#define AG_SVC_BUILD_LABEL       "TG"
+#define AG_SVC_BUILD_LABEL       "ML"
 #define AG_SVC_TIMEOUT_MS        2000   // every request (plan 6.1.4)
 #define AG_SVC_FINAL_TIMEOUT_MS  1500   // the one attempt at a terminal close (TG-13 (B))
 #define AG_SVC_SEND_GAP          3      // seconds between two messages (plan 6.4.5)
@@ -410,6 +410,9 @@ string AgSvcRender(const AgTgEvent &e)
                                   (long)e.x[6], (long)e.x[7], AgSvcCurrency());
          return AgTgTextS4(c, (int)e.x[0], (datetime)(long)e.x[1], e.x[3], e.x[4], e.pnl,
                            (long)e.x[6], (long)e.x[7], AgSvcCurrency());
+      case AG_TG_S5:
+         return AgTgTextS5(c, (datetime)(long)e.x[0], (datetime)(long)e.x[1], (long)e.x[2], (long)e.x[3],
+                           (long)e.x[4]);
       case AG_TG_S6C:
          return AgTgTextS6C(c, (long)e.x[0], (long)e.x[1], (long)e.x[2], (long)e.x[3], (long)e.x[4]);
       case AG_TG_S6H:
@@ -452,6 +455,8 @@ string AgSvcRender(const AgTgEvent &e)
          return AgTgTextS22(c, (long)e.x[0], (int)e.x[1]);
       case AG_TG_S24:
          return AgTgTextS24(c);
+      case AG_TG_S25:
+         return AgTgTextS25(c, (int)e.x[0], (datetime)(long)e.x[1], (datetime)(long)e.x[2], (int)e.x[3]);
      }
    return "";
   }
@@ -468,6 +473,14 @@ bool AgSvcInPlace(const AgTgEvent &e)
 //--- one event to a waiting message, or suppressed, or merged
 void AgSvcConvertOne(const AgTgEvent &e, const datetime now, const long not_kept)
   {
+   //--- ML-35 (1): a stop for a chart timeframe or symbol change, reason 3,
+   //--- is acknowledged and sends nothing; this build's EA queues none, a
+   //--- queue an earlier build wrote may hold one
+   if(e.code == AG_TG_S2 && AgTgSilentReason((int)e.x[0]))
+     {
+      AgSvcAdvance(e.seq);
+      return;
+     }
    string cls = AgTgCodeText(e.code);
    string key = AgSvcDedupKey(e);
    if(key != "" && AgSvcSuppressed(cls, key, now))
@@ -475,7 +488,7 @@ void AgSvcConvertOne(const AgTgEvent &e, const datetime now, const long not_kept
       AgSvcAdvance(e.seq);
       return;
      }
-   if(e.code == AG_TG_S4 || e.code == AG_TG_S16)
+   if(e.code == AG_TG_S4 || e.code == AG_TG_S16 || e.code == AG_TG_S5)
      {
       ArrayResize(g_svc_lock_times, g_svc_lock_count + 1);
       g_svc_lock_times[g_svc_lock_count] = e.server_t;
@@ -487,6 +500,14 @@ void AgSvcConvertOne(const AgTgEvent &e, const datetime now, const long not_kept
 //--- the held stop and the start that follows it, one restarted message
 void AgSvcMerge(const AgTgEvent &stop, const AgTgEvent &start)
   {
+   //--- ML-35 (1): a reason 3 stop merges into nothing; the stop and its
+   //--- start are both acknowledged without a message, and no lock is counted
+   if(AgTgSilentReason((int)stop.x[0]))
+     {
+      AgSvcAdvance(stop.seq);
+      AgSvcConsume(start.seq);
+      return;
+     }
    AgTgCommon c;
    AgSvcCommonFromEvent(start, c);
    string text;
