@@ -32,6 +32,7 @@
 #define AG_TG_S2    2
 #define AG_TG_S3    3
 #define AG_TG_S4    4
+#define AG_TG_S5    5    // Manual Lockout engaged, at the engagement only (ML-17 (A), ML-30)
 #define AG_TG_S7    7
 #define AG_TG_S8    8
 #define AG_TG_S9    9
@@ -46,6 +47,7 @@
 #define AG_TG_S21   21
 #define AG_TG_S22   22
 #define AG_TG_S24   24
+#define AG_TG_S25   25   // Manual Lockout's own end, released or locked again (ML-17 (A))
 #define AG_TG_S6C   61
 #define AG_TG_S6H   62
 #define AG_TG_S6F   63
@@ -134,10 +136,36 @@ bool AgTgCodeKnown(const int code)
       case AG_TG_S12: case AG_TG_S15: case AG_TG_S16: case AG_TG_S17:
       case AG_TG_S18: case AG_TG_S19: case AG_TG_S20: case AG_TG_S21:
       case AG_TG_S22: case AG_TG_S24: case AG_TG_S6C: case AG_TG_S6H:
-      case AG_TG_S6F:
+      case AG_TG_S6F: case AG_TG_S5:  case AG_TG_S25:
          return true;
      }
    return false;
+  }
+
+//--- ML-35 (1): the deinit reasons that send no Telegram message of their
+//--- own, no stop, no start and no merged restart message: a chart timeframe
+//--- or symbol change, reason 3, alone. The EA, the service and the vectors
+//--- share this one definition.
+bool AgTgSilentReason(const int reason) { return reason == REASON_CHARTCHANGE; }
+
+//--- ML-37: after such a change, S3 is silenced only for the same SAFE_HALT
+//--- an S3 already announced, known by its halt time on record; a SAFE_HALT
+//--- new at that init, or no halt time on record (0), always sends S3
+bool AgTgS3Silenced(const bool quiet_start, const datetime announced, const datetime halt_time)
+  {
+   return quiet_start && announced != 0 && announced == halt_time;
+  }
+
+//--- ML-37: the halt time, x[1], of the last S3 among the events, or none
+//--- when no S3 is among them; the EA reads it over the events a successful
+//--- queue write carried
+datetime AgTgS3HaltTimeIn(const AgTgEvent &events[], const int count, const datetime none)
+  {
+   datetime t = none;
+   for(int i = 0; i < count; i++)
+      if(events[i].code == AG_TG_S3)
+         t = (datetime)(long)events[i].x[1];
+   return t;
   }
 
 //--- digits only, with an optional leading minus
