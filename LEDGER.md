@@ -578,6 +578,35 @@ Status: FINAL
 Decision: (owner ruling 2026-10-21, R4, the open trades line) As given, each Hebrew text and each sign outside ASCII recorded by its Unicode code points under the documentation rule that LEDGER.md is written in English only, the Hebrew itself standing in item 13 of `docs/PLAN_TELEGRAM_ALERTS_ADDENDUM_TG1B.md`: "A new line in every message, in the money group after the equity line: "U+1F4C2 [Hebrew "open trades": U+05E2 U+05E1 U+05E7 U+05D0 U+05D5 U+05EA U+0020 U+05E4 U+05EA U+05D5 U+05D7 U+05D5 U+05EA]: <n>". It counts open positions only, pending orders excluded, read by the service with PositionsTotal when the message is rendered. At zero it reads "U+1F4C2 [Hebrew "open trades": U+05E2 U+05E1 U+05E7 U+05D0 U+05D5 U+05EA U+0020 U+05E4 U+05EA U+05D5 U+05D7 U+05D5 U+05EA]: [Hebrew "none": U+05D0 U+05D9 U+05DF]". It is left out of the lock messages that carry the sweep line (S4, its daily peak variant, and S16), since that line already gives the count."
 Status: FINAL
 
+### Manual Lockout
+
+Decision: (owner ruling 2026-10-22, ML-1) As given: "Feature name: Manual Lockout."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-2) As given: "Irreversible. Once engaged, no trader action can cancel or shorten it."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-3) As given: "A confirmation step before engaging, modelled on Tradovate Manual Lockout."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-4) As given: "Maximum lock: until the start of the next server day (the next daily anchor). Refined by the owner on 2026-10-22 from an earlier 24 hours wording."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-5) As given: "Two ways to set the end, the trader picks one in the dialog: a duration from confirmation, or an end time in server time."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-6) As given: "The server day rollover and daily reset never release a Manual Lockout. Only its own end time releases it."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-7) As given: "When a loss lock and a Manual Lockout are active together, the later end time governs."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-8) As given: "The stricter governs. If the guardian closes a position during a Manual Lockout and that close locks the account to the next daily anchor, that lock applies."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-22, ML-9 to ML-27, the ruling sheet of section 9 of `docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md`) As given: "ML-9 to ML-27: option (A) as written in your plan, except: ML-10 (A). Remove "(owner proposal)". The proposal came from chat, the owner chose it. ML-11 (A) becomes: no engagement or extension can set an end past the next daily anchor. ML-13 (A) becomes: 15 min, 30 min, 1 h, until the next daily anchor, custom whole minutes ending no later than the next daily anchor. ML-14 (A) becomes: HH:MM server time, the first such instant after now, refused if under 60 s from now or past the next daily anchor." The options were drafted by the executor in the plan presented to the owner on 2026-10-22; the choice of each option, and the new texts of ML-11, ML-13 and ML-14, are the owner's. Option (A) of each item, as written in that plan with the owner's changes, and as section 9 of the document shows it: ML-9, ratify the reading that the lockout end is its own quantity bounded by ML-4 only, while Q1, THREE, FOUR, the clamp and the precedence ruling keep governing the loss lock's locked_until unchanged: "ratified". ML-10, engaging while any lock holds: "only to extend, the end later than the current effective end, else refused". ML-11, the ML-4 bound on an extension: "no engagement or extension can set an end past the next daily anchor". ML-12, eligible states: "ACTIVE connected outside RESYNC, LOCKED for an extension, the panel unavailable in SYNCING, SAFE_HALT and while disconnected". ML-13, presets: "15 min, 30 min, 1 h, until the next daily anchor, custom whole minutes ending no later than the next daily anchor". ML-14, end time entry: "HH:MM server time, the first such instant after now, refused if under 60 s from now or past the next daily anchor". ML-15, confirmation: "review stage then one click on Lock, Back, self cancel after 60 s". ML-16, remaining time: "panel line plus banner reason and effective end". ML-17, Telegram: "S5 "Locked on demand" at engage and a new code at the lockout's own end (released or locked again), S4, S8, S16 never describe a lockout, drafts in F1 to F11 added to addendum item 13 first, the service deploys first (F5)". ML-18, persistence: "own record and GV, record checked at the LIFE cadence while a lockout holds and rewritten if missing or different, SPEC 3's single lock file sentence amended". ML-19, corrupt or login mismatched record at load: "quarantine, WARN, S17, the GV alone decides, none without it". ML-20, residual, record and GV deleted by hand with the EA stopped: "accepted friction in SPEC 7 beside the file plus GV residual". ML-21, journal and ALERT shapes: "as listed". ML-22, panel language: "English like the banner, EA stays ASCII". ML-23, code layout: "`ManualLockout.mqh` and `LockoutPanel.mqh`, manifest and export regenerated, vectors include the first". ML-24, build label: "`ML`, the service too when it changes". ML-25, deploy and venue: "`scripts/deploy-ml.ps1` under the 2026-09-06 shape, the ruling extended to name it, service first, demo terminal first as TG-10 (A)". ML-26, SPEC and README: "amended in the build session under the ruling, README Hebrew only, never naming the ledger". ML-27, the customer release: "the feature ships in the release repository after its acceptance closes, the README gaining Hebrew panel steps, IN-22 (b) secrecy over the new files".
+Status: FINAL
+
 ### Owner rulings of the compaction
 
 Decision: (owner ruling given in chat on 2026-10-21, C1, the one-time compaction of the ledger) As given: "The ledger is compacted once. One-time decisions are deleted outright: acceptance passes, attestations of a row, merges, owner statements, and records of what a session did. Superseded and void decisions are deleted outright. Only standing rules in force stay. No archive file is made; git history holds every earlier version, and the owner keeps his own copy outside the repository. This overrides "append only" for ACTIONS, for this compaction only."
