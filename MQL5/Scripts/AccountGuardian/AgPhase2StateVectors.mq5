@@ -2075,6 +2075,24 @@ void OnStart()
    AgVecMd5("tg_text_b3_failures_line", AgVecLine(AgTgTextS6C(c, 3, 2, 5, 1, 7), 16), "A6C6BCED3E505F3818AF2DF4E98C7526");
    AgVecC(c, D'2026.10.20 01:00:04', 2140.50, 2140.50, 0.0, AG_TG_PNL_ACTIVE, 117.73, AG_STATE_ACTIVE, 0);
    AgVecMd5("tg_text_b3_locks_line", AgVecLine(AgTgTextS14(c, D'2026.10.19 01:00:00', -31.56, 12.40, 1, 117.73), 16), "7FCDF2E1F9F8CA77D976DFA9EB73D0F4");
+   AgVecC(c, D'2026.10.22 14:30:05', 2544.33, 2530.10, -14.23, AG_TG_PNL_ACTIVE, 139.94, AG_STATE_LOCKED, 1);
+   AgVecMd5("tg_text_ml_s5_engaged", AgTgFinish(AgTgTextS5(c, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 1, 0), 0, 0, 0, ""), "CFBDE40E1ABEA8BB6447E6860EF5DC26");
+   AgVecC(c, D'2026.10.22 14:30:05', 2544.33, 2544.33, 0.0, AG_TG_PNL_ACTIVE, 139.94, AG_STATE_LOCKED, 0);
+   AgVecMd5("tg_text_ml_s5_engaged_flat", AgTgFinish(AgTgTextS5(c, D'2026.10.22 15:30:05', D'2026.10.23 01:00:00', 3600, 0, 0), 0, 0, 0, ""), "3B43990E9DED4421DCCE5202AB7AB6BE");
+   AgVecC(c, D'2026.10.22 14:30:05', 2544.33, 2544.33, 0.0, AG_TG_PNL_ACTIVE, 139.94, AG_STATE_LOCKED, 0);
+   AgVecMd5("tg_text_ml_s5_until_the_anchor", AgTgFinish(AgTgTextS5(c, D'2026.10.23 01:00:00', D'2026.10.23 01:00:00', 37795, 0, 0), 0, 0, 0, ""), "98DF470EF519863CA83A0BD424DE2D55");
+   AgVecC(c, D'2026.10.22 15:00:10', 2544.33, 2544.33, 0.0, AG_TG_PNL_ACTIVE, 139.94, AG_STATE_ACTIVE, 0);
+   AgVecMd5("tg_text_ml_s25_released", AgTgFinish(AgTgTextS25(c, 1, D'2026.10.22 15:00:05', 0, 0), 0, 0, 0, ""), "B954A9DC0826FE52FB0328343508001C");
+   AgVecC(c, D'2026.10.22 15:00:10', 2530.10, 2530.10, -14.23, AG_TG_PNL_LOCKED, 139.94, AG_STATE_LOCKED, 0);
+   AgVecMd5("tg_text_ml_s25_again", AgTgFinish(AgTgTextS25(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 3), 0, 0, 0, ""), "C310DA2A5B5C9CBD6C7826F9B4404EC5");
+   AgVecC(c, D'2026.10.22 15:00:10', 2530.10, 2530.10, -14.23, AG_TG_PNL_LOCKED, 139.94, AG_STATE_LOCKED, 0);
+   AgVecMd5("tg_text_ml_s25_why_3", AgVecLine(AgTgTextS25(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 3), 14), "E8B7EEFA5929EF3966C40B0D1759FA14");
+   AgVecC(c, D'2026.10.22 15:00:10', 2530.10, 2530.10, -14.23, AG_TG_PNL_LOCKED, 139.94, AG_STATE_LOCKED, 0);
+   AgVecMd5("tg_text_ml_s25_why_1", AgVecLine(AgTgTextS25(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1), 14), "DEA386B6A29F4D334D5822A11736084C");
+   AgVecC(c, D'2026.10.22 15:00:10', 2530.10, 2530.10, -14.23, AG_TG_PNL_LOCKED, 139.94, AG_STATE_LOCKED, 0);
+   AgVecMd5("tg_text_ml_s25_why_2", AgVecLine(AgTgTextS25(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 2), 14), "8C658F4BB33617AACFEEB02088DD3149");
+   AgVecC(c, D'2026.10.19 14:05:12', 2172.06, 2172.06, 0.0, AG_TG_PNL_LOCKED, 126.21, AG_STATE_LOCKED, 0);
+   AgVecMd5("tg_text_ml_s17_file_6", AgVecLine(AgTgTextS17(c, 6, 1), 13), "DA05DB78E97549F273317EDC91123875");
 
    //--- the display formatters and the F10 helpers, format pass B3: the
    //--- time, the money and the currency, the durations, the zero counts,
@@ -2131,6 +2149,11 @@ void OnStart()
    AgVecMd5("tg_fmt_open_line_several", AgTgOpenLine(12), "4B501325EDAEFFE46739613208168E1F");
    AgVecC(c, D'2026.09.15 18:36:17', 2300.16, 2164.56, -130.20, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_LOCKED, 3);
    AgVecCheck("tg_fmt_open_line_left_out_where_the_sweep_line_counts", StringFind(AgTgTextS2(c, 1), AgTgOpenLine(3)) > 0 && StringFind(AgTgTextS4(c, 1, D'2026.09.16 01:00:00', 5.50, 200, -130.20, 3, 0, "$"), AgTgOpenLine(3)) < 0 && StringFind(AgTgTextS4Peak(c, D'2026.09.27 01:00:00', 253.00, 94.31, 90.96, 3, 0, "$"), AgTgOpenLine(3)) < 0 && StringFind(AgTgTextS16(c, D'2026.09.24 01:00:00', 1, 3, 3, 0, -1), AgTgOpenLine(3)) < 0, "");
+
+   //--- the Manual Lockout build, R4 and ML-31: the open trades line left
+   //--- out of S5, whose sweep line counts, and kept in S25
+   AgVecC(c, D'2026.09.15 18:36:17', 2300.16, 2164.56, -130.20, AG_TG_PNL_ACTIVE, 126.21, AG_STATE_LOCKED, 3);
+   AgVecCheck("ml_fmt_open_line_left_out_of_s5_with_its_sweep_line", StringFind(AgTgTextS5(c, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 3, 0), AgTgOpenLine(3)) < 0 && StringFind(AgTgTextS25(c, 1, D'2026.10.22 15:00:05', 0, 0), AgTgOpenLine(3)) > 0, "");
 
    PrintFormat("AGVEC|SUMMARY|%d/%d", g_pass, g_total);
   }

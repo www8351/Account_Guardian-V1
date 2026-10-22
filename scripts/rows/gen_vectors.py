@@ -12,6 +12,11 @@
 # indexes count the open trades line, which S4 and S16 leave out; and the
 # helpers gain the PNL line and the open trades line.
 #
+# The Manual Lockout build of 2026-10-22 (ML-17 (A)): the drafts under labels
+# that begin "ML:", S5 at the engagement (ML-30), S25 at the lockout's own end,
+# its wording list and the S17 name of the lockout's record; and one helper,
+# R4 and ML-31 for S5.
+#
 # A draft of item 13 runs from its "=== ... ===" label to the next label, the
 # blank lines before the next label not part of it, since a message of the
 # format F1 to F11 carries blank lines between its groups.
@@ -183,6 +188,31 @@ cases.append(("b3_locks_line", "B3: lines a zero count leaves out, here with a c
               "AgVecLine(AgTgTextS14(c, D'2026.10.19 01:00:00', -31.56, 12.40, 1, 117.73), %d)" % (EV + 3)))
 
 
+# the Manual Lockout build: S5 at the engagement, S25 outcomes 1 and 2, the
+# S25 wording list and the S17 file name of kind 6
+s5c = C("2026.10.22 14:30:05", "2544.33", "2544.33", "0.0", A, "139.94", SL)
+s25a = C("2026.10.22 15:00:10", "2530.10", "2530.10", "-14.23", L, "139.94", SL)
+cases += [
+ ("ml_s5_engaged", "ML: S5 Manual Lockout engaged, a position open", None,
+  C("2026.10.22 14:30:05", "2544.33", "2530.10", "-14.23", A, "139.94", SL, 1),
+  NOB % "AgTgTextS5(c, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 1, 0)"),
+ ("ml_s5_engaged_flat", "ML: S5 Manual Lockout engaged, nothing open", None, s5c,
+  NOB % "AgTgTextS5(c, D'2026.10.22 15:30:05', D'2026.10.23 01:00:00', 3600, 0, 0)"),
+ ("ml_s5_until_the_anchor", "ML: S5 Manual Lockout until the next daily anchor", None, s5c,
+  NOB % "AgTgTextS5(c, D'2026.10.23 01:00:00', D'2026.10.23 01:00:00', 37795, 0, 0)"),
+ ("ml_s25_released", "ML: S25 Manual Lockout ended", None,
+  C("2026.10.22 15:00:10", "2544.33", "2544.33", "0.0", A, "139.94", SA),
+  NOB % "AgTgTextS25(c, 1, D'2026.10.22 15:00:05', 0, 0)"),
+ ("ml_s25_again", "ML: S25 Manual Lockout ended, the account stays locked", None, s25a,
+  NOB % "AgTgTextS25(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 3)"),
+]
+for i, reason in enumerate([3, 1, 2]):
+    cases.append(("ml_s25_why_%d" % reason, "ML: S25 why the account stays locked, in order: a close by the guardian, the daily loss, a corrupt state file", i,
+                  s25a, "AgVecLine(AgTgTextS25(c, 2, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', %d), %d)" % (reason, EV + 1)))
+cases.append(("ml_s17_file_6", "ML: S17 the name of the lockout's record", 0, s17c,
+              "AgVecLine(AgTgTextS17(c, 6, 1), %d)" % EV))
+
+
 def esc_html(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
@@ -274,6 +304,15 @@ helpers_b5 = [
 ]
 
 
+# the Manual Lockout build, R4 and ML-31: S5 leaves the open trades line out,
+# its sweep line giving the count; S25 keeps it
+helpers_ml = [
+ ("ml_fmt_open_line_left_out_of_s5_with_its_sweep_line", "truec",
+  "StringFind(AgTgTextS5(c, D'2026.10.22 15:00:05', D'2026.10.23 01:00:00', 1800, 3, 0), AgTgOpenLine(3)) < 0"
+  " && StringFind(AgTgTextS25(c, 1, D'2026.10.22 15:00:05', 0, 0), AgTgOpenLine(3)) > 0", s4c),
+]
+
+
 def mql_str(s):
     assert all(ord(ch) < 128 for ch in s), "a non ASCII literal: " + repr(s)
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n") + '"'
@@ -314,6 +353,10 @@ code.append("   //--- pass B5, R3 and R4: the PNL line above zero, at zero, belo
 code.append("   //--- and not computed; the open trades line at none, one and several,")
 code.append("   //--- and left out of the lock messages whose sweep line gives the count")
 emit(helpers_b5)
+code.append("")
+code.append("   //--- the Manual Lockout build, R4 and ML-31: the open trades line left")
+code.append("   //--- out of S5, whose sweep line counts, and kept in S25")
+emit(helpers_ml)
 for l in code:
     assert all(ord(ch) < 128 for ch in l), "a non ASCII vector line: " + l
 unused = [l for l in drafts if l not in used]
@@ -329,5 +372,7 @@ i = v.index(head) + len(head)
 j = v.index(anchor)
 v = v[:i] + "\n".join(code) + "\n\n" + v[j:]
 open(VEC, "wb").write(v.replace("\n", "\r\n").encode("utf-8"))
-sys.stdout.buffer.write(("render vectors %d, helper vectors %d, of which pass B5 %d, drafts not rendered by any vector: %s\n"
-                         % (len(cases), len(helpers) + len(helpers_b5), len(helpers_b5), unused)).encode("utf-8"))
+sys.stdout.buffer.write(("render vectors %d, helper vectors %d, of which pass B5 %d and the Manual Lockout build %d,"
+                         " drafts not rendered by any vector: %s\n"
+                         % (len(cases), len(helpers) + len(helpers_b5) + len(helpers_ml), len(helpers_b5),
+                            len(helpers_ml), unused)).encode("utf-8"))
