@@ -15,6 +15,8 @@
 #include <AccountGuardian/Pnl.mqh>
 #include <AccountGuardian/Sweep.mqh>
 #include <AccountGuardian/AlertQueue.mqh>
+#include <AccountGuardian/ManualLockout.mqh>
+#include <AccountGuardian/LockoutPanel.mqh>
 
 //--- core config class: malformed means the EA refuses to run (Q4). R10,
 //--- D1f (FINAL 2026-09-03): both limits are mandatory list inputs, the
@@ -135,7 +137,7 @@ bool     g_ag_obs_resync_prev      = false;   // edge detector for the RESYNC li
 //--- BUILDER, THEIR OWN JOURNAL LINES AND ALERTS, AND THE PRODUCER ONLY. No
 //--- state, transition, breach test, sweep branch or expiry reads any of
 //--- them, which static row TG-S16 checks by grep, the Stage 6 discipline.
-#define AG_BUILD_LABEL "TG"
+#define AG_BUILD_LABEL "ML"
 //--- the account wide trade permission, read once per tick in every state
 //--- (S12 in ACTIVE, rulings of 2026-10-20 and 2026-10-21)
 bool     g_ag_tp_blocked          = false;
@@ -182,11 +184,30 @@ int      g_ag_tgp_prev_write_fail = 0;
 bool     g_ag_tgp_s3_sent         = false;
 int      g_ag_tgp_dispatch_state  = 0;      // set in OnTimer just before the dispatch
 int      g_ag_tgp_dispatch_fails  = 0;
+//--- Manual Lockout (ML-17 (A)): the producer's memory of the lockout's model,
+//--- read from the globals ManualLockout.mqh keeps, and the lockout's own end
+//--- waiting for its outcome, as an expiry waits for S8
+bool     g_ag_tgp_prev_ml_active  = false;
+datetime g_ag_tgp_prev_ml_end     = 0;
+bool     g_ag_tgp_prev_ml_only    = false;  // LOCKED by the lockout alone on the last tick
+bool     g_ag_tgp_s25_pending     = false;
+datetime g_ag_tgp_s25_end         = 0;
+//--- ML-35 (1): set by OnDeinit, true after a chart timeframe or symbol
+//--- change, reason 3. An in place re-init keeps it, a fresh image starts it
+//--- false, AgTgInitReset leaves it alone, and the producer clears it at the
+//--- first start of the init, which it silences: no S1 or S16, and S3 only
+//--- as ML-37 allows.
+bool     g_ag_tgp_quiet_start     = false;
+//--- ML-37: the halt time of the SAFE_HALT whose S3 last reached the queue
+//--- file, set by each successful queue write that carried an S3. Kept like
+//--- the quiet flag: an in place re-init keeps it, a fresh image starts it at
+//--- 0, which announces nothing, and AgTgInitReset leaves it alone.
+datetime g_ag_tgp_s3_announced    = 0;
 //--- what OnInit found, for the events pushed at its end
 int      g_ag_tg_halt_kind        = 0;      // 1 crash loop, 2 persisted from an earlier session
 int      g_ag_tg_halt_chain       = 0;
 int      g_ag_tg_init_source_mask = 0;      // S16: 1 the state file unexpired, 2 the lock GV unexpired
-int      g_ag_tg_init_quarantine  = 0;      // S17 at load: bit 0 state, 1 halt, 2 floor, 3 peak, 4 queue
+int      g_ag_tg_init_quarantine  = 0;      // S17 at load: bit 0 state, 1 halt, 2 floor, 3 peak, 4 queue, 5 the lockout's record
 bool     g_ag_tg_init_resumed     = false;  // S15
 
 //--- R10, D1f: the two limit inputs are enums whose backing integer is
@@ -253,7 +274,8 @@ string AgPnlNumbersString()
       return locked_prefix + AgLockedNumbersString(g_ag_locked_until, g_ag_state_limit_snap,
                                                    g_ag_state_base_snap, balance, floating,
                                                    balance + floating)
-           + "|sweep=" + (string)AgSweepOpenCount() + "/" + (string)AgSweepHeldCount();
+           + "|sweep=" + (string)AgSweepOpenCount() + "/" + (string)AgSweepHeldCount()
+           + (g_ag_ml_active ? AgManualLifeField(g_ag_ml_end) : "");   // ML-16, outside the six D2D4 fields
      }
    if(g_ag_state != AG_STATE_ACTIVE || !g_ag_have_pnl_numbers)
       return "";
@@ -296,7 +318,17 @@ void AgRefreshBanner()
    //--- the CANNOT_TRADE sub-condition on the ACTIVE line while a block holds
    if(g_ag_state == AG_STATE_ACTIVE && g_ag_tp_blocked)
       pnl += ", CANNOT_TRADE: " + g_ag_tp_block_name;
-   AgBanner(AgStateName(g_ag_state), AgLockReasonName(g_ag_lock_reason), g_ag_locked_until, pnl);
+   //--- ML-16: while LOCKED with a Manual Lockout, the effective end, and the
+   //--- lockout's name while it governs (ML-7)
+   string   banner_reason = AgLockReasonName(g_ag_lock_reason);
+   datetime banner_until  = g_ag_locked_until;
+   if(g_ag_state == AG_STATE_LOCKED && g_ag_ml_active)
+     {
+      banner_until = AgManualEffectiveEnd(g_ag_locked_until, g_ag_ml_active, g_ag_ml_end);
+      if(AgManualGoverns(g_ag_lock_reason != AG_LOCK_NONE, g_ag_locked_until, g_ag_ml_active, g_ag_ml_end))
+         banner_reason = AG_MANUAL_REASON_NAME;
+     }
+   AgBanner(AgStateName(g_ag_state), banner_reason, banner_until, pnl);
   }
 
 //+------------------------------------------------------------------+
@@ -700,6 +732,210 @@ void AgEnterLockFromBoot(const ENUM_AG_LOCK_REASON reason, const datetime until,
   }
 
 //+------------------------------------------------------------------+
+//| MANUAL LOCKOUT, rulings ML-1 to ML-27 of 2026-10-22. The second  |
+//| lock component's decisions, all in OnTimer (F13): the request    |
+//| the panel recorded, applied after the state dispatch; the        |
+//| lockout's boot witness at the SYNCING exit; its own end, before  |
+//| AgEvaluateLocked on every LOCKED tick. None of these writes      |
+//| locked_until, the lock reason or the state file (ML-9). The      |
+//| sweep runs unchanged on every LOCKED tick, whatever holds it.    |
+//+------------------------------------------------------------------+
+
+//--- ML-12 (A): who may engage or extend. why is the refusal name of the
+//--- journal, detail the panel's own words. TERMINAL_CONNECTED is read here
+//--- fresh, never through an observability global (question SIX).
+bool AgManualEligibility(string &why, string &detail)
+  {
+   why    = AgManualRefuseName(AG_ML_STATE);
+   detail = "";
+   if(!g_ag_ml_loaded)
+     {
+      why    = AgManualRefuseName(AG_ML_NOT_LOADED);
+      detail = why;
+      return false;
+     }
+   if(!(bool)TerminalInfoInteger(TERMINAL_CONNECTED))
+     {
+      detail = "disconnected";
+      return false;
+     }
+   if(g_ag_state == AG_STATE_LOCKED)
+      return true;
+   if(g_ag_state == AG_STATE_ACTIVE && !g_ag_resyncing)
+      return true;
+   detail = (g_ag_state == AG_STATE_ACTIVE) ? "reconnecting" : AgStateName(g_ag_state);
+   return false;
+  }
+
+//--- the effective end while LOCKED, 0 in every other state (ML-7, ML-10)
+datetime AgManualCurrentEnd()
+  {
+   if(g_ag_state != AG_STATE_LOCKED)
+      return 0;
+   return AgManualEffectiveEnd(g_ag_locked_until, g_ag_ml_active, g_ag_ml_end);
+  }
+
+//--- the one request the panel recorded, applied right after the state
+//--- dispatch. Q9: while ACTIVE holds a deferred breach the request waits one
+//--- tick, so the breach is declared first and the request then meets it.
+//--- Every check is taken again here, against the confirmation instant.
+void AgManualApplyPending()
+  {
+   if(!g_ag_panel_request.pending)
+      return;
+   if(g_ag_state == AG_STATE_ACTIVE && g_ag_breach_deferred_once)
+      return;
+   AgManualRequest r = g_ag_panel_request;
+   g_ag_panel_request.pending = false;
+   datetime now     = AgServerNow();
+   string   why     = "";
+   string   detail  = "";
+   int      outcome = AG_ML_OK;
+   if(!AgManualEligibility(why, detail))
+      outcome = g_ag_ml_loaded ? AG_ML_STATE : AG_ML_NOT_LOADED;
+   else
+     {
+      outcome = AgManualCheckEnd(r.clicked, r.end, r.form, AgManualCurrentEnd());
+      if(outcome == AG_ML_OK && r.end <= now)
+         outcome = AG_ML_TOO_SOON;
+     }
+   if(outcome != AG_ML_OK)
+     {
+      AgInfo(AgManualRefusedLine(AgManualRefuseName(outcome), "apply", AgStateName(g_ag_state),
+                                 r.form, r.end, now));
+      AgPanelApplied(false, AgManualRefuseName(outcome));
+      return;
+     }
+   bool     from_active = (g_ag_state == AG_STATE_ACTIVE);
+   datetime from_end    = g_ag_ml_end;
+   if(!g_ag_ml_active)
+      g_ag_ml_first_engaged = r.clicked;
+   g_ag_ml_active  = true;
+   g_ag_ml_engaged = r.clicked;
+   g_ag_ml_end     = r.end;
+   g_ag_ml_form    = r.form;
+   g_ag_ml_minutes = r.minutes;
+   AgManualSave();   // a failed write is loud in AgAtomicWrite and reported by S17
+   GlobalVariableSet(AgGvManual(), (double)(long)g_ag_ml_end);
+   GlobalVariablesFlush();
+   if(from_active)
+     {
+      //--- D4a, the Q6 input witness, seeded as at every lock entry
+      g_ag_locked_in_percent    = AgInputPercent();
+      g_ag_locked_in_currency   = AgInputCurrency();
+      g_ag_lock_inputs_captured = true;
+      //--- ENF-18(a): the counts the sweep is about to act on, one enumeration
+      //--- before the transition; the sweep starts on the next LOCKED dispatch
+      int positions = PositionsTotal();
+      int pendings  = AgSweepCountPendings();
+      AgInfo(AgManualEngagedLine(r.form, r.minutes, r.clicked, r.end, AgNextDayAnchor(r.clicked),
+                                 positions, pendings));
+      AgTransition(AG_STATE_LOCKED, AG_MANUAL_REASON_NAME, AgManualEndField(r.end));
+      AgSweepReset();
+      AgAlertEvent(AgManualEngageAlert(r.end, positions, pendings));
+      g_ag_dynamic_waiting_on = "";
+     }
+   else
+     {
+      AgInfo(AgManualExtendedLine(from_end, r.end, r.form, r.minutes, r.clicked));
+      AgAlertEvent(AgManualExtendAlert(r.end));
+     }
+   AgPanelApplied(true, "");
+  }
+
+//--- ML-18, ML-19: the lockout's boot witness at the SYNCING exit. The record
+//--- as loaded in OnInit and the AG_MANUAL mirror read now; the later end
+//--- governs, cut to the next anchor of now with no floor after it (ML-9). A
+//--- mirror alone, a later mirror or a cut end becomes the model, confirmed
+//--- now, and the record is written to match. Returns whether a lockout holds.
+bool AgManualBootFire(datetime &end_out)
+  {
+   end_out = 0;
+   datetime now    = AgServerNow();
+   double   gv_raw = 0.0;
+   datetime gv_end = 0;
+   if(GlobalVariableGet(AgGvManual(), gv_raw))
+      gv_end = (datetime)(long)gv_raw;
+   int  source = 0;
+   bool fired  = AgManualBootWitness(now, g_ag_ml_active, g_ag_ml_end, gv_end, end_out, source);
+   if(!fired)
+     {
+      g_ag_ml_active = false;   // an ended record stays on disk as written, inert
+      return false;
+     }
+   AgInfo(AgManualBootFiredLine(source, g_ag_ml_active ? g_ag_ml_end : (datetime)0, gv_end, end_out));
+   if(!g_ag_ml_active || end_out != g_ag_ml_end)
+     {
+      g_ag_ml_active        = true;
+      g_ag_ml_first_engaged = now;
+      g_ag_ml_engaged       = now;
+      g_ag_ml_end           = end_out;
+      AgManualSave();
+     }
+   return true;
+  }
+
+//--- a lockout alone at the SYNCING exit: the fourth LOCKED entry, beside
+//--- AgDeclareLock, AgEnterLockFromBoot and AgManualApplyPending. It never
+//--- touches the state model (ML-9).
+void AgEnterManualLockFromBoot(const datetime end)
+  {
+   g_ag_locked_in_percent    = AgInputPercent();
+   g_ag_locked_in_currency   = AgInputCurrency();
+   g_ag_lock_inputs_captured = true;
+   int sweep_positions = PositionsTotal();
+   int sweep_pendings  = AgSweepCountPendings();
+   AgTransition(AG_STATE_LOCKED, "boot derivation: " + AG_MANUAL_REASON_NAME, AgManualEndField(end));
+   AgSweepReset();
+   AgAlertEvent(AgManualBootAlert(end, sweep_positions, sweep_pendings));
+   g_ag_dynamic_waiting_on = "";
+  }
+
+//--- a lockout and a loss lock at the SYNCING exit together: the loss lock
+//--- entered unchanged, the lockout held beside it, the later end governing
+void AgManualHoldWithBootLock(const datetime end)
+  {
+   AgInfo(AgManualHoldsLine(end, g_ag_locked_until,
+                            AgManualGoverns(g_ag_lock_reason != AG_LOCK_NONE, g_ag_locked_until, true, end)));
+  }
+
+//--- ML-6, ML-7: the lockout's own end, before AgEvaluateLocked on every
+//--- LOCKED tick. Ended while a loss lock still holds: the lockout goes and
+//--- the loss lock stays. Ended with nothing else holding: journaled here,
+//--- released by AgEvaluateLocked on this same tick, the model cleared after.
+void AgManualLockedPass()
+  {
+   if(!g_ag_ml_active)
+      return;
+   datetime now = AgServerNow();
+   if(now < g_ag_ml_end)
+      return;
+   if(now < g_ag_locked_until)
+     {
+      AgInfo(AgManualEndedUnderLossLine(g_ag_ml_end, g_ag_locked_until, now));
+      g_ag_ml_active = false;
+      return;
+     }
+   AgInfo(AgManualExpiredLine(g_ag_ml_end, now));
+  }
+
+//--- the tick AgEvaluateLocked released the account: the lockout's model goes
+//--- with it; the record stays on disk as written, inert, its end passed
+void AgManualAfterExpiry()
+  {
+   if(g_ag_ml_active && AgServerNow() >= g_ag_ml_end)
+      g_ag_ml_active = false;
+  }
+
+//--- ML-18 (A): the record read back at the LIFE cadence while a lockout holds
+void AgManualHeal()
+  {
+   if(!g_ag_ml_active || !g_ag_ml_loaded || g_timer_ticks % AG_LIFE_INTERVAL_SECONDS != 0)
+      return;
+   AgManualHealRecord();
+  }
+
+//+------------------------------------------------------------------+
 //| LOCKED-state dispatch. EXPIRY IS THE ONLY UNLOCK PATH and the    |
 //| comparison is TimeCurrent >= locked_until, per Q7 (FINAL) which  |
 //| makes TimeCurrent the only permitted clock in an expiry          |
@@ -751,9 +987,10 @@ void AgEvaluateLocked()
      }
 
    datetime now_server = AgServerNow();
-   if(now_server >= g_ag_locked_until)
+   datetime lock_end   = AgManualEffectiveEnd(g_ag_locked_until, g_ag_ml_active, g_ag_ml_end);   // ML-7
+   if(now_server >= lock_end)
      {
-      AgInfo("lock expired|locked_until=" + TimeToString(g_ag_locked_until, TIME_DATE | TIME_SECONDS)
+      AgInfo("lock expired|locked_until=" + TimeToString(lock_end, TIME_DATE | TIME_SECONDS)
              + "|server=" + TimeToString(now_server, TIME_DATE | TIME_SECONDS));
       g_ag_lock_reason  = AG_LOCK_NONE;
       g_ag_locked_until = 0;
@@ -1122,7 +1359,9 @@ void AgEnterSafeHalt(const string reason)
 //--- the common result line of every event, as the state reads now (1.2)
 void AgTgPnlNow(int &mode, double &pnl, double &limit)
   {
-   if(g_ag_state == AG_STATE_LOCKED && g_ag_state_limit_snap > 0.0)
+   //--- the breach snapshot while a loss lock holds; a Manual Lockout alone
+   //--- has no day result to show and reads not computed yet (R3)
+   if(g_ag_state == AG_STATE_LOCKED && g_ag_lock_reason != AG_LOCK_NONE && g_ag_state_limit_snap > 0.0)
      {
       mode  = AG_TG_PNL_LOCKED;
       pnl   = AccountInfoDouble(ACCOUNT_BALANCE) + AgFloating() - g_ag_state_base_snap;
@@ -1226,7 +1465,7 @@ void AgTgSnapshotNow(AgTgSnapshot &s)
    s.peak             = g_ag_peak_currency;
    s.peak_level       = AgPeakEffectiveLevel(enforced, g_ag_last_anchor);
    s.anchor           = (long)g_ag_last_anchor;
-   s.locked_until     = (long)g_ag_locked_until;
+   s.locked_until     = (long)AgManualEffectiveEnd(g_ag_locked_until, g_ag_ml_active, g_ag_ml_end);   // ML-16
    s.limit_snap       = g_ag_state_limit_snap;
    s.base_snap        = g_ag_state_base_snap;
    s.percent          = AgInputPercent();
@@ -1256,6 +1495,9 @@ void AgTgQueueWrite(const bool force)
       g_ag_tgq_dirty      = false;
       g_ag_tgq_last_write = now_local;
       g_ag_tgq_deferred   = 0;
+      //--- ML-37: the file now holds every event of the model, so the last S3
+      //--- among them has reached it; a write that carries none keeps the record
+      g_ag_tgp_s3_announced = AgTgS3HaltTimeIn(g_ag_tgq_events, g_ag_tgq_count, g_ag_tgp_s3_announced);
       return;
      }
    g_ag_tgq_deferred++;
@@ -1372,13 +1614,14 @@ void AgTgSetRefused(const int code)
    GlobalVariablesFlush();
   }
 
-//--- which lock, halt, floor or peak file a loud write failure named (S17)
+//--- which lock, halt, floor, peak or lockout file a loud write failure named (S17)
 int AgTgFileKind(const string path)
   {
    if(path == AgStatePath()) return 1;
    if(path == AgHaltPath())  return 2;
    if(path == AgFloorPath()) return 3;
    if(path == AgPeakPath())  return 4;
+   if(path == AgManualPath()) return 6;
    return 0;
   }
 
@@ -1487,25 +1730,41 @@ void AgTgProduce()
    bool pass_completed = (g_ag_tgp_dispatch_state == AG_STATE_ACTIVE)
                          && !g_ag_degraded && !g_ag_resyncing
                          && g_ag_history_fail_count == g_ag_tgp_dispatch_fails;
+   //--- Manual Lockout (ML-17 (A)): LOCKED by the lockout alone, no loss lock reason
+   bool ml_only = (st == AG_STATE_LOCKED && g_ag_lock_reason == AG_LOCK_NONE && g_ag_ml_active);
 
-   //--- S3, SAFE_HALT: once per init, on its first tick
+   //--- S3, SAFE_HALT: once per init, on its first tick. After a chart
+   //--- timeframe or symbol change none for the same SAFE_HALT an earlier S3
+   //--- already announced; a SAFE_HALT new at this init always sends it
+   //--- (ML-35 (1), ML-37)
    if(st == AG_STATE_SAFE_HALT && !g_ag_tgp_s3_sent)
      {
       g_ag_tgp_s3_sent = true;
-      AgTgPush(AG_TG_S3, g_ag_tg_halt_kind, (double)(long)g_ag_halt_time, g_ag_tg_halt_chain,
-               AG_CRASH_LOOP_WINDOW_SECONDS);
+      if(!AgTgS3Silenced(g_ag_tgp_quiet_start, g_ag_tgp_s3_announced, g_ag_halt_time))
+         AgTgPush(AG_TG_S3, g_ag_tg_halt_kind, (double)(long)g_ag_halt_time, g_ag_tg_halt_chain,
+                  AG_CRASH_LOOP_WINDOW_SECONDS);
+      g_ag_tgp_quiet_start = false;
      }
 
-   //--- the SYNCING exits: the first after this init is S1 or S16, an exit
-   //--- after an expiry is S8
+   //--- the SYNCING exits: the first after this init is S1 or S16, none into
+   //--- a Manual Lockout alone (ML-30, ML-34) and none after a chart timeframe
+   //--- or symbol change (ML-35 (1)); an exit after an expiry is S8, or S25
+   //--- after a lockout's own end (ML-17 (A))
    if(prev == AG_STATE_SYNCING && st == AG_STATE_ACTIVE && !g_ag_tgp_first_exit_done)
      {
       g_ag_tgp_first_exit_done = true;
-      g_ag_tgp_s1_pending      = true;   // the figures come with the first completed pass
+      g_ag_tgp_s1_pending      = !g_ag_tgp_quiet_start;   // the figures come with the first completed pass
+      g_ag_tgp_quiet_start     = false;
      }
    if(prev == AG_STATE_SYNCING && st == AG_STATE_LOCKED)
      {
-      if(g_ag_tgp_first_exit_done && g_ag_tgp_s8_pending)
+      if(g_ag_tgp_first_exit_done && g_ag_tgp_s25_pending)
+        {
+         g_ag_tgp_s25_pending = false;
+         AgTgPush(AG_TG_S25, 2, (double)(long)g_ag_tgp_s25_end, (double)(long)g_ag_locked_until,
+                  (int)g_ag_lock_reason);
+        }
+      else if(g_ag_tgp_first_exit_done && g_ag_tgp_s8_pending)
         {
          g_ag_tgp_s8_pending = false;
          AgTgPush(AG_TG_S8, 2, (double)(long)g_ag_locked_until, g_ag_state_limit_snap);
@@ -1513,18 +1772,28 @@ void AgTgProduce()
       else
         {
          g_ag_tgp_first_exit_done = true;
-         int mask = (g_ag_tg_init_source_mask != 0) ? g_ag_tg_init_source_mask : 4;
-         AgTgPush(AG_TG_S16, (int)g_ag_lock_reason, (double)(long)g_ag_locked_until, mask,
-                  g_ag_state_limit_snap, PositionsTotal(), AgSweepCountPendings());
+         if(!ml_only && !g_ag_tgp_quiet_start)
+           {
+            int mask = (g_ag_tg_init_source_mask != 0) ? g_ag_tg_init_source_mask : 4;
+            AgTgPush(AG_TG_S16, (int)g_ag_lock_reason, (double)(long)g_ag_locked_until, mask,
+                     g_ag_state_limit_snap, PositionsTotal(), AgSweepCountPendings());
+           }
+         g_ag_tgp_quiet_start = false;
         }
      }
    if(prev == AG_STATE_LOCKED && st == AG_STATE_SYNCING)
      {
-      g_ag_tgp_s8_pending       = true;
-      g_ag_tgp_s8_expired_until = g_ag_tgp_prev_locked_until;
+      //--- one release, one outcome pending: the other flag is cleared, so an
+      //--- outcome an earlier release left unsent never doubles or replaces this one
+      g_ag_tgp_s25_pending = g_ag_tgp_prev_ml_only;
+      g_ag_tgp_s8_pending  = !g_ag_tgp_prev_ml_only;
+      if(g_ag_tgp_prev_ml_only)
+         g_ag_tgp_s25_end = g_ag_tgp_prev_ml_end;
+      else
+         g_ag_tgp_s8_expired_until = g_ag_tgp_prev_locked_until;
      }
 
-   //--- the completed ACTIVE pass: S1, S8 released, S9, S19 held raise, S20
+   //--- the completed ACTIVE pass: S1, S8 released, S25 released, S9, S19 held raise, S20
    if(pass_completed)
      {
       double enforced   = AgFloorEffectiveLimit(g_ag_last_limit, g_ag_last_anchor);
@@ -1540,6 +1809,12 @@ void AgTgProduce()
          g_ag_tgp_s8_pending = false;
          AgTgPushFull(AG_TG_S8, AG_TG_PNL_ACTIVE, g_ag_last_pnl, enforced,
                       1, (double)(long)g_ag_tgp_s8_expired_until, enforced);
+        }
+      if(g_ag_tgp_s25_pending && st == AG_STATE_ACTIVE)
+        {
+         g_ag_tgp_s25_pending = false;
+         AgTgPushFull(AG_TG_S25, AG_TG_PNL_ACTIVE, g_ag_last_pnl, enforced,
+                      1, (double)(long)g_ag_tgp_s25_end);
         }
       if(st == AG_STATE_ACTIVE)
         {
@@ -1579,8 +1854,17 @@ void AgTgProduce()
    //--- S4, ACTIVE to LOCKED, with the breach pass's figures. The crossed
    //--- limit by the plan's field map: the peak when the peak set the level,
    //--- else the held floor when it was below the live limit, else the smaller
-   //--- of the two legs.
-   if(prev == AG_STATE_ACTIVE && st == AG_STATE_LOCKED)
+   //--- of the two legs. A Manual Lockout alone is S5 instead, with the
+   //--- engaging pass's figures, sent at the engagement only (ML-17 (A), ML-30).
+   if(prev == AG_STATE_ACTIVE && st == AG_STATE_LOCKED && ml_only)
+     {
+      double ml_enforced = AgFloorEffectiveLimit(g_ag_last_limit, g_ag_last_anchor);
+      AgTgPushFull(AG_TG_S5, g_ag_have_pnl_numbers ? AG_TG_PNL_ACTIVE : AG_TG_PNL_NONE,
+                   g_ag_have_pnl_numbers ? g_ag_last_pnl : 0.0, g_ag_have_pnl_numbers ? ml_enforced : 0.0,
+                   (double)(long)g_ag_ml_end, (double)(long)AgNextDayAnchor(g_ag_ml_engaged),
+                   (double)((long)g_ag_ml_end - (long)g_ag_ml_engaged), PositionsTotal(), AgSweepCountPendings());
+     }
+   else if(prev == AG_STATE_ACTIVE && st == AG_STATE_LOCKED)
      {
       double snap = g_ag_state_limit_snap;
       int    kind = 2;
@@ -1594,6 +1878,11 @@ void AgTgProduce()
                    kind, (double)(long)g_ag_locked_until, snap, AgInputPercent(), AgInputCurrency(),
                    g_ag_peak_currency, PositionsTotal(), AgSweepCountPendings());
      }
+   //--- ML-17 (A): a lockout that ended while a loss lock holds the account;
+   //--- an extension sends nothing (ML-30)
+   if(prev == AG_STATE_LOCKED && st == AG_STATE_LOCKED && !g_ag_ml_active && g_ag_tgp_prev_ml_active)
+      AgTgPush(AG_TG_S25, 2, (double)(long)g_ag_tgp_prev_ml_end, (double)(long)g_ag_locked_until,
+               (int)g_ag_lock_reason);
 
    //--- S10, the broker connection back after 30 s or more
    if(g_ag_tgp_prev_connected && !g_ag_obs_connected)
@@ -1673,6 +1962,9 @@ void AgTgProduce()
 
    g_ag_tgp_prev_state        = st;
    g_ag_tgp_prev_locked_until = g_ag_locked_until;
+   g_ag_tgp_prev_ml_active    = g_ag_ml_active;
+   g_ag_tgp_prev_ml_end       = g_ag_ml_end;
+   g_ag_tgp_prev_ml_only      = ml_only;
 
    AgTgAckRead();
    AgTgQueueWrite(false);
@@ -1722,6 +2014,11 @@ void AgTgInitReset()
    g_ag_tgp_s3_sent         = false;
    g_ag_tgp_dispatch_state  = 0;
    g_ag_tgp_dispatch_fails  = g_ag_history_fail_count;
+   g_ag_tgp_prev_ml_active  = false;
+   g_ag_tgp_prev_ml_end     = 0;
+   g_ag_tgp_prev_ml_only    = false;
+   g_ag_tgp_s25_pending     = false;
+   g_ag_tgp_s25_end         = 0;
    g_ag_tg_halt_kind        = 0;
    g_ag_tg_halt_chain       = 0;
    g_ag_tg_init_source_mask = 0;
@@ -1737,7 +2034,7 @@ void AgTgInitEvents()
       AgTgPush(AG_TG_S15);
    if(g_ag_mutex_takeover_age > 0)
       AgTgPush(AG_TG_S18, g_ag_mutex_takeover_age);
-   for(int kind = 1; kind <= 5; kind++)
+   for(int kind = 1; kind <= 6; kind++)
       if((g_ag_tg_init_quarantine & (1 << (kind - 1))) != 0)
          AgTgPush(AG_TG_S17, kind, 2);
    g_ag_tgp_prev_state = (int)g_ag_state;
@@ -1748,9 +2045,9 @@ int OnInit()
   {
    g_ag_verbosity = LogVerbosity;
    g_ag_login     = AccountInfoInteger(ACCOUNT_LOGIN);
-   //--- build label, standing rule 7's identity channel: TG names the
-   //--- content of this build, the Telegram alerts (TG-1 (B) of
-   //--- 2026-10-20, design addendum item 10).
+   //--- build label, standing rule 7's identity channel: ML names the
+   //--- content of this build, the Manual Lockout (rulings ML-1 to ML-27
+   //--- of 2026-10-22, ML-24 (A)), on top of the Telegram alerts.
    AgInfo("init|build=" + AG_BUILD_LABEL + "|account=" + (string)g_ag_login + "|server=" + AccountInfoString(ACCOUNT_SERVER));
    //--- sweep state is in memory only and starts empty in every image; the
    //--- LOCKED entry resets it again so each lock episode starts from zero
@@ -1758,6 +2055,9 @@ int OnInit()
    //--- Telegram alerts: the alert state starts afresh in every init, an in
    //--- place re-init included, and the queue is loaded after the mutex
    AgTgInitReset();
+   //--- Manual Lockout: the panel's stage and any request start afresh, an
+   //--- in place re-init included
+   AgPanelInitReset();
 
    //--- core config validation (Q4): refuse to run, visibly
    string why = "";
@@ -1793,6 +2093,9 @@ int OnInit()
    //--- Telegram alerts (1.4): the queue, right after the mutex and before any
    //--- branch that returns; a load that cannot be taken now is retried per tick
    AgTgQueueLoad();
+   //--- Manual Lockout panel (ML-3, ML-15), drawn by the instance that owns
+   //--- the mutex only, and hidden until the first timer tick renders it
+   AgPanelCreate();
 
    //--- crash-loop evidence, persisted across process death (A1)
    int load_result = AgHaltLoad();
@@ -1886,6 +2189,18 @@ int OnInit()
              " and no lock follows, the peak not being lock state");
       g_ag_tg_init_quarantine |= 8;   // Telegram alerts, S17 at load
      }
+
+   //--- Manual Lockout record (ML-18, ML-19). Loaded for the same reason the
+   //--- state file is, so that it can ever be written; what it says is weighed
+   //--- at the SYNCING exit by the lockout's own boot witness, never here.
+   int ml_result = AgManualLoad();
+   if(ml_result == 0)
+      AgInfo(AgManualLoadedLine(g_ag_ml_active, g_ag_ml_end));
+   else if(ml_result >= 2)
+      g_ag_tg_init_quarantine |= 32;   // Telegram alerts, S17 at load, kind 6
+   double ml_gv_init = 0.0;
+   GlobalVariableGet(AgGvManual(), ml_gv_init);
+   AgInfo(AgManualGvInitLine((datetime)(long)ml_gv_init));
 
    double gv_halt = 0.0;
    bool   was_halted_before = (GlobalVariableGet(AgGvHaltFlag(), gv_halt) && gv_halt > 0.5);
@@ -1999,6 +2314,9 @@ void OnTimer()
    if(g_owns_mutex && (g_ag_state == AG_STATE_ACTIVE || g_ag_state == AG_STATE_LOCKED))
      {
       GlobalVariableSet(AgGvLock(), (double)(long)g_ag_locked_until);
+      //--- ML-18 (A): the lockout's mirror, the bare end, under the same gate
+      if(g_ag_ml_loaded)
+         GlobalVariableSet(AgGvManual(), (double)(long)(g_ag_ml_active ? g_ag_ml_end : (datetime)0));
       GlobalVariablesFlush();
      }
 
@@ -2019,6 +2337,10 @@ void OnTimer()
    AgTgPermissionRead();
 
    string waiting_on = AgWaitingOn();
+   //--- ML-16: while the lockout governs, the condition actually waited on
+   if(g_ag_state == AG_STATE_LOCKED
+      && AgManualGoverns(g_ag_lock_reason != AG_LOCK_NONE, g_ag_locked_until, g_ag_ml_active, g_ag_ml_end))
+      waiting_on = "expiry: TimeCurrent >= manual_end";
    string obs_note   = AgObservabilityNote();
    if(obs_note != "")
      {
@@ -2032,6 +2354,26 @@ void OnTimer()
    AgProofOfLife(AgStateName(g_ag_state), AgSecondsInState(), waiting_on,
                  AG_LIFE_INTERVAL_SECONDS, AgPnlNumbersString());
    AgRefreshBanner();
+   //--- Manual Lockout panel (ML-12, ML-15, ML-16): what the trader may do now,
+   //--- and the remaining time. Display only; the request is applied below,
+   //--- after the dispatch.
+   string   ml_why      = "";
+   string   ml_detail   = "";
+   bool     ml_eligible = AgManualEligibility(ml_why, ml_detail);
+   bool     ml_locked   = (g_ag_state == AG_STATE_LOCKED);
+   datetime ml_now      = AgServerNow();
+   bool     ml_governs  = ml_locked && AgManualGoverns(g_ag_lock_reason != AG_LOCK_NONE, g_ag_locked_until,
+                                                       g_ag_ml_active, g_ag_ml_end);
+   string   ml_ext_why  = "";
+   if(!ml_eligible)
+      ml_ext_why = ml_why;
+   else if(g_ag_lock_reason != AG_LOCK_NONE)
+      ml_ext_why = AgManualRefuseName(AG_ML_NOT_LATER);
+   else if(!g_ag_ml_active || g_ag_ml_end >= AgNextDayAnchor(ml_now))
+      ml_ext_why = AgManualRefuseName(AG_ML_PAST_ANCHOR);
+   AgPanelRefresh(g_ag_login, ml_eligible, ml_detail, ml_locked, AgManualCurrentEnd(),
+                  ml_governs ? AG_MANUAL_REASON_NAME : AgLockReasonName(g_ag_lock_reason),
+                  ml_locked && ml_ext_why == "", ml_ext_why, PositionsTotal(), AgSweepCountPendings(), ml_now);
 
    //--- Telegram alerts: what the dispatch below starts from, so the producer
    //--- can tell a completed ACTIVE pass from an early return. Read by the
@@ -2067,6 +2409,13 @@ void OnTimer()
          double   boot_base          = 0.0;
          int derived = AgBootDerivation(boot_reason, boot_until, boot_have_snapshot,
                                         boot_breach_time, boot_limit, boot_base);
+         //--- Manual Lockout (ML-9, ML-18, ML-19): its own boot witness, weighed
+         //--- after the derivation and outside it, never on a pass the
+         //--- derivation could not evaluate
+         datetime ml_boot_end   = 0;
+         bool     ml_boot_fired = false;
+         if(derived != 2)
+            ml_boot_fired = AgManualBootFire(ml_boot_end);
          if(derived == 2)
            {
             g_ag_dynamic_waiting_on = "boot derivation not evaluable, retrying";
@@ -2075,7 +2424,11 @@ void OnTimer()
            {
             AgEnterLockFromBoot(boot_reason, boot_until, boot_have_snapshot,
                                 boot_breach_time, boot_limit, boot_base);
+            if(ml_boot_fired)
+               AgManualHoldWithBootLock(ml_boot_end);
            }
+         else if(ml_boot_fired)
+            AgEnterManualLockFromBoot(ml_boot_end);
          else
            {
             AgTransition(AG_STATE_ACTIVE, "history stable",
@@ -2090,6 +2443,8 @@ void OnTimer()
       AgEvaluateActive();
    else if(g_ag_state == AG_STATE_LOCKED)
      {
+      //--- ML-6, ML-7: the lockout's own end first, then the one expiry path
+      AgManualLockedPass();
       AgEvaluateLocked();
       //--- ENF-1(b), ENF-21(a), ENF-22(a): LOCKED is the only state whose
       //--- dispatch sweeps, on every LOCKED tick, and an expiry this pass
@@ -2097,7 +2452,17 @@ void OnTimer()
       //--- return above and gated on the state, which is static row ENF-S3.
       if(g_ag_state == AG_STATE_LOCKED)
          AgSweepPass("timer");
+      //--- ML-18 (A) while still LOCKED; the lockout's model cleared on the
+      //--- tick that released the account
+      if(g_ag_state == AG_STATE_LOCKED)
+         AgManualHeal();
+      else
+         AgManualAfterExpiry();
      }
+
+   //--- Manual Lockout (ML-10 to ML-15): the request the panel recorded,
+   //--- applied after the dispatch, so this tick's breach decision comes first
+   AgManualApplyPending();
 
    //--- Stage 6: RESYNC entry and exit lines, edge-triggered on the flag the
    //--- Q10 reconnect-coherence gate already maintains. Placed AFTER the
@@ -2162,6 +2527,17 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
 void OnTick() { }
 
 //+------------------------------------------------------------------+
+//| The Manual Lockout panel's events (ML-3, ML-15). Presentation    |
+//| only: a click changes the panel's own stage or records the one   |
+//| request OnTimer applies (F13); nothing here decides, writes a    |
+//| file or a GV, or reaches the sweep.                              |
+//+------------------------------------------------------------------+
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+  {
+   AgPanelOnEvent(id, lparam, dparam, sparam);
+  }
+
+//+------------------------------------------------------------------+
 //| Clean exit marks the session clean, so routine re-inits never    |
 //| accumulate toward SAFE_HALT (A1). Never touches lock state.      |
 //+------------------------------------------------------------------+
@@ -2191,9 +2567,18 @@ void OnDeinit(const int reason)
      {
       AgTgDrainSweepNotes();
       AgTgAckRead();
-      AgTgPush(AG_TG_S2, reason);
+      //--- ML-35 (1): a chart timeframe or symbol change, reason 3, sends no
+      //--- stop; the queue is still written, so nothing pending is lost
+      if(!AgTgSilentReason(reason))
+         AgTgPush(AG_TG_S2, reason);
       AgTgQueueWrite(true);
      }
+   //--- ML-35 (1): the init that follows a reason 3 change sends no start
+   //--- message, and under ML-37 no S3 for a SAFE_HALT whose S3 a queue write,
+   //--- the one above included, already carried. An in place re-init keeps
+   //--- this global, a fresh image starts it false, and every other reason
+   //--- clears it here.
+   g_ag_tgp_quiet_start = AgTgSilentReason(reason);
    if(g_owns_mutex)
       AgMutexRelease();
    AgInfo("deinit|reason=" + (string)reason + "|session marked clean"
@@ -2203,6 +2588,9 @@ void OnDeinit(const int reason)
    //--- dated REFUSED banner on the chart. The gate keys on the dedicated
    //--- refusal flag, never on a proxy like g_ag_halt_loaded, whose semantic
    //--- is model-loaded, not init-refused. The skip is logged, never silent.
+   //--- Manual Lockout panel: its own objects only, by prefix; none were drawn
+   //--- after a refused init
+   AgPanelDelete();
    if(g_init_refused)
       AgInfo("deinit|banner NOT cleared: init was refused, dated REFUSED banner stays on the chart");
    else
