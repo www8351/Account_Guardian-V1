@@ -1550,6 +1550,327 @@ void OnStart()
    AgVecCheck("tg_line_inbound", AgTgInboundLine(1, 2) == "alerts inbound|matched=1|ignored=2", "");
    AgVecCheck("tg_line_stopping", AgTgStoppingLine(0) == "alerts service stopping|unsent=0", "");
 
+   //================================================================
+   //--- ML, the Manual Lockout build (rulings ML-1 to ML-27 of
+   //--- 2026-10-22, plan docs/PLAN_MANUAL_LOCKOUT_2026-10-22.md section 11):
+   //--- the bounds, the two parsers, the record and its file family on the
+   //--- synthetic logins 990000031 and 990000039, the boot witness, every
+   //--- line and ALERT shape of ML-21, the reason 3 silence of ML-35 (1) and
+   //--- its S3 under ML-37. No GV is touched.
+   //================================================================
+   datetime ml_t0  = D'2026.10.22 14:30:05';
+   datetime ml_anc = D'2026.10.23 01:00:00';
+   AgVecCheckDT("ml_max_end_is_the_next_anchor", AgManualMaxEnd(ml_t0), ml_anc);
+   AgVecCheckDT("ml_max_end_a_second_before_the_anchor", AgManualMaxEnd(D'2026.10.23 00:59:59'), ml_anc);
+   AgVecCheckDT("ml_max_end_at_the_anchor_second_is_the_following_anchor",
+                AgManualMaxEnd(D'2026.10.23 01:00:00'), D'2026.10.24 01:00:00');
+   AgVecCheckDT("ml_end_of_minutes", AgManualEndOfMinutes(ml_t0, 30), D'2026.10.22 15:00:05');
+   AgVecCheckDT("ml_end_of_day_is_the_next_anchor", AgManualEndOfDay(ml_t0), ml_anc);
+   AgVecCheckDT("ml_end_at_time_later_today", AgManualEndAtTime(ml_t0, 16, 0), D'2026.10.22 16:00:00');
+   AgVecCheckDT("ml_end_at_time_after_midnight_before_the_anchor",
+                AgManualEndAtTime(D'2026.10.22 23:00:00', 0, 45), D'2026.10.23 00:45:00');
+   AgVecCheckDT("ml_end_at_time_after_the_anchor_lies_past_it",
+                AgManualEndAtTime(D'2026.10.22 23:00:00', 1, 15), D'2026.10.23 01:15:00');
+   AgVecCheckDT("ml_end_at_time_the_anchor_itself",
+                AgManualEndAtTime(D'2026.10.22 23:00:00', 1, 0), ml_anc);
+   AgVecCheckDT("ml_end_at_time_the_current_minute_means_tomorrow",
+                AgManualEndAtTime(D'2026.10.22 23:00:30', 23, 0), D'2026.10.23 23:00:00');
+   AgVecCheckDT("ml_end_at_time_in_the_hour_before_the_anchor",
+                AgManualEndAtTime(D'2026.10.23 00:30:00', 0, 50), D'2026.10.23 00:50:00');
+   AgVecCheck("ml_end_for_each_form",
+              AgManualEndFor(ml_t0, AG_ML_FORM_DURATION, 15, 0, 0) == D'2026.10.22 14:45:05'
+              && AgManualEndFor(ml_t0, AG_ML_FORM_END_OF_DAY, 0, 0, 0) == ml_anc
+              && AgManualEndFor(ml_t0, AG_ML_FORM_END_TIME, 0, 16, 0) == D'2026.10.22 16:00:00'
+              && AgManualEndFor(ml_t0, AG_ML_FORM_NONE, 15, 16, 0) == 0, "end for");
+   AgVecCheckInt("ml_check_thirty_minutes", AgManualCheckEnd(ml_t0, ml_t0 + 1800, AG_ML_FORM_DURATION, 0), AG_ML_OK);
+   AgVecCheckInt("ml_check_end_of_session_ends_on_the_anchor",
+                 AgManualCheckEnd(ml_t0, ml_anc, AG_ML_FORM_END_OF_DAY, 0), AG_ML_OK);
+   AgVecCheckInt("ml_check_a_second_past_the_anchor_is_refused",
+                 AgManualCheckEnd(ml_t0, ml_anc + 1, AG_ML_FORM_DURATION, 0), AG_ML_PAST_ANCHOR);
+   AgVecCheckInt("ml_check_custom_minutes_past_the_anchor_are_refused",
+                 AgManualCheckEnd(ml_t0, AgManualEndOfMinutes(ml_t0, 700), AG_ML_FORM_DURATION, 0), AG_ML_PAST_ANCHOR);
+   AgVecCheckInt("ml_check_one_hour_in_the_last_half_hour_is_refused",
+                 AgManualCheckEnd(D'2026.10.23 00:30:00', AgManualEndOfMinutes(D'2026.10.23 00:30:00', 60),
+                                  AG_ML_FORM_DURATION, 0), AG_ML_PAST_ANCHOR);
+   AgVecCheckInt("ml_check_an_end_time_past_the_anchor_is_refused",
+                 AgManualCheckEnd(D'2026.10.22 23:00:00', AgManualEndAtTime(D'2026.10.22 23:00:00', 1, 15),
+                                  AG_ML_FORM_END_TIME, 0), AG_ML_PAST_ANCHOR);
+   AgVecCheckInt("ml_check_an_end_time_under_60_s_is_refused",
+                 AgManualCheckEnd(D'2026.10.22 23:00:30', AgManualEndAtTime(D'2026.10.22 23:00:30', 23, 1),
+                                  AG_ML_FORM_END_TIME, 0), AG_ML_TOO_SOON);
+   AgVecCheckInt("ml_check_an_end_time_60_s_ahead",
+                 AgManualCheckEnd(D'2026.10.22 23:00:00', AgManualEndAtTime(D'2026.10.22 23:00:00', 23, 1),
+                                  AG_ML_FORM_END_TIME, 0), AG_ML_OK);
+   AgVecCheckInt("ml_check_an_end_not_after_now_is_refused",
+                 AgManualCheckEnd(ml_t0, ml_t0, AG_ML_FORM_DURATION, 0), AG_ML_TOO_SOON);
+   AgVecCheckInt("ml_check_an_extension_earlier_is_refused",
+                 AgManualCheckEnd(ml_t0, ml_t0 + 900, AG_ML_FORM_DURATION, ml_t0 + 1800), AG_ML_NOT_LATER);
+   AgVecCheckInt("ml_check_an_extension_to_the_same_end_is_refused",
+                 AgManualCheckEnd(ml_t0, ml_t0 + 1800, AG_ML_FORM_DURATION, ml_t0 + 1800), AG_ML_NOT_LATER);
+   AgVecCheckInt("ml_check_an_extension_later",
+                 AgManualCheckEnd(ml_t0, ml_t0 + 3600, AG_ML_FORM_DURATION, ml_t0 + 1800), AG_ML_OK);
+   AgVecCheckInt("ml_check_under_a_loss_lock_to_the_anchor_is_refused",
+                 AgManualCheckEnd(ml_t0, ml_anc, AG_ML_FORM_END_OF_DAY, ml_anc), AG_ML_NOT_LATER);
+   AgVecCheck("ml_effective_end_the_later_governs",
+              AgManualEffectiveEnd(ml_anc, true, ml_t0 + 900) == ml_anc
+              && AgManualEffectiveEnd(0, true, ml_t0 + 900) == ml_t0 + 900
+              && AgManualEffectiveEnd(ml_anc, false, D'2026.10.24 01:00:00') == ml_anc
+              && AgManualEffectiveEnd(0, false, ml_t0 + 900) == 0, "effective end");
+   AgVecCheck("ml_governs",
+              AgManualGoverns(false, 0, true, ml_t0 + 900)
+              && !AgManualGoverns(true, ml_anc, true, ml_t0 + 900)
+              && AgManualGoverns(true, ml_t0 + 600, true, ml_t0 + 900)
+              && !AgManualGoverns(false, 0, false, ml_t0 + 900), "governs");
+   AgVecCheck("ml_record_bounds",
+              AgManualRecordInBounds(ml_t0, ml_t0, ml_t0 + 1800)
+              && AgManualRecordInBounds(ml_t0, ml_t0, ml_anc)
+              && AgManualRecordInBounds(ml_t0, ml_t0 + 600, ml_anc)
+              && !AgManualRecordInBounds(ml_t0, ml_t0, ml_anc + 1)
+              && !AgManualRecordInBounds(0, ml_t0, ml_t0 + 1800)
+              && !AgManualRecordInBounds(ml_t0, ml_t0 - 1, ml_t0 + 1800)
+              && !AgManualRecordInBounds(ml_t0, ml_t0, ml_t0), "bounds");
+   datetime ml_end   = 0;
+   int      ml_src   = 0;
+   bool     ml_fired = AgManualBootWitness(ml_t0 + 60, true, ml_t0 + 1800, 0, ml_end, ml_src);
+   AgVecCheck("ml_boot_witness_the_record_alone", ml_fired && ml_end == ml_t0 + 1800 && ml_src == 1,
+              "src=" + (string)ml_src);
+   ml_fired = AgManualBootWitness(ml_t0 + 60, false, 0, ml_t0 + 1800, ml_end, ml_src);
+   AgVecCheck("ml_boot_witness_the_gv_alone", ml_fired && ml_end == ml_t0 + 1800 && ml_src == 2,
+              "src=" + (string)ml_src);
+   ml_fired = AgManualBootWitness(ml_t0 + 60, true, ml_t0 + 1800, ml_t0 + 3600, ml_end, ml_src);
+   AgVecCheck("ml_boot_witness_both_the_later_governs", ml_fired && ml_end == ml_t0 + 3600 && ml_src == 3,
+              "src=" + (string)ml_src);
+   ml_fired = AgManualBootWitness(ml_t0 + 1800, true, ml_t0 + 1800, 0, ml_end, ml_src);
+   AgVecCheck("ml_boot_witness_an_ended_record_does_not_fire", !ml_fired && ml_end == 0 && ml_src == 0,
+              "src=" + (string)ml_src);
+   ml_fired = AgManualBootWitness(ml_t0, false, 0, D'2026.10.24 01:00:00', ml_end, ml_src);
+   AgVecCheck("ml_boot_witness_cut_to_the_next_anchor_of_now", ml_fired && ml_end == ml_anc,
+              TimeToString(ml_end, TIME_DATE | TIME_SECONDS));
+   ml_fired = AgManualBootWitness(ml_t0, false, 0, 0, ml_end, ml_src);
+   AgVecCheck("ml_boot_witness_none", !ml_fired && ml_end == 0, "fired");
+   int ml_m = 0;
+   AgVecCheck("ml_parse_minutes",
+              AgManualParseMinutes("15", ml_m) && ml_m == 15
+              && AgManualParseMinutes(" 30 ", ml_m) && ml_m == 30
+              && AgManualParseMinutes("9999", ml_m) && ml_m == 9999
+              && !AgManualParseMinutes("0", ml_m) && !AgManualParseMinutes("", ml_m)
+              && !AgManualParseMinutes("12345", ml_m) && !AgManualParseMinutes("1a", ml_m)
+              && !AgManualParseMinutes("-5", ml_m) && !AgManualParseMinutes("1.5", ml_m), "minutes");
+   int ml_h  = 0;
+   int ml_mi = 0;
+   AgVecCheck("ml_parse_hhmm",
+              AgManualParseHhMm("16:00", ml_h, ml_mi) && ml_h == 16 && ml_mi == 0
+              && AgManualParseHhMm("00:45", ml_h, ml_mi) && ml_h == 0 && ml_mi == 45
+              && AgManualParseHhMm(" 09:05 ", ml_h, ml_mi) && ml_h == 9 && ml_mi == 5
+              && AgManualParseHhMm("23:59", ml_h, ml_mi) && ml_h == 23 && ml_mi == 59
+              && !AgManualParseHhMm("24:00", ml_h, ml_mi) && !AgManualParseHhMm("12:60", ml_h, ml_mi)
+              && !AgManualParseHhMm("1:30", ml_h, ml_mi) && !AgManualParseHhMm("12-30", ml_h, ml_mi)
+              && !AgManualParseHhMm("", ml_h, ml_mi) && !AgManualParseHhMm("ab:cd", ml_h, ml_mi)
+              && !AgManualParseHhMm("12:3", ml_h, ml_mi) && !AgManualParseHhMm("123:45", ml_h, ml_mi), "hh:mm");
+   long     ml_login = 990000031;
+   string   ml_rec   = AgManualSerialize(ml_login, true, ml_t0, ml_t0, ml_t0 + 1800, AG_ML_FORM_DURATION, 30);
+   string   ml_body  = "AGMANUAL|1|990000031\nM|1|" + (string)(long)ml_t0 + "|" + (string)(long)ml_t0 + "|"
+                     + (string)(long)(ml_t0 + 1800) + "|1|30\n";
+   AgVecCheck("ml_record_text_exact", ml_rec == AgVecSealed(ml_body), ml_rec);
+   bool     ml_a  = false;
+   datetime ml_f  = 0;
+   datetime ml_e  = 0;
+   datetime ml_x  = 0;
+   int      ml_fo = 0;
+   int      ml_mn = 0;
+   int ml_rc = AgManualParse(ml_rec, ml_login, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn);
+   AgVecCheck("ml_record_round_trip",
+              ml_rc == 0 && ml_a && ml_f == ml_t0 && ml_e == ml_t0 && ml_x == ml_t0 + 1800
+              && ml_fo == AG_ML_FORM_DURATION && ml_mn == 30, "rc=" + (string)ml_rc);
+   string ml_crlf = ml_rec;
+   StringReplace(ml_crlf, "\n", "\r\n");
+   AgVecCheckInt("ml_record_crlf_parses", AgManualParse(ml_crlf, ml_login, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 0);
+   string ml_bad = ml_rec;
+   StringReplace(ml_bad, "|1|30\n", "|1|31\n");
+   AgVecCheckInt("ml_record_a_changed_byte_fails_the_checksum",
+                 AgManualParse(ml_bad, ml_login, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 2);
+   AgVecCheckInt("ml_record_another_login_is_3",
+                 AgManualParse(ml_rec, 990000032, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 3);
+   AgVecCheckInt("ml_record_past_the_anchor_of_its_first_is_4",
+                 AgManualParse(AgManualSerialize(ml_login, true, ml_t0, ml_t0, ml_anc + 1, AG_ML_FORM_DURATION, 700),
+                               ml_login, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 4);
+   AgVecCheck("ml_record_a_refusal_leaves_the_outputs_inactive", !ml_a && ml_x == 0, "active");
+   AgVecCheckInt("ml_record_inactive_parses",
+                 AgManualParse(AgManualSerialize(ml_login, false, 0, 0, 0, AG_ML_FORM_NONE, 0),
+                               ml_login, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 0);
+   AgVecCheckInt("ml_record_an_extra_line_is_refused",
+                 AgManualParse(ml_rec + "X|1\n", ml_login, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 2);
+   AgVecCheckInt("ml_record_a_cut_record_is_refused",
+                 AgManualParse(StringSubstr(ml_rec, 0, StringFind(ml_rec, "C|")), ml_login,
+                               ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 2);
+   AgVecCheckInt("ml_record_a_bad_active_flag_is_refused",
+                 AgManualParse(AgVecSealed("AGMANUAL|1|990000031\nM|2|0|0|0|0|0\n"), ml_login,
+                               ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 2);
+   AgVecCheckInt("ml_record_a_login_not_numeric_is_refused",
+                 AgManualParse(AgVecSealed("AGMANUAL|1|99000003l\nM|0|0|0|0|0|0\n"), ml_login,
+                               ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 2);
+   AgVecCheckInt("ml_record_a_state_file_does_not_cross_read",
+                 AgManualParse(AgVecSealed(AgVecBody(ml_login, 1, ml_anc, ml_t0, 139.94, 2544.33)), ml_login,
+                               ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn), 2);
+   AgVecCheck("ml_record_magic_distinct_from_every_other_file",
+              AG_MANUAL_MAGIC != "AGSTATE" && AG_MANUAL_MAGIC != "AGHALT" && AG_MANUAL_MAGIC != "AGFLOOR"
+              && AG_MANUAL_MAGIC != "AGPEAK" && AG_MANUAL_MAGIC != AG_TGQ_MAGIC, AG_MANUAL_MAGIC);
+   AgVecCheckInt("ml_record_format_version_is_1", AG_MANUAL_FORMAT_VERSION, 1);
+   AgVecCheck("ml_record_the_same_record_aside_from_line_ends",
+              AgManualSameRecord(ml_crlf, ml_rec) && !AgManualSameRecord(ml_bad, ml_rec), "same record");
+   //--- the file family: the never loaded never written guard on a login
+   //--- never written, then a save, a load, the read back and the quarantine
+   g_ag_login     = 990000039;
+   g_ag_ml_loaded = false;
+   AgVecCheck("ml_file_names_carry_the_login",
+              AgManualPath() == "AccountGuardian\\manual_990000039.dat" && AgGvManual() == "AG_MANUAL_990000039",
+              AgManualPath());
+   AgVecCheck("ml_file_never_loaded_is_never_written", !AgManualSave() && !FileIsExist(AgManualPath()),
+              "save not refused");
+   AgVecCheck("ml_file_missing_is_1", AgManualLoad() == 1 && g_ag_ml_loaded && !g_ag_ml_active, "missing");
+   g_ag_login = 990000031;
+   AgManualLoad();
+   g_ag_ml_active        = true;
+   g_ag_ml_first_engaged = ml_t0;
+   g_ag_ml_engaged       = ml_t0;
+   g_ag_ml_end           = ml_t0 + 1800;
+   g_ag_ml_form          = AG_ML_FORM_DURATION;
+   g_ag_ml_minutes       = 30;
+   bool ml_saved = AgManualSave();
+   AgManualResetModel();
+   int ml_load = AgManualLoad();
+   AgVecCheck("ml_file_save_and_load_round_trip",
+              ml_saved && ml_load == 0 && g_ag_ml_active && g_ag_ml_end == ml_t0 + 1800
+              && g_ag_ml_first_engaged == ml_t0 && g_ag_ml_minutes == 30, "load=" + (string)ml_load);
+   AgVecCheck("ml_file_the_text_on_disk", AgManualSameRecord(AgVecReadRaw(AgManualPath()), ml_rec),
+              AgVecReadRaw(AgManualPath()));
+   AgVecCheckInt("ml_file_read_back_unchanged_is_0", AgManualHealRecord(), 0);
+   AgVecWriteRaw(AgManualPath(), ml_bad);
+   AgVecCheckInt("ml_file_read_back_different_is_2", AgManualHealRecord(), 2);
+   AgVecCheck("ml_file_read_back_writes_the_model_again", AgManualSameRecord(AgVecReadRaw(AgManualPath()), ml_rec),
+              AgVecReadRaw(AgManualPath()));
+   AgVecWriteRaw(AgManualPath(), ml_bad);
+   AgVecCheckInt("ml_file_corrupt_is_quarantined_2", AgManualLoad(), 2);
+   AgVecCheck("ml_file_corrupt_leaves_a_fresh_inactive_record_and_a_bad_file",
+              !g_ag_ml_active && FileIsExist(AgManualPath() + ".bad")
+              && AgManualParse(AgVecReadRaw(AgManualPath()), 990000031, ml_a, ml_f, ml_e, ml_x, ml_fo, ml_mn) == 0
+              && !ml_a, "fresh record");
+   AgVecWriteRaw(AgManualPath(), AgManualSerialize(990000032, true, ml_t0, ml_t0, ml_t0 + 1800, AG_ML_FORM_DURATION, 30));
+   AgVecCheckInt("ml_file_another_login_is_quarantined_3", AgManualLoad(), 3);
+   AgVecWriteRaw(AgManualPath(), AgManualSerialize(990000031, true, ml_t0, ml_t0, ml_anc + 1, AG_ML_FORM_DURATION, 700));
+   AgVecCheckInt("ml_file_past_the_bound_is_quarantined_4", AgManualLoad(), 4);
+   //--- the lines and the ALERTs of ML-21
+   AgVecCheck("ml_line_engaged",
+              AgManualEngagedLine(AG_ML_FORM_DURATION, 15, ml_t0, ml_t0 + 900, ml_anc, 1, 1)
+              == "manual lockout engaged|form=duration|minutes=15|engaged=2026.10.22 14:30:05|end=2026.10.22 14:45:05"
+                 "|next_anchor=2026.10.23 01:00:00|positions=1|pendings=1", "");
+   AgVecCheck("ml_line_extended",
+              AgManualExtendedLine(ml_t0 + 900, ml_t0 + 5395, AG_ML_FORM_END_TIME, 0, ml_t0 + 600)
+              == "manual lockout extended|from=2026.10.22 14:45:05|to=2026.10.22 16:00:00|form=end_time"
+                 "|minutes=0|engaged=2026.10.22 14:40:05", "");
+   AgVecCheck("ml_line_refused_at_the_panel",
+              AgManualRefusedLine(AgManualRefuseName(AG_ML_PAST_ANCHOR), "panel", "-", AG_ML_FORM_DURATION,
+                                  ml_anc + 4205, D'2026.10.23 00:30:00')
+              == "manual lockout refused|why=past the next daily anchor|at=panel|state=-|form=duration"
+                 "|requested_end=2026.10.23 02:10:05|server=2026.10.23 00:30:00", "");
+   AgVecCheck("ml_line_expired",
+              AgManualExpiredLine(ml_t0 + 900, ml_t0 + 900)
+              == "manual lockout expired|end=2026.10.22 14:45:05|server=2026.10.22 14:45:05", "");
+   AgVecCheck("ml_line_ended_under_a_loss_lock",
+              AgManualEndedUnderLossLine(ml_t0 + 900, ml_anc, ml_t0 + 901)
+              == "manual lockout ended, the loss lock holds|end=2026.10.22 14:45:05"
+                 "|locked_until=2026.10.23 01:00:00|server=2026.10.22 14:45:06", "");
+   AgVecCheck("ml_line_record_loaded",
+              AgManualLoadedLine(true, ml_t0 + 900)
+              == "manual lockout record loaded|active=1|end=2026.10.22 14:45:05"
+                 "|weighed by the boot witness at the SYNCING exit", "");
+   AgVecCheck("ml_line_gv_mirror_at_init",
+              AgManualGvInitLine(0)
+              == "manual lockout GV mirror at init|raw=1970.01.01 00:00:00"
+                 "|weighed by the boot witness at the SYNCING exit", "");
+   AgVecCheck("ml_line_boot_witness_fired",
+              AgManualBootFiredLine(3, ml_t0 + 900, ml_t0 + 900, ml_t0 + 900)
+              == "boot witness MANUAL fired|source=file+gv|record=2026.10.22 14:45:05|gv=2026.10.22 14:45:05"
+                 "|end=2026.10.22 14:45:05"
+              && StringFind(AgManualBootFiredLine(2, 0, ml_t0 + 900, ml_t0 + 900), "|source=gv|") > 0
+              && StringFind(AgManualBootFiredLine(1, ml_t0 + 900, 0, ml_t0 + 900), "|source=file|") > 0, "");
+   AgVecCheck("ml_line_holds_with_the_boot_lock",
+              AgManualHoldsLine(ml_t0 + 900, ml_anc, false)
+              == "manual lockout holds with the boot lock|end=2026.10.22 14:45:05"
+                 "|locked_until=2026.10.23 01:00:00|governing=loss lock"
+              && StringFind(AgManualHoldsLine(ml_anc, ml_t0, true), "|governing=MANUAL_LOCKOUT") > 0, "");
+   AgVecCheck("ml_line_record_rewritten",
+              AgManualRewrittenLine("missing") == "manual lockout record rewritten|why=missing"
+              && AgManualRewrittenLine("differs") == "manual lockout record rewritten|why=differs", "");
+   AgVecCheck("ml_line_quarantined",
+              AgManualQuarantinedLine("carries another login", "AccountGuardian\\manual_990000031.dat.bad")
+              == "manual lockout record carries another login, quarantined as AccountGuardian\\manual_990000031.dat.bad"
+                 ", the AG_MANUAL mirror alone decides at the SYNCING exit (ML-19)", "");
+   AgVecCheck("ml_line_panel",
+              AgManualPanelLine("review", AG_ML_FORM_END_OF_DAY, ml_anc, ml_t0)
+              == "manual lockout panel|review|form=end_of_session|end=2026.10.23 01:00:00|server=2026.10.22 14:30:05"
+              && AgManualPanelLine("lock account clicked", AG_ML_FORM_DURATION, ml_t0 + 900, ml_t0)
+              == "manual lockout panel|lock account clicked|form=duration|end=2026.10.22 14:45:05|server=2026.10.22 14:30:05"
+              && AgManualPanelTimedOutLine(ml_t0) == "manual lockout panel|review timed out|server=2026.10.22 14:30:05", "");
+   AgVecCheck("ml_line_transition_and_life_fields",
+              AgManualEndField(ml_t0 + 900) == "manual_end=2026.10.22 14:45:05"
+              && AgManualLifeField(ml_t0 + 900) == "|manual_end=2026.10.22 14:45:05", "");
+   AgVecCheck("ml_alert_engage",
+              AgManualEngageAlert(ml_t0 + 900, 1, 1)
+              == "MANUAL_LOCKOUT: account LOCKED until 2026.10.22 14:45:05. Flattening 1 positions and deleting 1 pending orders.", "");
+   AgVecCheck("ml_alert_extend",
+              AgManualExtendAlert(ml_anc) == "MANUAL_LOCKOUT: lockout extended until 2026.10.23 01:00:00.", "");
+   AgVecCheck("ml_alert_boot",
+              AgManualBootAlert(ml_t0 + 900, 0, 0)
+              == "LOCKED at boot by derivation (MANUAL_LOCKOUT) until 2026.10.22 14:45:05. Flattening 0 positions and deleting 0 pending orders.", "");
+   AgVecCheck("ml_names_and_no_lock_reason_value",
+              AG_MANUAL_REASON_NAME == "MANUAL_LOCKOUT" && AgLockReasonName((ENUM_AG_LOCK_REASON)4) == "UNKNOWN"
+              && AgManualFormName(AG_ML_FORM_DURATION) == "duration" && AgManualFormName(AG_ML_FORM_END_OF_DAY) == "end_of_session"
+              && AgManualFormName(AG_ML_FORM_END_TIME) == "end_time" && AgManualFormName(AG_ML_FORM_NONE) == "none", "");
+   AgVecCheck("ml_refusal_names",
+              AgManualRefuseName(AG_ML_PAST_ANCHOR) == "past the next daily anchor"
+              && AgManualRefuseName(AG_ML_TOO_SOON) == "too soon"
+              && AgManualRefuseName(AG_ML_NOT_LATER) == "not later than the current lock"
+              && AgManualRefuseName(AG_ML_STATE) == "not available in this state"
+              && AgManualRefuseName(AG_ML_INPUT) == "entry not understood"
+              && AgManualRefuseName(AG_ML_NOT_LOADED) == "record not loaded", "");
+   AgVecCheck("ml_remaining_time",
+              AgManualHms(0) == "0:00:00" && AgManualHms(1800) == "0:30:00" && AgManualHms(37795) == "10:29:55"
+              && AgManualHms(-5) == "0:00:00", "");
+   //--- ML-35 (1): the one deinit reason that sends no Telegram message
+   AgVecCheck("ml_tg_silent_reason_is_reason_3_alone",
+              AgTgSilentReason(3) && !AgTgSilentReason(0) && !AgTgSilentReason(1) && !AgTgSilentReason(2)
+              && !AgTgSilentReason(4) && !AgTgSilentReason(5) && !AgTgSilentReason(6) && !AgTgSilentReason(7)
+              && !AgTgSilentReason(8) && !AgTgSilentReason(9), "silent reason");
+   //--- ML-37: after a reason 3 change S3 is silenced only for the same
+   //--- SAFE_HALT already announced, known by its halt time; a SAFE_HALT new
+   //--- at that init, or no halt time on record, sends S3
+   datetime ml_halt_a = D'2026.10.22 14:00:00';
+   datetime ml_halt_b = D'2026.10.22 14:05:00';
+   AgVecCheck("ml_tg_s3_a_new_safe_halt_after_reason_3_is_sent",
+              !AgTgS3Silenced(true, ml_halt_a, ml_halt_b) && !AgTgS3Silenced(true, 0, ml_halt_b)
+              && !AgTgS3Silenced(true, 0, 0), "silenced");
+   AgVecCheck("ml_tg_s3_the_same_safe_halt_announced_is_silenced_after_reason_3_only",
+              AgTgS3Silenced(true, ml_halt_a, ml_halt_a) && !AgTgS3Silenced(false, ml_halt_a, ml_halt_a),
+              "same halt");
+   //--- the record: the halt time of the last S3 among the events a write
+   //--- carried, kept as it was when none is among them
+   AgTgEvent ml_ev;
+   ZeroMemory(ml_ev);
+   AgTgEvent ml_q[];
+   ArrayResize(ml_q, 3);
+   ml_q[0] = ml_ev;
+   ml_q[1] = ml_ev;
+   ml_q[2] = ml_ev;
+   ml_q[0].code = AG_TG_S1;
+   ml_q[1].code = AG_TG_S3;
+   ml_q[1].x[1] = (double)(long)ml_halt_a;
+   ml_q[2].code = AG_TG_S3;
+   ml_q[2].x[1] = (double)(long)ml_halt_b;
+   AgVecCheck("ml_tg_s3_the_record_is_the_last_s3_a_write_carried",
+              AgTgS3HaltTimeIn(ml_q, 3, 0) == ml_halt_b && AgTgS3HaltTimeIn(ml_q, 2, 0) == ml_halt_a
+              && AgTgS3HaltTimeIn(ml_q, 1, ml_halt_a) == ml_halt_a && AgTgS3HaltTimeIn(ml_q, 0, 0) == 0, "record");
+
    //--- TG-S8, the Hebrew: each draft of item 13 rendered with its example
    //--- values, the md5 of the UTF-8 bytes against the value computed from the
    //--- draft's own text, independently, by a script at the build
