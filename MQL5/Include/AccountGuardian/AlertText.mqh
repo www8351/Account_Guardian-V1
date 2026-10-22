@@ -366,6 +366,7 @@ string AgTgFileWord(const int kind)
       case 3: return "קובץ המגבלה שנשמרה מול הגדלה";
       case 4: return "קובץ שיא הרווח הסגור";
       case 5: return "קובץ תור ההתראות";
+      case 6: return "קובץ הנעילה הידנית";
      }
    return "קובץ של השומר";
   }
@@ -475,6 +476,31 @@ string AgTgTextS4Peak(const AgTgCommon &c, const datetime until, const double pe
                 + "\n📉 סה״כ PNL: " + AgTgSignedWithCurrency(pnl_at_lock, cur);
    string events = AgTgAdd("⏳ נעול עד: " + AgTgStamp(until), AgTgSweepNow(positions, pendings));
    return AgTgMessageWith("🔒 החשבון ננעל: ירידה מהשיא היומי", c, group, events + "\n🏁 סיימנו להיום", false);
+  }
+
+//--- the Manual Lockout's note (ML-8): a lockout that ends before the next
+//--- daily anchor says what a close by the guardian does; none at the anchor
+string AgTgManualNote(const datetime end, const datetime anchor, const long positions)
+  {
+   if(end >= anchor)
+      return "";
+   if(positions > 0)
+      return "ℹ️ השומר סוגר עכשיו את העסקאות הפתוחות, ולכן החשבון יישאר נעול עד תחילת יום המסחר הבא";
+   return "ℹ️ אם השומר יסגור עסקה בזמן הנעילה, החשבון יישאר נעול עד תחילת יום המסחר הבא";
+  }
+
+//--- S5, the Manual Lockout engaged (ML-17 (A)), sent at the engagement only
+//--- (ML-30). It carries the sweep line and leaves the open trades line out,
+//--- as S4 and S16 do (R4, ML-31).
+string AgTgTextS5(const AgTgCommon &c, const datetime end, const datetime anchor, const long length,
+                  const long positions, const long pendings)
+  {
+   string lines = "⏳ נעול עד: " + AgTgStamp(end) + "\n⌛ משך: " + AgTgDuration(length);
+   lines = AgTgAdd(lines, AgTgSweepNow(positions, pendings));
+   lines += "\n❗ אי אפשר לבטל או לקצר את הנעילה";
+   lines = AgTgAdd(lines, AgTgManualNote(end, anchor, positions));
+   return AgTgMessageWith("🔒 נעילה ידנית: החשבון ננעל לבקשתך", c, AgTgPnlLine(c.pnl_mode, c.pnl, c.limit, c.cur),
+                          lines, false);
   }
 
 string AgTgTextS6C(const AgTgCommon &c, const long closed, const long deleted, const long attempts,
@@ -686,6 +712,30 @@ string AgTgTextS24(const AgTgCommon &c)
    return AgTgMessage("⛔ עותק אחר של השומר השתלט על החשבון", c,
                       "👥 עותק נוסף של השומר רשם את עצמו כפעיל על אותו חשבון"
                       "\n👉 יש לוודא שהשומר מוצמד לגרף אחד בלבד");
+  }
+
+//--- S25's why line: the lock that holds the account after the lockout's
+//--- own end, by its reason (ML-7, ML-8)
+string AgTgManualAgainWord(const int reason)
+  {
+   if(reason == AG_LOCK_SWEEP_WITNESS)
+      return "ℹ️ השומר סגר עסקה בזמן הנעילה הידנית, ולכן החשבון נעול עד תחילת יום המסחר הבא";
+   if(reason == AG_LOCK_DAILY_BREACH)
+      return "ℹ️ ההפסד של היום חוצה את המגבלה היומית";
+   if(reason == AG_LOCK_CORRUPT_STATE)
+      return "ℹ️ קובץ מצב הנעילה פגום, הנעילה נמשכת עד תחילת יום המסחר הבא";
+   return "";
+  }
+
+//--- S25, the Manual Lockout's own end (ML-17 (A)): outcome 1 released, 2
+//--- the account stays locked by the lock that holds it now, until its end
+string AgTgTextS25(const AgTgCommon &c, const int outcome, const datetime end, const datetime until,
+                   const int reason)
+  {
+   if(outcome == 1)
+      return AgTgMessage("🔓 הנעילה הידנית הסתיימה", c, "⏰ הנעילה הסתיימה בשעה " + AgTgStamp(end));
+   string lines = AgTgAdd("⏰ הנעילה הסתיימה בשעה " + AgTgStamp(end), AgTgManualAgainWord(reason));
+   return AgTgMessage("🔒 הנעילה הידנית הסתיימה, החשבון נשאר נעול", c, lines + "\n⏳ נעול עד: " + AgTgStamp(until));
   }
 
 //+------------------------------------------------------------------+
