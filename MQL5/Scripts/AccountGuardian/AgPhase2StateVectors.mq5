@@ -42,6 +42,7 @@
 #include <AccountGuardian/AlertQueue.mqh>
 #include <AccountGuardian/AlertJson.mqh>
 #include <AccountGuardian/AlertText.mqh>
+#include <AccountGuardian/ManualLockout.mqh>
 
 //--- Synthetic logins. None of these is a real account and none of them
 //--- may ever equal the live one; vector 0 enforces that.
@@ -1281,12 +1282,12 @@ void OnStart()
 
    //--- TG-S12, the queue: a round trip of every code, the checksum, a cut
    //--- file, the bound, the acknowledgement, the numbering, ASCII bytes
-   int tg_codes[21] = {AG_TG_S1, AG_TG_S2, AG_TG_S3, AG_TG_S4, AG_TG_S6C, AG_TG_S6H, AG_TG_S6F,
+   int tg_codes[23] = {AG_TG_S1, AG_TG_S2, AG_TG_S3, AG_TG_S4, AG_TG_S5, AG_TG_S6C, AG_TG_S6H, AG_TG_S6F,
                        AG_TG_S7, AG_TG_S8, AG_TG_S9, AG_TG_S10, AG_TG_S12, AG_TG_S15, AG_TG_S16,
-                       AG_TG_S17, AG_TG_S18, AG_TG_S19, AG_TG_S20, AG_TG_S21, AG_TG_S22, AG_TG_S24};
+                       AG_TG_S17, AG_TG_S18, AG_TG_S19, AG_TG_S20, AG_TG_S21, AG_TG_S22, AG_TG_S24, AG_TG_S25};
    AgTgEvent tg_ev[];
-   ArrayResize(tg_ev, 21);
-   for(int k = 0; k < 21; k++)
+   ArrayResize(tg_ev, 23);
+   for(int k = 0; k < 23; k++)
      {
       tg_ev[k].seq      = 100 + k;
       tg_ev[k].code     = tg_codes[k];
@@ -1310,7 +1311,7 @@ void OnStart()
    tg_sn.anchor = (long)D'2026.10.21 01:00:00'; tg_sn.locked_until = 0; tg_sn.limit_snap = 0.0;
    tg_sn.base_snap = 0.0; tg_sn.percent = 5.5; tg_sn.currency = 200.0; tg_sn.sweep_open = 0; tg_sn.sweep_held = 0;
    string tg_q = AgTgQueueSerialize(990000021, 121, (long)D'2026.10.21 01:00:00', 3,
-                                    AgTgSnapshotLine(tg_sn, "TG"), tg_ev, 21);
+                                    AgTgSnapshotLine(tg_sn, "TG"), tg_ev, 23);
    long tg_login = 0, tg_next = 0, tg_latch = 0; int tg_mask = 0, tg_count = 0;
    AgTgSnapshot tg_sn2; string tg_build = "", tg_why = ""; AgTgEvent tg_back[];
    bool tg_ok = AgTgQueueParse(tg_q, tg_login, tg_next, tg_latch, tg_mask, tg_sn2, tg_build, tg_back, tg_count, tg_why);
@@ -1320,8 +1321,8 @@ void OnStart()
               && tg_mask == 3 && tg_build == "TG" && tg_sn2.anchor == tg_sn.anchor
               && MathAbs(tg_sn2.equity - 2150.10) < 0.000001 && tg_sn2.seconds_in_state == 3600,
               "login=" + (string)tg_login + " next=" + (string)tg_next + " build=" + tg_build);
-   AgVecCheckInt("tg_q_roundtrip_every_code_count", tg_count, 21);
-   bool tg_same = (tg_count == 21);
+   AgVecCheckInt("tg_q_roundtrip_every_code_count", tg_count, 23);
+   bool tg_same = (tg_count == 23);
    for(int k = 0; k < tg_count && tg_same; k++)
       tg_same = tg_back[k].seq == tg_ev[k].seq && tg_back[k].code == tg_ev[k].code
                 && tg_back[k].server_t == tg_ev[k].server_t && tg_back[k].local_t == tg_ev[k].local_t
@@ -1379,11 +1380,12 @@ void OnStart()
               AgTgNextSeqAfterLoad(121, 50) == 121 && AgTgNextSeqAfterLoad(10, 50) == 51
               && AgTgNextSeqAfterLoad(1, 0) == 1, "next seq after load");
    bool tg_codes_ok = true;
-   for(int k = 0; k < 21; k++)
+   for(int k = 0; k < 23; k++)
       if(AgTgCodeFromText(AgTgCodeText(tg_codes[k])) != tg_codes[k])
          tg_codes_ok = false;
    AgVecCheck("tg_q_code_text_round_trips_and_rejects_unknown",
-              tg_codes_ok && AgTgCodeFromText("S5") == 0 && AgTgCodeFromText("S23") == 0
+              tg_codes_ok && AgTgCodeFromText("S5") == AG_TG_S5 && AgTgCodeFromText("S25") == AG_TG_S25
+              && AgTgCodeFromText("S23") == 0
               && AgTgCodeFromText("X1") == 0 && AgTgCodeFromText("S-1") == 0, "code text");
    AgVecCheck("tg_q_names_carry_the_login",
               AgTgQueuePath(990000021) == "AccountGuardian\\tgqueue_990000021.dat"
