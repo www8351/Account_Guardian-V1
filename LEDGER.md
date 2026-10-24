@@ -657,6 +657,12 @@ Status: FINAL
 Decision: (owner ruling 2026-10-23, ML-39) As given: "The two ML-S12 expectations of ml_rows.py take the values present at cce862a: the UUID row pins its one hit to docs/evidence/metaeditor-20260902.txt:372, and the naming rule row for LEDGER.md expects one bare use. The evidence file and the FINAL entry that carry them stay unchanged."
 Status: FINAL
 
+Decision: (owner ruling 2026-10-24, ML-40) As given: "Amends ML-15 (A). In the review stage, Back is set apart from Lock Account, and Lock Account is armed 3 seconds after the review opens. Everything else in ML-15 (A) stands."
+Status: FINAL
+
+Decision: (owner ruling 2026-10-24, ML-41) As given: "The naming rule that bars the bare word heartbeat in LEDGER.md and the SPEC is repealed. The word is free to use. The rule has no bearing on development. This also supersedes the naming rule half of ML-39." What this entry repeals, by name: the entry "(owner ruling 2026-07-29) Naming discipline" under Process and evidence, in its bar on the bare word. That entry and ML-39 are not edited.
+Status: FINAL
+
 ### Owner rulings of the compaction
 
 Decision: (owner ruling given in chat on 2026-10-21, C1, the one-time compaction of the ledger) As given: "The ledger is compacted once. One-time decisions are deleted outright: acceptance passes, attestations of a row, merges, owner statements, and records of what a session did. Superseded and void decisions are deleted outright. Only standing rules in force stay. No archive file is made; git history holds every earlier version, and the owner keeps his own copy outside the repository. This overrides "append only" for ACTIONS, for this compaction only."
