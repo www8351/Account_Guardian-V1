@@ -22,6 +22,7 @@
 #define AG_PANEL_FONT        "Arial"
 #define AG_PANEL_FONT_SIZE   9
 #define AG_PANEL_PART_COUNT  23
+#define AG_PANEL_ARM_TICKS   3    // ML-40: Lock Account is armed 3 timer ticks after the review opens, counted as the 60 tick self cancel is
 
 #define AG_PANEL_IDLE         0
 #define AG_PANEL_CHOOSE       1
@@ -147,7 +148,7 @@ void AgPanelCreate()
    AgPanelMake("L5",     OBJ_LABEL,  326, 102,   0,  0, " ");
    AgPanelMake("L6",     OBJ_LABEL,  326, 120,   0,  0, " ");
    AgPanelMake("LOCK",   OBJ_BUTTON, 326, 146, 150, 24, "Lock Account");
-   AgPanelMake("BACK",   OBJ_BUTTON, 170, 146, 150, 24, "Back");
+   AgPanelMake("BACK",   OBJ_BUTTON, 120, 182, 100, 24, "Back");   // ML-40: apart from LOCK, on its own row at the right
    AgPanelMake("NOTE",   OBJ_LABEL,  326,  54,   0,  0, " ");
    ObjectSetInteger(0, AgPanelName("LOCK"), OBJPROP_BGCOLOR, clrFireBrick);
    g_ag_panel_created     = true;
@@ -214,7 +215,7 @@ int AgPanelHeight(const int stage)
    if(stage == AG_PANEL_CHOOSE)
       return 196;
    if(stage == AG_PANEL_REVIEW)
-      return 176;
+      return 190;   // ML-40: room for Back on its own row
    if(stage == AG_PANEL_LOCKED)
       return 100;
    return 28;
@@ -281,6 +282,10 @@ void AgPanelRender(const datetime now)
                   + (string)g_ag_panel_pendings);
       AgPanelText("L5", "This lockout cannot be cancelled or shortened.");
       AgPanelText("L6", (end < anchor) ? "A close by the guardian locks until " + AgManualStamp(anchor) : "");
+      //--- ML-40: Lock Account is drawn greyed until it is armed
+      bool armed = (g_ag_panel_review_ticks >= AG_PANEL_ARM_TICKS);
+      AgPanelEnabled("LOCK", armed);
+      ObjectSetInteger(0, AgPanelName("LOCK"), OBJPROP_BGCOLOR, armed ? clrFireBrick : C'70,70,70');
      }
    else if(stage == AG_PANEL_WAIT)
       AgPanelText("TITLE", "Locking...");
@@ -407,7 +412,7 @@ void AgPanelOnEvent(const int id, const long &lparam, const double &dparam, cons
          g_ag_panel_note  = "";
          g_ag_panel_stage = AG_PANEL_CHOOSE;
         }
-      else if(part == "LOCK")
+      else if(part == "LOCK" && g_ag_panel_review_ticks >= AG_PANEL_ARM_TICKS)   // ML-40: before it, no effect and no journal line
         {
          datetime end     = AgManualEndFor(now, g_ag_panel_form, g_ag_panel_minutes, g_ag_panel_hh, g_ag_panel_mm);
          int      outcome = AgManualCheckEnd(now, end, g_ag_panel_form, g_ag_panel_current_end);
