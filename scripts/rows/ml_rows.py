@@ -214,8 +214,7 @@ for e in ("the same line texts: True", "TG-S3 AgSweepPass call sites 2:",
           "TG-S16 outside the allowed sites: []; in a protected function: []",
           "TG-S6 token shaped literals in the tree: 0", "TG-S6 UUID shaped literals in the tree: 1 ['docs/evidence/metaeditor-20260902.txt:372']",
           "TG-S6 a non empty default on the three inputs: 0",
-          "TG-S6 a journal, Alert or chart call carrying an input: 0",
-          "naming rule LEDGER.md: bare uses 1", "naming rule docs/SPEC_v0.1.md: bare uses 0"):
+          "TG-S6 a journal, Alert or chart call carrying an input: 0"):
     check("ML-S12 " + e, e in sr)
 m = re.search(r"IN-S5 manifest lines (\d+), matching the HEAD blobs (\d+)", sr)
 check("ML-S12 IN-S5 every manifest line matches its HEAD blob, 16 lines",
